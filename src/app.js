@@ -262,9 +262,9 @@ $('#btnClearHist').onclick = async function () {
 function btProblem() {
   const ua = navigator.userAgent, linux = /Linux/.test(ua) && !/Android/.test(ua), brave = !!navigator.brave;
   const scheme = brave ? 'brave' : 'chrome', flag = f => `<code>${scheme}://flags/#${f}</code>`;
-  if (FRAMED) return '<b>Bluetooth is blocked in this preview.</b> To record, open the app from its own https web address (your Netlify link). Sample reports and recording files still work here.';
+  if (FRAMED) return '<b>Bluetooth is blocked in this preview.</b> To record, open the app from {{APP_URL}}. Sample reports and recording files still work here.';
   if (!window.isSecureContext || location.protocol !== 'https:' && location.hostname !== 'localhost')
-    return `<b>This page was opened from ${esc(location.protocol === 'file:' ? 'a file on your device' : location.protocol + '//' + location.host)}.</b> Bluetooth only works on https pages. Open your <code>https://….netlify.app</code> link instead.`;
+    return `<b>This page was opened from ${esc(location.protocol === 'file:' ? 'a file on your device' : location.protocol + '//' + location.host)}.</b> Bluetooth only works on https pages. Open <code>{{APP_URL}}</code> instead.`;
   if ('bluetooth' in navigator) return '';
   if (brave) return `<b>Brave has Bluetooth for websites switched off.</b> Open ${flag('brave-web-bluetooth-api')}, set it to Enabled${linux ? `, also enable ${flag('enable-experimental-web-platform-features')}` : ''}, then relaunch Brave.`;
   if (linux) return `<b>Chromium on Linux keeps Bluetooth for websites behind a setting.</b> Open ${flag('enable-experimental-web-platform-features')}, set it to Enabled, then relaunch. If you installed Chromium as a snap, also run <code>sudo snap connect chromium:bluez</code> once.`;

@@ -14,10 +14,14 @@ const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
 const PROJECT = {
   name: 'Lead One ECG',
   filePrefix: 'LeadOne-ECG',
+  appUrl: 'https://leadone.anonacondacodelab.com', // the public address of the app (used in help texts)
   repoUrl: '',            // e.g. 'https://github.com/your-name/lead-one-ecg'  (shown in Settings > About)
   kofi: 'anonacondacodelab' // your Ko-fi username; leave empty to hide the support link
 };
 const APP = { APP_NAME: PROJECT.name, FILE_PREFIX: PROJECT.filePrefix, VERSION: pkg.version };
+const appUrl = /^https:\/\/[\w.-]+\/?$/.test(PROJECT.appUrl) ? PROJECT.appUrl.replace(/\/$/, '') : '';
+APP.APP_URL = appUrl || 'its https web address';
+APP.APP_HOST = appUrl ? appUrl.replace('https://', '') : 'the https address';
 const safeUrl = u => /^https:\/\/[\w.-]+(\/[\w./%-]*)?$/.test(u) ? u : '';
 const repo = safeUrl(PROJECT.repoUrl), kofi = /^[A-Za-z0-9_]{1,60}$/.test(PROJECT.kofi) ? 'https://ko-fi.com/' + PROJECT.kofi : '';
 const about = `<div class="card" id="aboutCard">
@@ -28,7 +32,7 @@ const about = `<div class="card" id="aboutCard">
 
 const src = f => readFileSync(join(root, 'src', f), 'utf8');
 const b64 = f => readFileSync(join(root, 'src', 'fonts', f)).toString('base64');
-const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about);
+const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION|APP_URL|APP_HOST)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about);
 
 const fonts = `@font-face{font-family:"Instrument Sans";font-style:normal;font-display:swap;font-weight:400 700;font-stretch:75% 100%;src:url(data:font/woff2;base64,${b64('InstrumentSans-latin-variable.woff2')}) format("woff2-variations")}
 @font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:400;src:url(data:font/woff2;base64,${b64('IBMPlexMono-latin-400.woff2')}) format("woff2")}

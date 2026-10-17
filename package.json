@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "license": "GPL-3.0-or-later",
+  "homepage": "https://leadone.anonacondacodelab.com",
   "scripts": {
     "build": "node build.mjs",
     "test": "node build.mjs && node --test tests/*.test.mjs"

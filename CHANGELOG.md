@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.2.0
+- New home: https://leadone.anonacondacodelab.com. In-app help now points to it (set `appUrl` in `build.mjs`).
 - Backup reminder: a banner on the home screen when reading history has never been exported (after 5 readings or a
   week) or the last export is more than 30 days old and newer readings exist. "Remind me in a week" snoozes it.
   Settings shows when history was last backed up.

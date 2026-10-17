@@ -4,6 +4,8 @@
 Record with a Polar H10, get a clear, graded A4 report, and track your own baseline over time.
 Everything runs in your browser: no account, no server, no data leaves your device.
 
+**Use it now: [leadone.anonacondacodelab.com](https://leadone.anonacondacodelab.com)** (Chrome on Android recommended).
+
 <p>
 <img src="docs/screenshots/app-home.png" alt="Home screen" width="23%">
 <img src="docs/screenshots/app-recording.png" alt="Recording screen" width="23%">
@@ -35,7 +37,7 @@ Everything runs in your browser: no account, no server, no data leaves your devi
   when a backup is due.
 
 ## Getting started
-1. Open the app in **Chrome or Edge** (Android, Windows, macOS, ChromeOS) or Chromium-based browsers with Web Bluetooth
+1. Open **[leadone.anonacondacodelab.com](https://leadone.anonacondacodelab.com)** in **Chrome or Edge** (Android, Windows, macOS, ChromeOS) or Chromium-based browsers with Web Bluetooth
    enabled. It must be served over **https**.
 2. On first launch, enter your date of birth and sex (used only for reference ranges, stored only on your device).
 3. Moisten the strap electrodes, put the strap on, close other apps connected to it (the H10 streams ECG to one app at a
@@ -48,9 +50,9 @@ The app explains the fix if Bluetooth is unavailable. Sample reports and recordi
 
 ### Hosting your own copy
 The whole app is one file, `dist/index.html`. Host it anywhere that serves https:
-- **GitHub Pages:** fork this repository, then *Settings → Pages → Source: GitHub Actions*. The included workflow
-  publishes every push to `main`.
-- **Netlify Drop / any static host:** upload `dist/index.html`.
+- **Netlify, Cloudflare Pages or similar:** link your fork and set the publish directory to `dist` (no build command).
+- **Any static host:** upload `dist/index.html`.
+- Set `appUrl` at the top of `build.mjs` to your own address so the in-app help points to it.
 
 Recordings are stored per web address, so moving to a new address starts with empty storage: export your history and
 recording files first.
