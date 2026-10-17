@@ -239,20 +239,27 @@ $('#btnExportHist').onclick = async () => {
     JSON.stringify({ format: 'lead-one-ecg-history', version: 1, exported: d.toISOString(), profile: { dob: s.dob, sex: s.sex, name: s.name }, history: h }, null, 1));
   if (!FRAMED) { patchSettings({ lastBackup: Date.now(), backupSnooze: 0 }); refreshHistCount(); toast('History exported. Keep the file somewhere safe, such as Google Drive.'); }
 };
-$('#btnImportHist').onclick = () => $('#histIn').click();
+$('#btnImportHist').onclick = $('#btnImportSetup').onclick = () => $('#histIn').click();
+/* read a JSON file robustly: files passed through chat apps or e-mail can gain a byte-order mark or surrounding whitespace */
+const readJson = async f => JSON.parse((await f.text()).replace(/^\uFEFF/, '').trim());
 $('#histIn').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const f = e.target.files[0]; e.target.value = ''; if (f) importHistoryFile(f);
+};
+async function importHistoryFile(f) {
+  let j;
+  try { if (f.size > 50 * 1024 * 1024) throw 0; j = await readJson(f); }
+  catch (err) { toast(`“${f.name}” could not be read as a {{APP_NAME}} history export. If it was sent through a chat or e-mail app, save it to the phone first (Download or Save to Files) and choose the saved copy.`, 9000); return; }
+  if (REC_FORMATS.includes(j && j.format)) { toast('This is a recording file, not a history export. Open it with “Open a recording file” on the home screen.', 7000); return; }
+  if (!j || !HIST_FORMATS.includes(j.format) || !Array.isArray(j.history)) { toast('This file is not a {{APP_NAME}} history export. Choose the file saved with “Export history”.', 7000); return; }
   try {
-    if (f.size > 50 * 1024 * 1024) throw 0;
-    const j = JSON.parse(await f.text()); if (!HIST_FORMATS.includes(j.format) || !Array.isArray(j.history)) throw 0;
     const have = new Set((await getHistory()).map(x => x.id)); let added = 0, updated = 0;
     for (const raw of j.history.slice(0, 20000)) { const x = cleanHistory(raw); if (!x) continue; have.has(x.id) ? updated++ : added++; await putHistory(x); }
     const s = getSettings(), p = cleanProfile(j.profile);
     if (!s.dob || !s.sex) patchSettings({ dob: s.dob || p.dob, sex: s.sex || p.sex, name: s.name || p.name });
-    toast(`Imported ${added} new reading${added === 1 ? '' : 's'}${updated ? `, updated ${updated}` : ''}.`); refreshHistCount(); profileNote();
-    if (!$('#scrSettings').hidden) openSettings(false);
-  } catch (err) { toast('This file is not a {{APP_NAME}} history export.'); }
-};
+    toast(added + updated ? `Imported ${added} new reading${added === 1 ? '' : 's'}${updated ? `, updated ${updated}` : ''}.` : 'The file contained no readings to import.'); refreshHistCount(); profileNote();
+    if (!$('#scrSettings').hidden) openSettings(!getSettings().setupDone);
+  } catch (err) { toast('The history could not be saved on this device: ' + (err && err.message || err), 7000); }
+}
 $('#btnClearHist').onclick = async function () {
   if (!this.dataset.arm) { this.dataset.arm = 1; this.textContent = 'Tap again to delete'; setTimeout(() => { delete this.dataset.arm; this.textContent = 'Delete history'; }, 3500); return; }
   await idb('history', 'readwrite', s => s.clear()); delete this.dataset.arm; this.textContent = 'Delete history'; toast('History deleted.'); refreshHistCount();
@@ -646,11 +653,11 @@ function saveRecordingFile() {
 }
 async function openFile(file) {
   if (file.size > MAX_FILE) { toast('This file is too large to be an H10 recording.'); return; }
-  const text = await file.text(); let raw, meta;
+  const text = (await file.text()).replace(/^\uFEFF/, ''); let raw, meta;
   try {
     if (text.trimStart().startsWith('{')) {
       const j = JSON.parse(text);
-      if (HIST_FORMATS.includes(j.format)) { toast('This is a history export. Import it from Profile and settings.'); return; }
+      if (HIST_FORMATS.includes(j.format)) { importHistoryFile(file); return; }
       if (!REC_FORMATS.includes(j.format)) throw new Error('This file was not saved by {{APP_NAME}}.');
       const bin = atob(j.samples), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
       if (u8.length % 4 || u8.length / 4 > MAX_SAMPLES) throw new Error('This recording file is damaged.');

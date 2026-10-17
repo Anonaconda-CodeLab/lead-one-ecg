@@ -165,6 +165,9 @@ replacing your phone, or using an Incognito tab would lose them. The app shows a
 
 - **Settings → Export history** saves a backup file of your reading history. Keep it somewhere safe, such as Google Drive.
 - **Settings → Import history** restores it, on the same phone or a new one. Readings already present are not duplicated.
+- **Moving to a new phone:** send yourself the backup file (e-mail, Google Drive or a chat app), and **save it to the new
+  phone first** (Download, or Save to Files). Then open the app; on the setup screen tap **Import your history file**, or
+  later use **Settings → Import history**. Your profile comes across too.
 - To keep a particular recording in full, use **Save recording** or **Save as PDF** on its report. Imported history brings
   back your baseline and trends, but not the raw recordings.
 

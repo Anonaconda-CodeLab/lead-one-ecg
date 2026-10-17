@@ -374,6 +374,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
     <div class="intro" id="setupIntro" hidden>
       <h1>Set up your profile</h1>
       <p>Age and sex are used to select reference intervals and heart-rate zones. Your age is calculated for the date of each recording. Everything stays on this device.</p>
+      <p class="dev-meta" style="margin-top:8px">Moving from another phone? <button class="linkbtn" id="btnImportSetup">Import your history file</button> and your profile and readings come with it.</p>
     </div>
     <div class="card">
       <div class="field"><label for="setDob">Date of birth</label><input id="setDob" type="date" max="2026-12-31"></div>
@@ -392,10 +393,10 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
         <button id="btnImportHist" class="btn">Import history</button>
         <button id="btnClearHist" class="btn ghost">Delete history</button>
       </div>
-      <input type="file" id="histIn" accept=".json,application/json" hidden>
+      <input type="file" id="histIn" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.3.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.3.1 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
@@ -454,7 +455,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 <p>Everything is stored <b>only in Chrome on the device you record with</b>, at this app's web address. There is no account and no cloud copy.</p>
 <ul><li><b>Reading history</b> (the summary of each reading, used for your baseline and trends) is small and kept indefinitely.</li><li><b>Recordings</b> (the raw ECG) are kept on the device until you delete them from the list on the home screen.</li></ul>
 <p><b>Back up regularly.</b> Clearing Chrome's browsing data (&quot;Cookies and site data&quot;), uninstalling Chrome, resetting or replacing your phone, or using an Incognito tab would lose them. The app shows a reminder when a backup is due.</p>
-<ul><li><b>Settings → Export history</b> saves a backup file of your reading history. Keep it somewhere safe, such as Google Drive.</li><li><b>Settings → Import history</b> restores it, on the same phone or a new one. Readings already present are not duplicated.</li><li>To keep a particular recording in full, use <b>Save recording</b> or <b>Save as PDF</b> on its report. Imported history brings back your baseline and trends, but not the raw recordings.</li></ul>
+<ul><li><b>Settings → Export history</b> saves a backup file of your reading history. Keep it somewhere safe, such as Google Drive.</li><li><b>Settings → Import history</b> restores it, on the same phone or a new one. Readings already present are not duplicated.</li><li><b>Moving to a new phone:</b> send yourself the backup file (e-mail, Google Drive or a chat app), and <b>save it to the new phone first</b> (Download, or Save to Files). Then open the app; on the setup screen tap <b>Import your history file</b>, or later use <b>Settings → Import history</b>. Your profile comes across too.</li><li>To keep a particular recording in full, use <b>Save recording</b> or <b>Save as PDF</b> on its report. Imported history brings back your baseline and trends, but not the raw recordings.</li></ul>
 <h2>Troubleshooting</h2>
 <h3>&quot;Bluetooth isn't available&quot;</h3>
 <p>On a phone, open the app in <b>Google Chrome on Android</b>, from its https address. On a computer, use Chrome or Edge. iPhone, iPad, Safari and Firefox are not supported. On Linux, enable <code>chrome://flags/#enable-experimental-web-platform-features</code>; in Brave, enable <code>brave://flags/#brave-web-bluetooth-api</code>.</p>
@@ -538,7 +539,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
         <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
     </div>
-    <input type="file" id="fileIn" accept=".json,.txt,.csv,application/json,text/plain" hidden>
+    <input type="file" id="fileIn" hidden>
 
     <details class="tips">
       <summary>Recording guidance</summary>
@@ -2355,7 +2356,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.3.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.3.1 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* ===== Lead One ECG · recorder, storage, history, UI =====
@@ -2599,20 +2600,27 @@ $('#btnExportHist').onclick = async () => {
     JSON.stringify({ format: 'lead-one-ecg-history', version: 1, exported: d.toISOString(), profile: { dob: s.dob, sex: s.sex, name: s.name }, history: h }, null, 1));
   if (!FRAMED) { patchSettings({ lastBackup: Date.now(), backupSnooze: 0 }); refreshHistCount(); toast('History exported. Keep the file somewhere safe, such as Google Drive.'); }
 };
-$('#btnImportHist').onclick = () => $('#histIn').click();
+$('#btnImportHist').onclick = $('#btnImportSetup').onclick = () => $('#histIn').click();
+/* read a JSON file robustly: files passed through chat apps or e-mail can gain a byte-order mark or surrounding whitespace */
+const readJson = async f => JSON.parse((await f.text()).replace(/^\uFEFF/, '').trim());
 $('#histIn').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const f = e.target.files[0]; e.target.value = ''; if (f) importHistoryFile(f);
+};
+async function importHistoryFile(f) {
+  let j;
+  try { if (f.size > 50 * 1024 * 1024) throw 0; j = await readJson(f); }
+  catch (err) { toast(`“${f.name}” could not be read as a Lead One ECG history export. If it was sent through a chat or e-mail app, save it to the phone first (Download or Save to Files) and choose the saved copy.`, 9000); return; }
+  if (REC_FORMATS.includes(j && j.format)) { toast('This is a recording file, not a history export. Open it with “Open a recording file” on the home screen.', 7000); return; }
+  if (!j || !HIST_FORMATS.includes(j.format) || !Array.isArray(j.history)) { toast('This file is not a Lead One ECG history export. Choose the file saved with “Export history”.', 7000); return; }
   try {
-    if (f.size > 50 * 1024 * 1024) throw 0;
-    const j = JSON.parse(await f.text()); if (!HIST_FORMATS.includes(j.format) || !Array.isArray(j.history)) throw 0;
     const have = new Set((await getHistory()).map(x => x.id)); let added = 0, updated = 0;
     for (const raw of j.history.slice(0, 20000)) { const x = cleanHistory(raw); if (!x) continue; have.has(x.id) ? updated++ : added++; await putHistory(x); }
     const s = getSettings(), p = cleanProfile(j.profile);
     if (!s.dob || !s.sex) patchSettings({ dob: s.dob || p.dob, sex: s.sex || p.sex, name: s.name || p.name });
-    toast(`Imported ${added} new reading${added === 1 ? '' : 's'}${updated ? `, updated ${updated}` : ''}.`); refreshHistCount(); profileNote();
-    if (!$('#scrSettings').hidden) openSettings(false);
-  } catch (err) { toast('This file is not a Lead One ECG history export.'); }
-};
+    toast(added + updated ? `Imported ${added} new reading${added === 1 ? '' : 's'}${updated ? `, updated ${updated}` : ''}.` : 'The file contained no readings to import.'); refreshHistCount(); profileNote();
+    if (!$('#scrSettings').hidden) openSettings(!getSettings().setupDone);
+  } catch (err) { toast('The history could not be saved on this device: ' + (err && err.message || err), 7000); }
+}
 $('#btnClearHist').onclick = async function () {
   if (!this.dataset.arm) { this.dataset.arm = 1; this.textContent = 'Tap again to delete'; setTimeout(() => { delete this.dataset.arm; this.textContent = 'Delete history'; }, 3500); return; }
   await idb('history', 'readwrite', s => s.clear()); delete this.dataset.arm; this.textContent = 'Delete history'; toast('History deleted.'); refreshHistCount();
@@ -3006,11 +3014,11 @@ function saveRecordingFile() {
 }
 async function openFile(file) {
   if (file.size > MAX_FILE) { toast('This file is too large to be an H10 recording.'); return; }
-  const text = await file.text(); let raw, meta;
+  const text = (await file.text()).replace(/^\uFEFF/, ''); let raw, meta;
   try {
     if (text.trimStart().startsWith('{')) {
       const j = JSON.parse(text);
-      if (HIST_FORMATS.includes(j.format)) { toast('This is a history export. Import it from Profile and settings.'); return; }
+      if (HIST_FORMATS.includes(j.format)) { importHistoryFile(file); return; }
       if (!REC_FORMATS.includes(j.format)) throw new Error('This file was not saved by Lead One ECG.');
       const bin = atob(j.samples), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
       if (u8.length % 4 || u8.length / 4 > MAX_SAMPLES) throw new Error('This recording file is damaged.');

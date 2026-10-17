@@ -23,6 +23,13 @@ test('user manual is built into the app from docs/MANUAL.md', () => {
   assert.ok(help.includes('<h2>Wellness use only: please read</h2>'), 'wellness section present');
 });
 
+test('history import is reachable on first run and file pickers are not type-filtered', () => {
+  const h = distHtml();
+  assert.ok(/id="btnImportSetup"/.test(h), 'import offered during first-run setup');
+  assert.ok(/<input type="file" id="histIn" hidden>/.test(h) && /<input type="file" id="fileIn" hidden>/.test(h),
+    'no accept filter: Android greys out .json files that chat apps label as generic data');
+});
+
 test('wellness-use acknowledgement is required before first use', () => {
   const h = distHtml();
   const ack = h.slice(h.indexOf('id="scrAck"'), h.indexOf('<!-- PROFILE'));

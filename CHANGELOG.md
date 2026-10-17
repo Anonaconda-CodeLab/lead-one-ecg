@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1
+- Fix: importing a history file on another phone could fail. Android greyed out backup files received through chat or
+  e-mail apps (they arrive labelled as generic data); the file pickers no longer filter by type and validate the
+  contents instead. Files with a byte-order mark are accepted.
+- First-run setup offers "Import your history file" for people moving from another phone.
+- A history export opened with "Open a recording file" is now imported instead of rejected.
+- Clearer messages when the chosen file is a recording, unreadable, or not an export.
+
 ## 1.3.0
 - Home screen states up front that Google Chrome is required (iPhone, Safari and Firefox cannot connect).
 - User manual (`docs/MANUAL.md`), built into the app: home screen > User manual, and Settings > About.

@@ -33,6 +33,7 @@
     <div class="intro" id="setupIntro" hidden>
       <h1>Set up your profile</h1>
       <p>Age and sex are used to select reference intervals and heart-rate zones. Your age is calculated for the date of each recording. Everything stays on this device.</p>
+      <p class="dev-meta" style="margin-top:8px">Moving from another phone? <button class="linkbtn" id="btnImportSetup">Import your history file</button> and your profile and readings come with it.</p>
     </div>
     <div class="card">
       <div class="field"><label for="setDob">Date of birth</label><input id="setDob" type="date" max="2026-12-31"></div>
@@ -51,7 +52,7 @@
         <button id="btnImportHist" class="btn">Import history</button>
         <button id="btnClearHist" class="btn ghost">Delete history</button>
       </div>
-      <input type="file" id="histIn" accept=".json,application/json" hidden>
+      <input type="file" id="histIn" hidden>
     </div>
     {{ABOUT}}
   </section>
@@ -123,7 +124,7 @@
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
         <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
     </div>
-    <input type="file" id="fileIn" accept=".json,.txt,.csv,application/json,text/plain" hidden>
+    <input type="file" id="fileIn" hidden>
 
     <details class="tips">
       <summary>Recording guidance</summary>
