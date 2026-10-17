@@ -1,10 +1,13 @@
 # Changelog
 
 ## 1.3.0
+- Home screen states up front that Google Chrome is required (iPhone, Safari and Firefox cannot connect).
 - User manual (`docs/MANUAL.md`), built into the app: home screen > User manual, and Settings > About.
 - Wellness use only, made explicit: a one-time "Before you start" notice that must be acknowledged before first use;
   a wellness-only line on the home screen; stronger wording in the report disclaimer, page footers and the plain-language
   page; a prominent section at the top of the manual and the README.
+- Manual, README and in-app help state plainly which browsers to use: Google Chrome on Android phones; Chrome or Edge
+  on computers; iPhone and iPad are not supported.
 
 ## 1.2.0
 - New home: https://leadone.anonacondacodelab.com. In-app help now points to it (set `appUrl` in `build.mjs`).

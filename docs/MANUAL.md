@@ -35,8 +35,14 @@ The first time you open the app, it asks you to confirm that you have read and u
 
 ## What you need
 - A **Polar H10** chest strap.
-- **Chrome on an Android phone** (recommended), or Chrome or Edge on Windows, macOS or ChromeOS. iPhones and iPads do not
-  support Bluetooth in web apps, so recording does not work there.
+- A browser that supports Bluetooth for web apps (called "Web Bluetooth"):
+  - **On a phone, use Google Chrome on Android.** This is the browser the app is built and tested for. Other phone
+    browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.
+  - **On a computer** (Windows, macOS or ChromeOS), use **Chrome or Microsoft Edge**. Other Chromium-based browsers such
+    as Opera usually work too. Brave and Linux need a setting switched on first (see *Troubleshooting*), and recording
+    on Linux can be unreliable.
+  - **iPhone and iPad are not supported.** Browsers on iPhone and iPad, Chrome included, do not offer Web Bluetooth, so
+    none of them can connect to the strap. **Firefox and Safari** do not support it on any device.
 - The app's web address: **https://leadone.anonacondacodelab.com**
 
 There is nothing to install. To open the app like a normal app, open the address in Chrome, tap the **⋮** menu and choose
@@ -165,7 +171,8 @@ replacing your phone, or using an Incognito tab would lose them. The app shows a
 ## Troubleshooting
 
 ### "Bluetooth isn't available"
-Use Chrome on Android and open the app from its https address. iPhone, Safari and Firefox are not supported. On Linux,
+On a phone, open the app in **Google Chrome on Android**, from its https address. On a computer, use Chrome or Edge.
+iPhone, iPad, Safari and Firefox are not supported. On Linux,
 enable `chrome://flags/#enable-experimental-web-platform-features`; in Brave, enable `brave://flags/#brave-web-bluetooth-api`.
 
 ### The strap connects, but the timer stays at 00:00:00 or "No ECG from the strap" appears

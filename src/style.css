@@ -76,6 +76,7 @@ h2.sec{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--
 .manual p{margin:8px 0}
 .manual ul,.manual ol{margin:8px 0;padding-left:22px;display:flex;flex-direction:column;gap:5px}
 .manual code{font-family:"IBM Plex Mono",monospace;font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:0 4px;overflow-wrap:anywhere}
+.manual li ul{margin:6px 0 2px;padding-left:18px;list-style:circle}
 .manual hr{border:0;border-top:1px solid var(--line);margin:20px 0 8px}
 .manual .callout{border:2px solid var(--warn);border-radius:12px;padding:6px 14px;margin:12px 0;background:var(--bg)}
 .manual .callout p{margin:8px 0}
