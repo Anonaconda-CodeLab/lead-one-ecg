@@ -1,6 +1,6 @@
 /* ===== {{APP_NAME}} · recorder, storage, history, UI =====
    Storage keys keep their original 'h10ecg' names so existing recordings and history remain readable.
-   Copyright (C) 2026 Anonaconda Coding Studio
+   Copyright (C) 2026 Anonaconda Code Lab
    SPDX-License-Identifier: GPL-3.0-or-later
 */
 const PMD_SERVICE = 'fb005c80-02e7-f387-1cad-8acd2d8df0c8';

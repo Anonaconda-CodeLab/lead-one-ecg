@@ -36,7 +36,7 @@ issue) you confirm that:
 
 1. you wrote it yourself, or otherwise have the right to submit it;
 2. it is licensed to everyone under the GNU GPL v3 or later, like the rest of the project; and
-3. you also grant Anonaconda Coding Studio a perpetual, worldwide, non-exclusive, royalty-free licence to use, modify
+3. you also grant Anonaconda Code Lab a perpetual, worldwide, non-exclusive, royalty-free licence to use, modify
    and distribute your contribution under other licence terms as well, for example in a separately distributed app.
 
 You keep the copyright in your contribution. If you do not agree to point 3, say so in your pull request before it is

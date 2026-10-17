@@ -4,7 +4,7 @@
 - Backup reminder: a banner on the home screen when reading history has never been exported (after 5 readings or a
   week) or the last export is more than 30 days old and newer readings exist. "Remind me in a week" snoozes it.
   Settings shows when history was last backed up.
-- Licence changed from MIT to the GNU General Public License v3 or later (copyright Anonaconda Coding Studio);
+- Licence changed from MIT to the GNU General Public License v3 or later (copyright Anonaconda Code Lab);
   CONTRIBUTING.md now explains how contributions are licensed.
 - Settings > About: "Support on Ko-fi" button (ko-fi.com/anonacondacodelab); FUNDING.yml points to Ko-fi.
 

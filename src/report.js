@@ -1,5 +1,5 @@
 /* ===== {{APP_NAME}} · report renderer (A4, SVG charts in mm) =====
-   Copyright (C) 2026 Anonaconda Coding Studio
+   Copyright (C) 2026 Anonaconda Code Lab
    SPDX-License-Identifier: GPL-3.0-or-later
 */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));

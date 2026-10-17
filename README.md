@@ -85,7 +85,7 @@ Polar and H10 are trademarks of Polar Electro Oy. This project is independent an
 Polar Electro. See [NOTICE.md](NOTICE.md) for third-party licences.
 
 ## Licence
-Copyright © 2026 Anonaconda Coding Studio.
+Copyright © 2026 Anonaconda Code Lab.
 
 Lead One ECG is free software: you can redistribute it and/or modify it under the terms of the
 [GNU General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or

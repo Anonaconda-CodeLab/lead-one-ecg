@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Copyright (C) 2026 Anonaconda Coding Studio · SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later
 // Builds dist/index.html: a single self-contained page (fonts, styles and scripts inlined)
 // with a strict Content Security Policy that blocks every network request.
 //   node build.mjs              -> dist/index.html
@@ -22,7 +22,7 @@ const safeUrl = u => /^https:\/\/[\w.-]+(\/[\w./%-]*)?$/.test(u) ? u : '';
 const repo = safeUrl(PROJECT.repoUrl), kofi = /^[A-Za-z0-9_]{1,60}$/.test(PROJECT.kofi) ? 'https://ko-fi.com/' + PROJECT.kofi : '';
 const about = `<div class="card" id="aboutCard">
       <div><div class="dev-name">About ${APP.APP_NAME}</div><div class="dev-meta">Version ${APP.VERSION} · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
-      <p class="dev-meta" style="margin:0">© 2026 Anonaconda Coding Studio. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
+      <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       ${repo || kofi ? `<div class="acts-row">${repo ? `<a class="btn" href="${repo}" target="_blank" rel="noopener noreferrer">Source code</a>` : ''}${kofi ? `<a class="btn coffee" href="${kofi}" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a>` : ''}</div>` : ''}
     </div>`;
 

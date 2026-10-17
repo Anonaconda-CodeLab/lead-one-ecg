@@ -1,5 +1,5 @@
 /* ===== {{APP_NAME}} · signal processing & analysis core =====
-   Copyright (C) 2026 Anonaconda Coding Studio
+   Copyright (C) 2026 Anonaconda Code Lab
    SPDX-License-Identifier: GPL-3.0-or-later
 */
 const FS = 130;                       // Polar H10 ECG sample rate (Hz)
