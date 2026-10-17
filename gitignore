@@ -1,0 +1,16 @@
+# Personal health data: never commit recordings, history exports or reports
+*.json
+!package.json
+*.pdf
+*.csv
+*.txt
+!src/fonts/*.txt
+LeadOne-ECG-*
+H10-ECG-*
+ECG-*
+
+# Tooling
+node_modules/
+dist/fragment.html
+.DS_Store
+Thumbs.db

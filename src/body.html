@@ -1,0 +1,175 @@
+<main id="app">
+  <header class="bar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)"/><path d="M5 17h6l2-5 3 11 3-15 2 9h6" fill="none" stroke="var(--accent-fg)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>{{APP_NAME}}</span>
+    </div>
+    <button id="btnSettings" class="icon-btn" aria-label="Profile and settings" title="Profile and settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v2.6M12 18.9v2.6M4.5 4.5l1.8 1.8M17.7 17.7l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.5 19.5l1.8-1.8M17.7 6.3l1.8-1.8"/></svg>
+    </button>
+  </header>
+
+  <!-- PROFILE / SETTINGS (also first run) -->
+  <section id="scrSettings" class="screen" hidden>
+    <div class="intro" id="setupIntro" hidden>
+      <h1>Set up your profile</h1>
+      <p>Age and sex are used to select reference intervals and heart-rate zones. Your age is calculated for the date of each recording. Everything stays on this device.</p>
+    </div>
+    <div class="card">
+      <div class="field"><label for="setDob">Date of birth</label><input id="setDob" type="date" max="2026-12-31"></div>
+      <div class="field"><label>Sex</label>
+        <div class="seg" id="setSex" role="radiogroup" aria-label="Sex">
+          <button type="button" role="radio" data-v="M">Male</button><button type="button" role="radio" data-v="F">Female</button>
+        </div></div>
+      <div class="field"><label for="setName">Name on reports</label><input id="setName" autocomplete="name" placeholder="Optional"></div>
+      <div class="acts-row"><button id="btnSaveSettings" class="btn primary">Save</button><button id="btnCloseSettings" class="btn">Cancel</button><button id="btnSetupLater" class="btn ghost" hidden>Set up later</button></div>
+    </div>
+    <div class="card" id="historyCard">
+      <div><div class="dev-name">Reading history</div><div class="dev-meta" id="histCount">No readings yet.</div></div>
+      <p class="dev-meta" style="margin:0">History holds the summary of each analyzed recording and is used for your personal baseline. Export it to keep a backup or to move it to another device.</p>
+      <div class="acts-row">
+        <button id="btnExportHist" class="btn">Export history</button>
+        <button id="btnImportHist" class="btn">Import history</button>
+        <button id="btnClearHist" class="btn ghost">Delete history</button>
+      </div>
+      <input type="file" id="histIn" accept=".json,application/json" hidden>
+    </div>
+    {{ABOUT}}
+  </section>
+
+  <!-- HOME -->
+  <section id="scrHome" class="screen">
+    <div id="profileNote" class="note" hidden><b>Profile incomplete.</b> Add your date of birth and sex so reference intervals match you. <button class="linkbtn" id="btnFixProfile">Open profile</button></div>
+    <div id="recoverBanner" class="banner" hidden>
+      <div><b>An interrupted recording was found.</b><br><span id="recoverText" class="dev-meta"></span></div>
+      <div class="acts"><button id="btnRecoverView" class="btn primary">Analyze recording</button><button id="btnRecoverDiscard" class="btn">Discard</button></div>
+    </div>
+    <div id="backupBanner" class="banner" hidden>
+      <div><b>Back up your reading history</b><br><span id="backupText" class="dev-meta"></span></div>
+      <div class="acts"><button id="btnBackupNow" class="btn primary">Export now</button><button id="btnBackupLater" class="btn">Remind me in a week</button></div>
+    </div>
+    <div class="card">
+      <div class="dev-row">
+        <span id="devDot" class="dot"></span>
+        <div><div id="devName" class="dev-name">Polar H10 not connected</div>
+        <div id="devMeta" class="dev-meta">Moisten the electrodes, fit the strap, then connect.</div></div>
+      </div>
+      <button id="btnConnect" class="btn primary">Connect H10</button>
+    </div>
+    <div id="envNote" class="note" hidden></div>
+
+    <div class="card setup">
+      <div class="field"><label>Recording context <small class="opt">optional</small></label>
+        <div class="chips" id="ctxChips" role="radiogroup" aria-label="Recording context"></div></div>
+      <div class="field"><label>Body position <small class="opt">optional</small></label>
+        <div class="chips" id="posChips" role="radiogroup" aria-label="Body position"></div></div>
+      <div id="trainOpts" class="train-opts" hidden>
+        <div class="field"><label>Training type</label><div class="chips" id="ttChips" role="radiogroup" aria-label="Training type"></div></div>
+        <div class="field"><label>Recovery after exercise</label><div class="chips" id="recChips" role="radiogroup" aria-label="Recovery type"></div></div>
+        <p class="dev-meta" id="ttHint" style="margin:0"></p>
+      </div>
+      <div class="field"><label for="notesIn">Session notes <small class="opt">optional</small></label>
+        <textarea id="notesIn" maxlength="200" rows="2" placeholder="e.g. after lunch, two coffees, slept 5 hours"></textarea>
+        <small class="count" id="notesCount">0 / 200</small></div>
+      <div class="auto">
+        <label class="switch"><input type="checkbox" id="autoOn"><span class="track"><span class="knob"></span></span><span>Auto-stop</span></label>
+        <div class="stepper" id="autoStepper">
+          <button type="button" id="autoMinus" aria-label="Shorter">−</button>
+          <output id="autoVal">5 min</output>
+          <button type="button" id="autoPlus" aria-label="Longer">+</button>
+        </div>
+      </div>
+      <p class="dev-meta" id="autoHint" style="margin:0">Off: the recording continues until you stop it (maximum 8 hours).</p>
+    </div>
+
+    <button id="btnStart" class="btn-start" disabled>
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="7"/></svg>Start
+    </button>
+
+    <h2 class="sec">Recordings on this device</h2>
+    <ul id="pastList" class="past"><li class="empty">No recordings yet.</li></ul>
+
+    <h2 class="sec">More</h2>
+    <div class="links">
+      <button id="btnOpen" class="row-btn"><span>Open a recording file<small>A file saved from this app, or a Polar Sensor Logger ECG export</small></span><span class="chev">›</span></button>
+      <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
+        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
+    </div>
+    <input type="file" id="fileIn" accept=".json,.txt,.csv,application/json,text/plain" hidden>
+
+    <details class="tips">
+      <summary>Recording guidance</summary>
+      <ul>
+        <li>Moisten the electrodes and fit the strap snugly, just below the chest muscles.</li>
+        <li>Close Polar Beat, Polar Flow and any other app connected to the strap; the H10 streams ECG to one app at a time.</li>
+        <li>For a morning baseline, record on waking, before caffeine, in the same position each day, for the same duration (5 minutes recommended). Breathe normally.</li>
+        <li>For overnight recordings, keep the device on charge with this page in the foreground. The screen stays awake; use <b>Dim screen</b> to darken it.</li>
+        <li>If Bluetooth drops, the app reconnects automatically and marks the missing period in the report.</li>
+        <li>Data is saved to the device every minute, so an interrupted recording can still be analyzed.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- RECORDING -->
+  <section id="scrRec" class="screen" hidden>
+    <div class="rec-top"><span class="live-chip" id="liveChip"><i></i><span id="liveTxt">Recording</span></span><span id="recConn" class="conn">Connected</span></div>
+    <div id="recCtx" class="rec-ctx"></div>
+    <div id="stepPanel" class="step-panel" hidden><div class="sp-l"><small id="spLabel">Step</small><b id="spStep">1</b></div><div class="sp-r"><b id="spCount">3:00</b><small id="spMsg">until the next step</small></div></div>
+    <div id="recTimer" class="timer">00:00:00</div>
+    <div id="recRemain" class="timer-sub"></div>
+    <div class="vitals">
+      <div><span id="recHR">--</span><label>Heart rate</label></div>
+      <div><span id="recQual">—</span><label>Signal</label></div>
+      <div><span id="recBatt">--</span><label>Strap battery</label></div>
+      <div><span id="recBr">…</span><label>Breathing</label></div>
+    </div>
+    <canvas id="liveCanvas" aria-label="Live ECG trace"></canvas>
+    <button id="btnRecov" class="btn-recov" hidden>Start recovery</button>
+    <div class="rec-actions"><button id="btnPause" class="btn">Pause</button><button id="btnDim" class="btn">Dim screen</button></div>
+    <button id="btnStop" class="btn-stop"><span class="fill"></span><span class="lbl">Hold to stop</span></button>
+  </section>
+
+  <!-- DONE -->
+  <section id="scrDone" class="screen" hidden>
+    <div class="done-hero"><h1>Recording complete</h1><p id="doneWhy"></p></div>
+    <div class="facts">
+      <div><b id="doneDur">—</b><span>Recorded</span></div>
+      <div><b id="doneStart">—</b><span>Started</span></div>
+      <div><b id="doneGap">—</b><span>Paused / signal lost</span></div>
+    </div>
+    <button id="btnView" class="btn-start" style="min-height:84px;font-size:24px">View report</button>
+    <div class="acts-row" style="justify-content:center">
+      <button id="btnSaveRec" class="btn">Save recording file</button>
+      <button id="btnNew" class="btn">New recording</button>
+    </div>
+  </section>
+
+  <!-- ANALYZING -->
+  <section id="scrAnalyze" class="screen" hidden>
+    <div class="done-hero"><h1>Analyzing</h1><p id="anStep">Preparing</p></div>
+    <div class="prog"><i id="anBar"></i></div>
+  </section>
+
+  <!-- REPORT -->
+  <section id="scrReport" class="screen" hidden style="padding-top:0;gap:0">
+    <div class="rtools">
+      <button id="btnBack" class="btn">‹ Back</button>
+      <button id="btnDetails" class="btn">Details</button>
+      <span class="sp"></span>
+      <button id="btnSaveRec2" class="btn">Save recording</button>
+      <button id="btnPdf" class="btn primary">Save as PDF</button>
+    </div>
+    <div id="detailsPanel" class="details-panel" hidden>
+      <div class="field"><label>Recording context</label><div class="chips" id="ctxChips2"></div></div>
+      <div class="field"><label>Body position</label><div class="chips" id="posChips2"></div></div>
+      <div id="trainOpts2" hidden><div class="field"><label>Training type</label><div class="chips" id="ttChips2"></div></div>
+        <div class="field"><label>Recovery after exercise</label><div class="chips" id="recChips2"></div></div></div>
+      <div class="field"><label for="notesIn2">Session notes</label><textarea id="notesIn2" maxlength="200" rows="2"></textarea><small class="count" id="notesCount2">0 / 200</small></div>
+      <div class="acts-row"><button id="btnDetailsSave" class="btn primary">Update report</button><button id="btnDetailsCancel" class="btn">Cancel</button></div>
+    </div>
+    <div id="reportPages"></div>
+  </section>
+</main>
+
+<div id="dim" hidden><div class="t" id="dimT">00:00:00</div><div>Recording · tap to wake</div></div>
+<div id="toast" role="status" hidden></div>
