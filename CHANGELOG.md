@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.3.2
+- Linking to the app with `#manual` opens the user manual directly.
 - Fix: since 1.3.1, tapping Import on Android asked for microphone permission, because an unfiltered file picker offers
   camera and audio capture. The pickers now list the file types a backup can arrive as, including generic data
   (application/octet-stream), and no media types.

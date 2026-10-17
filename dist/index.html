@@ -3110,6 +3110,7 @@ $('#btnAckManual').onclick = openHelp;
 const acked = () => getSettings().ackWellness === ACK_VERSION;
 envCheck(); initHomeSetup(); refreshPast(); profileNote();
 if (!acked()) show('scrAck'); else if (!getSettings().setupDone) openSettings(true); else show('scrHome');
+if (location.hash === '#manual') openHelp();   // direct link to the user manual, e.g. from the studio page
 if (location.hash === '#sample') runSample('rest');
 else if (location.hash === '#training') runSample('training');
 else if (location.hash === '#ramp') runSample('ramp');
