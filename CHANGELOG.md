@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.2
+- Fix: since 1.3.1, tapping Import on Android asked for microphone permission, because an unfiltered file picker offers
+  camera and audio capture. The pickers now list the file types a backup can arrive as, including generic data
+  (application/octet-stream), and no media types.
+
 ## 1.3.1
 - Fix: importing a history file on another phone could fail. Android greyed out backup files received through chat or
   e-mail apps (they arrive labelled as generic data); the file pickers no longer filter by type and validate the

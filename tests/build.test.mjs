@@ -26,8 +26,11 @@ test('user manual is built into the app from docs/MANUAL.md', () => {
 test('history import is reachable on first run and file pickers are not type-filtered', () => {
   const h = distHtml();
   assert.ok(/id="btnImportSetup"/.test(h), 'import offered during first-run setup');
-  assert.ok(/<input type="file" id="histIn" hidden>/.test(h) && /<input type="file" id="fileIn" hidden>/.test(h),
-    'no accept filter: Android greys out .json files that chat apps label as generic data');
+  for (const id of ['histIn', 'fileIn']) {
+    const acc = (h.match(new RegExp(`id="${id}" accept="([^"]*)"`)) || [])[1] || '';
+    assert.ok(acc.includes('application/octet-stream'), id + ': generic data files (as chat apps label them) can be picked');
+    assert.ok(!/image|audio|video|\*/.test(acc), id + ': no media or wildcard types, so Android does not offer camera or microphone');
+  }
 });
 
 test('wellness-use acknowledgement is required before first use', () => {

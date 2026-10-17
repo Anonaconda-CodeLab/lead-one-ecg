@@ -52,7 +52,7 @@
         <button id="btnImportHist" class="btn">Import history</button>
         <button id="btnClearHist" class="btn ghost">Delete history</button>
       </div>
-      <input type="file" id="histIn" hidden>
+      <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     {{ABOUT}}
   </section>
@@ -124,7 +124,7 @@
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
         <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
     </div>
-    <input type="file" id="fileIn" hidden>
+    <input type="file" id="fileIn" accept=".json,.txt,application/json,text/plain,application/octet-stream,.csv,text/csv" hidden>
 
     <details class="tips">
       <summary>Recording guidance</summary>
