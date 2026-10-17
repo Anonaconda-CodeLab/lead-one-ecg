@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+- User manual (`docs/MANUAL.md`), built into the app: home screen > User manual, and Settings > About.
+- Wellness use only, made explicit: a one-time "Before you start" notice that must be acknowledged before first use;
+  a wellness-only line on the home screen; stronger wording in the report disclaimer, page footers and the plain-language
+  page; a prominent section at the top of the manual and the README.
+
 ## 1.2.0
 - New home: https://leadone.anonacondacodelab.com. In-app help now points to it (set `appUrl` in `build.mjs`).
 - Backup reminder: a banner on the home screen when reading history has never been exported (after 5 readings or a

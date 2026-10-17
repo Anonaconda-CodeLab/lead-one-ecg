@@ -281,6 +281,7 @@ function setDev(state, name, meta) {
 }
 function devMetaText() { const p = []; if (S.battery != null) p.push('Battery ' + S.battery + '%'); if (S.fw) p.push('Firmware ' + S.fw); return p.length ? p.join(' · ') : 'Connected'; }
 async function connectFlow() {
+  if (!acked()) { show('scrAck'); return; }
   if (S.connected && S.device) { try { S.device.gatt.disconnect(); } catch (e) {} return; }
   if (!('bluetooth' in navigator)) { envCheck(); $('#envNote').scrollIntoView({ behavior: 'smooth', block: 'center' }); toast('Bluetooth isn’t available to this page. See the note for how to fix it.', 6000); return; }
   try {
@@ -713,6 +714,10 @@ $('#btnSaveRec2').onclick = saveRecordingFile;
 $('#btnBack').onclick = () => { $('#detailsPanel').hidden = true; show('scrHome'); };
 $('#btnPdf').onclick = savePdf;
 $('#btnOpen').onclick = () => $('#fileIn').click();
+let helpFrom = 'scrHome';
+function openHelp() { const cur = document.body.dataset.screen; helpFrom = cur && cur !== 'scrHelp' ? cur : 'scrHome'; show('scrHelp'); }
+$('#btnHelp').onclick = $('#btnHelp2').onclick = openHelp;
+$('#btnHelpBack').onclick = $('#btnHelpBack2').onclick = () => show(helpFrom);
 $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) openFile(f); };
 for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runSample(b.dataset.demo);
 function runSample(kind) {
@@ -725,8 +730,18 @@ function runSample(kind) {
 }
 window.addEventListener('beforeunload', e => { if (S.recording) { e.preventDefault(); e.returnValue = ''; } });
 
+/* wellness-use acknowledgement: required once, and again whenever ACK_VERSION is raised (wording changed) */
+const ACK_VERSION = 1;
+$('#ackBox').onchange = () => { $('#btnAck').disabled = !$('#ackBox').checked; };
+$('#btnAck').onclick = () => {
+  if (!$('#ackBox').checked) return;
+  patchSettings({ ackWellness: ACK_VERSION, ackAt: Date.now() });
+  if (!getSettings().setupDone) openSettings(true); else show('scrHome');
+};
+$('#btnAckManual').onclick = openHelp;
+const acked = () => getSettings().ackWellness === ACK_VERSION;
 envCheck(); initHomeSetup(); refreshPast(); profileNote();
-if (!getSettings().setupDone) openSettings(true); else show('scrHome');
+if (!acked()) show('scrAck'); else if (!getSettings().setupDone) openSettings(true); else show('scrHome');
 if (location.hash === '#sample') runSample('rest');
 else if (location.hash === '#training') runSample('training');
 else if (location.hash === '#ramp') runSample('ramp');

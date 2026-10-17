@@ -9,6 +9,25 @@
     </button>
   </header>
 
+  <!-- WELLNESS-USE ACKNOWLEDGEMENT (first run; shown again if ACK_VERSION changes) -->
+  <section id="scrAck" class="screen" hidden>
+    <div class="intro"><h1>Before you start</h1><p>Please read this once. It matters.</p></div>
+    <div class="card ack">
+      <p class="ack-head">{{APP_NAME}} is a wellness and fitness tool. <b>It is not a medical device.</b></p>
+      <ul>
+        <li>It is for <b>general wellness, training and education only</b>.</li>
+        <li>Do <b>not</b> use it to diagnose, treat, rule out or monitor any illness or heart condition, or to make decisions about medicines or treatment.</li>
+        <li>It has not been tested, cleared or approved by any medical regulator. A chest strap records one ECG lead: many heart problems cannot be seen with it, and automated results can be wrong.</li>
+        <li>A normal-looking report does <b>not</b> mean your heart is healthy. An unusual one is most often caused by the strap or movement, not by your heart.</li>
+        <li>Reference ranges are for adults.</li>
+        <li><b>If you feel unwell, with chest pain or pressure, fainting, severe breathlessness, or a racing or very irregular heartbeat, call your local emergency number now. Do not stop to record.</b></li>
+        <li>For any health concern, see a doctor. Do not rely on this app.</li>
+      </ul>
+      <label class="ack-check"><input type="checkbox" id="ackBox"><span>I understand that {{APP_NAME}} is for general wellness and education only, is not a medical device, and that I will not use it to diagnose, treat or monitor any medical condition.</span></label>
+      <div class="acts-row"><button id="btnAck" class="btn primary" disabled>Continue</button><button id="btnAckManual" class="btn">Read the user manual</button></div>
+    </div>
+  </section>
+
   <!-- PROFILE / SETTINGS (also first run) -->
   <section id="scrSettings" class="screen" hidden>
     <div class="intro" id="setupIntro" hidden>
@@ -35,6 +54,13 @@
       <input type="file" id="histIn" accept=".json,application/json" hidden>
     </div>
     {{ABOUT}}
+  </section>
+
+  <!-- HELP / USER MANUAL (generated from docs/MANUAL.md) -->
+  <section id="scrHelp" class="screen" hidden>
+    <div class="acts-row"><button id="btnHelpBack" class="btn">‹ Back</button></div>
+    <article class="manual">{{MANUAL}}</article>
+    <div class="acts-row"><button id="btnHelpBack2" class="btn">‹ Back</button></div>
   </section>
 
   <!-- HOME -->
@@ -91,6 +117,7 @@
 
     <h2 class="sec">More</h2>
     <div class="links">
+      <button id="btnHelp" class="row-btn"><span>User manual<small>How to record, read your report, and keep your data safe</small></span><span class="chev">›</span></button>
       <button id="btnOpen" class="row-btn"><span>Open a recording file<small>A file saved from this app, or a Polar Sensor Logger ECG export</small></span><span class="chev">›</span></button>
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
         <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
@@ -108,6 +135,7 @@
         <li>Data is saved to the device every minute, so an interrupted recording can still be analyzed.</li>
       </ul>
     </details>
+    <p class="wellness-line"><b>For general wellness and education only. Not a medical device.</b> It cannot diagnose or rule out any condition. If you feel unwell, call your local emergency number; do not stop to record.</p>
   </section>
 
   <!-- RECORDING -->

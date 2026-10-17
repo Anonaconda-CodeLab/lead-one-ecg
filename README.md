@@ -37,6 +37,8 @@ Everything runs in your browser: no account, no server, no data leaves your devi
   when a backup is due.
 
 ## Getting started
+The full **[user manual](docs/MANUAL.md)** is also built into the app (home screen → *User manual*).
+
 1. Open **[leadone.anonacondacodelab.com](https://leadone.anonacondacodelab.com)** in **Chrome or Edge** (Android, Windows, macOS, ChromeOS) or Chromium-based browsers with Web Bluetooth
    enabled. It must be served over **https**.
 2. On first launch, enter your date of birth and sex (used only for reference ranges, stored only on your device).
@@ -75,11 +77,18 @@ npm test        # builds and runs the test suite
 See [CONTRIBUTING.md](CONTRIBUTING.md). Optional project settings (source-code link, Ko-fi username) are at the
 top of `build.mjs`.
 
-## Disclaimer
-Lead One ECG is experimental software provided "as is", without warranty of any kind (see [LICENSE](LICENSE)). It is not
-a medical device and has not been evaluated or cleared by any regulatory authority. A consumer chest strap records a
-single ECG lead and cannot detect many conditions that a clinical 12-lead ECG or longer monitoring can. Automated
-analysis can be wrong. Do not use it to make medical decisions. **If you have chest pain, fainting, severe shortness of
+## Disclaimer: wellness use only
+**Lead One ECG is for general wellness, fitness and education only. It is not a medical device.**
+
+- It has not been evaluated, cleared or approved by any medical regulator (such as the FDA, the EU MDR bodies or the Thai FDA).
+- It must **not** be used to diagnose, treat, rule out or monitor any illness or heart condition, or to make decisions
+  about medicines or treatment.
+- A consumer chest strap records a single ECG lead and cannot detect many conditions that a clinical 12-lead ECG or longer
+  monitoring can. Automated analysis can be wrong. A normal result does not mean your heart is healthy.
+- Reference ranges are for adults.
+
+It is experimental software provided "as is", without warranty of any kind (see [LICENSE](LICENSE)). The app asks every
+user to acknowledge this before first use. **If you have chest pain, fainting, severe shortness of
 breath, or a racing or very irregular heartbeat, seek medical care immediately.**
 
 ## Trademarks
