@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.5.0
+- Rest sample report: gentler slow heart-rate swings, so its SDNN (about 51 ms) is realistic for a calm morning
+  reading; it was 96 ms.
 - Privacy fix: sample reports showed the name, age and sex from your profile. They now use a fixed, made-up profile
   (no name, age 40), so they are safe to screenshot and share.
 - Browser guidance now reads "Google Chrome or Chromium".
