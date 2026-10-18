@@ -107,7 +107,7 @@ const TT_HINTS = { session: 'When you finish, tap Start recovery and keep record
   intervals: 'Each hard effort is detected automatically, with your recovery between efforts. After the last one, tap Start recovery and keep recording for 2 minutes.',
   tempo: 'Warm up, then hold a steady, comfortably hard effort for at least 10 minutes. The report shows how steady you held it and how much your heart rate drifted. Tap Start recovery when you finish.',
   ramp: 'Start easy. The app beeps and vibrates every 3 minutes: increase the load each time, until you cannot continue. Tap Start recovery the moment you stop.',
-  lthr: 'Warm up first, then go as hard as you can sustain for 30 minutes. The app tells you when 30 minutes are up; tap Start recovery when you finish.' };
+  lthr: 'Warm up first, without recording. Press Start at the moment you begin the 30-minute effort, and go as hard as you can sustain. The app tells you when 30 minutes are up; tap Start recovery then and keep recording for 2 minutes.' };
 function stickyChips(el, defs, get, set) { buildChips(el, defs, get(), v => { if (v) set(v); else buildChips(el, defs, get(), x => x && set(x)); stickyChips(el, defs, get, set); }); }
 function showTrainOpts() { $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || ''; }
 function initHomeSetup() {

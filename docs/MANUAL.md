@@ -96,8 +96,11 @@ Choose the **Training** context to measure your exercise heart rate, recovery an
 - **Max HR ramp test**: start easy; the app beeps and vibrates every 3 minutes (with a 10-second warning) to tell you to
   increase the effort, until you cannot continue. Turn the phone's media volume up; the beeps are high-pitched so they
   carry over traffic. This finds your true maximum heart rate.
-- **LTHR test**: warm up, then go as hard as you can sustain for 30 minutes. The app tells you when 30 minutes are up. Your
-  lactate threshold heart rate (LTHR) is the average of the last 20 minutes, and sets your training zones.
+- **LTHR test**: warm up first **without recording**. Press **Start** at the moment you begin the 30-minute effort, then go
+  as hard as you can sustain. The app tells you when 30 minutes are up; tap **Start recovery** then and keep recording for
+  2 minutes. Your lactate threshold heart rate (LTHR) is the average of the last 20 minutes before you tapped Start
+  recovery, and sets your training zones. (If you do record the warm-up, the 30-minute cue comes early: time the effort
+  yourself and tap Start recovery exactly when it ends.)
 
 **Recovery after exercise**
 - **Active**: you keep moving gently after stopping (walking, easy pedalling).

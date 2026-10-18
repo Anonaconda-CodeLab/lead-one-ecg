@@ -505,7 +505,7 @@ function gradeAll(A, meta, R, X = null) {
             : `A steady effort: heart rate stayed within ±5 bpm of ${f(T.avg)} bpm for ${f(100 * T.within)} % of the block.` }); }
       if (X.tt === 'lthr' && X.lt) { const r = X.lt;
         add('lthr', { title: 'Threshold heart rate (LTHR)', short: 'threshold heart rate', value: r.valid ? f(r.lthr) + ' bpm' : 'Incomplete', g: 'na', what: 'The heart rate you can sustain for about an hour: your average over the last 20 minutes of a 30-minute all-out effort.',
-          text: r.valid ? `Your threshold heart rate is ${f(r.lthr)} bpm. Zones based on it are more accurate than percentages of maximum for hard training.` : 'The effort lasted less than 25 minutes, so the threshold could not be measured reliably. Do a full 30-minute time trial at the hardest pace you can hold.' }); }
+          text: r.valid ? `Your threshold heart rate is ${f(r.lthr)} bpm. Zones based on it are more accurate than percentages of maximum for hard training.` : 'The effort lasted less than 25 minutes, so the threshold could not be measured reliably. Warm up first, press Start as the effort begins, and hold the hardest pace you can for the full 30 minutes.' }); }
     }
   }
   // QTc
@@ -775,7 +775,7 @@ function renderReport(A, meta0, st, hist = []) {
     if (X.tt === 'lthr' && X.lt) { const r = X.lt;
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
         <div class="panel"><h3>Result</h3>${kvT('Threshold heart rate (LTHR)', r.valid ? fmt(r.lthr) + ' bpm' : '—', 'mean heart rate over the last 20 minutes of the effort')}${kvT('Window used', clock(r.from) + ' – ' + clock(r.end))}${kvT('Effort duration', fmt(r.effortMin) + ' min', r.short ? 'shorter than the 25 minutes needed' : '')}
-        <p class="note-p" style="margin:0">${r.valid ? 'This threshold now sets your LTHR zones in later training reports.' : 'Not valid: run the full 30 minutes at the hardest pace you can hold, and tap Start recovery when you finish.'}</p></div>`; }
+        <p class="note-p" style="margin:0">${r.valid ? 'This threshold now sets your LTHR zones in later training reports.' : 'Not valid: warm up first, press Start as the 30-minute effort begins, hold the hardest pace you can for the full 30 minutes, and tap Start recovery when you finish.'}</p></div>`; }
     if (X.tt === 'intervals' && X.iv) { const v = X.iv;
       tests = `<div class="sec-h"><h2>Interval efforts</h2><span>detected from 10-s heart rate</span></div>
         ${v.bouts.length ? `<table class="ev"><thead><tr><th>#</th><th>Start</th><th>Effort</th><th>Peak</th><th>Average</th><th>Recovery</th><th>HR fall</th></tr></thead><tbody>${thin(v.bouts, 14).map(b => `<tr><td class="m">${b.n}</td><td class="m">${clock(b.t0)}</td><td class="m">${mmss(b.dur)}</td><td class="m">${fmt(b.peak)} bpm</td><td class="m">${fmt(b.mean)} bpm</td><td class="m">${b.last ? 'end of session' : mmss(b.recSec)}</td><td class="m">${b.last ? 'see below' : isFinite(b.recDrop) ? fmt(b.recDrop) + ' bpm' : '—'}</td></tr>`).join('')}</tbody></table>

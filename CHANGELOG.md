@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.4.0
+- LTHR test instructions (app hint, manual, report) now say plainly: warm up first, then press Start as the 30-minute
+  effort begins.
 - Fix: QRS width could be over-read during exercise (a constant 129 ms in one ramp test). When the main QRS spike points
   downward and the ST segment is raised and sloping, the end of the QRS was pinned to the edge of an 80 ms search window.
   The QRS end is now found by following each QRS wave until its slope levels off, for either polarity; if no clear end
