@@ -45,8 +45,10 @@ The first time you open the app, it asks you to confirm that you have read and u
     none of them can connect to the strap. **Firefox and Safari** do not support it on any device.
 - The app's web address: **https://leadone.anonacondacodelab.com**
 
-There is nothing to install. To open the app like a normal app, open the address in Chrome, tap the **⋮** menu and choose
-**Add to Home screen**.
+There is nothing to install from an app store. To open the app from an icon like a normal app, tap **Add to home screen**
+under **More** on the home screen and confirm. If Chrome doesn't offer it there, tap Chrome's **⋮** menu and choose **Add to
+Home screen** (or **Install app**). The icon opens the same web address, so your recordings and history are all there.
+It opens full screen, without the address bar.
 
 ## First-time setup
 The first time you open the app it shows a short **Before you start** notice about wellness use. Tick the box to confirm

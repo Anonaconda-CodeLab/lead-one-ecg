@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0
+- Add to home screen: a new button under **More** installs the app as a home-screen icon that opens full screen. The
+  app now has a web manifest and icons; it still has no service worker and makes no network requests.
+
 ## 1.4.0
 - LTHR test instructions (app hint, manual, report) now say plainly: warm up first, then press Start as the 30-minute
   effort begins.

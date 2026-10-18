@@ -4,7 +4,7 @@
 // with a strict Content Security Policy that blocks every network request.
 //   node build.mjs              -> dist/index.html
 //   node build.mjs --fragment   -> dist/fragment.html (page body only, for embedding/preview hosts)
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -71,8 +71,8 @@ const js = `<script>\n${fill(src('core.js'))}\n${fill(src('report.js'))}\n${fill
 const body = fill(src('body.html'));
 const title = `<title>${APP.APP_NAME}</title>`;
 
-const CSP = ["default-src 'none'", "script-src 'unsafe-inline'", "style-src 'unsafe-inline'", 'font-src data:', 'img-src data: blob:',
-  "connect-src 'none'", "media-src 'none'", "object-src 'none'", "frame-src 'none'", "worker-src 'none'", "manifest-src 'none'",
+const CSP = ["default-src 'none'", "script-src 'unsafe-inline'", "style-src 'unsafe-inline'", 'font-src data:', "img-src 'self' data: blob:",
+  "connect-src 'none'", "media-src 'none'", "object-src 'none'", "frame-src 'none'", "worker-src 'none'", "manifest-src 'self'",
   "base-uri 'none'", "form-action 'none'"].join('; ');
 
 const page = `<!doctype html>
@@ -81,6 +81,9 @@ const page = `<!doctype html>
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#b31f39">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="description" content="${APP.APP_NAME}: record, analyse and report single-lead ECG and HRV from a chest-strap heart-rate monitor. Runs entirely in your browser.">
 ${title}
 <style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
@@ -96,6 +99,22 @@ const fragment = process.argv.includes('--fragment');
 const out = fragment ? `${title}\n<meta name="claude:viewport-fit-sides" content="cover">\n${css}\n${body}\n${js}\n` : page;
 const file = join(root, 'dist', fragment ? 'fragment.html' : 'index.html');
 writeFileSync(file, out);
+
+// home-screen install: a web manifest and local icons (no service worker; the page itself never touches the network)
+if (!fragment) {
+  for (const f of readdirSync(join(root, 'src', 'icons'))) copyFileSync(join(root, 'src', 'icons', f), join(root, 'dist', f));
+  writeFileSync(join(root, 'dist', 'manifest.webmanifest'), JSON.stringify({
+    name: APP.APP_NAME, short_name: 'Lead One', id: '/', start_url: '/', scope: '/', display: 'standalone',
+    orientation: 'portrait', background_color: '#ffffff', theme_color: '#b31f39',
+    description: 'Record and report single-lead ECG and HRV from a Polar H10, entirely on your device.',
+    icons: [
+      { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: 'maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
+    ]
+  }, null, 2) + '\n');
+}
 
 // sanity checks: script parses, no remote resources
 new Function(js.slice(8, -9));

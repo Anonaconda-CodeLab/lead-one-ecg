@@ -1,9 +1,12 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; img-src data: blob:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src data:; img-src 'self' data: blob:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#b31f39">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="description" content="Lead One ECG: record, analyse and report single-lead ECG and HRV from a chest-strap heart-rate monitor. Runs entirely in your browser.">
 <title>Lead One ECG</title>
 <style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
@@ -396,7 +399,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.4.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.5.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
@@ -417,7 +420,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 <p>The first time you open the app, it asks you to confirm that you have read and understood this.</p>
 <h2>What you need</h2>
 <ul><li>A <b>Polar H10</b> chest strap.</li><li>A browser that supports Bluetooth for web apps (called &quot;Web Bluetooth&quot;):<ul><li><b>On a phone, use Google Chrome on Android.</b> This is the browser the app is built and tested for. Other phone browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.</li><li><b>On a computer</b> (Windows, macOS or ChromeOS), use <b>Chrome or Microsoft Edge</b>. Other Chromium-based browsers such as Opera usually work too. Brave and Linux need a setting switched on first (see <i>Troubleshooting</i>), and recording on Linux can be unreliable.</li><li><b>iPhone and iPad are not supported.</b> Browsers on iPhone and iPad, Chrome included, do not offer Web Bluetooth, so none of them can connect to the strap. <b>Firefox and Safari</b> do not support it on any device.</li></ul></li><li>The app's web address: <b><a href="https://leadone.anonacondacodelab.com" target="_blank" rel="noopener noreferrer">leadone.anonacondacodelab.com</a></b></li></ul>
-<p>There is nothing to install. To open the app like a normal app, open the address in Chrome, tap the <b>⋮</b> menu and choose <b>Add to Home screen</b>.</p>
+<p>There is nothing to install from an app store. To open the app from an icon like a normal app, tap <b>Add to home screen</b> under <b>More</b> on the home screen and confirm. If Chrome doesn't offer it there, tap Chrome's <b>⋮</b> menu and choose <b>Add to Home screen</b> (or <b>Install app</b>). The icon opens the same web address, so your recordings and history are all there. It opens full screen, without the address bar.</p>
 <h2>First-time setup</h2>
 <p>The first time you open the app it shows a short <b>Before you start</b> notice about wellness use. Tick the box to confirm you understand it, then tap <b>Continue</b>.</p>
 <p>Next it asks for your <b>date of birth</b> and <b>sex</b>. These choose the right reference ranges and heart-rate zones; your age is worked out for the date of each recording, so you never need to update it. A name for the reports is optional. You can change all of this later with the <b>settings icon</b> (top right).</p>
@@ -534,6 +537,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 
     <h2 class="sec">More</h2>
     <div class="links">
+      <button id="btnInstall" class="row-btn"><span>Add to home screen<small>Open the app from an icon, full screen, like any other app</small></span><span class="chev">›</span></button>
       <button id="btnHelp" class="row-btn"><span>User manual<small>How to record, read your report, and keep your data safe</small></span><span class="chev">›</span></button>
       <button id="btnOpen" class="row-btn"><span>Open a recording file<small>A file saved from this app, or a Polar Sensor Logger ECG export</small></span><span class="chev">›</span></button>
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
@@ -2446,7 +2450,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.4.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.5.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* ===== Lead One ECG · recorder, storage, history, UI =====
@@ -3186,6 +3190,19 @@ $('#btnOpen').onclick = () => $('#fileIn').click();
 let helpFrom = 'scrHome';
 function openHelp() { const cur = document.body.dataset.screen; helpFrom = cur && cur !== 'scrHelp' ? cur : 'scrHome'; show('scrHelp'); }
 $('#btnHelp').onclick = $('#btnHelp2').onclick = openHelp;
+
+// Add to home screen: Chrome offers an install prompt once the page qualifies; otherwise explain the menu route
+let installEvt = null;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+$('#btnInstall').hidden = isStandalone();
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+addEventListener('appinstalled', () => { installEvt = null; $('#btnInstall').hidden = true; toast('Added. Open Lead One ECG from its icon on your home screen.', 7000); });
+$('#btnInstall').onclick = async () => {
+  if (installEvt) { const e = installEvt; installEvt = null; await e.prompt(); try { await e.userChoice; } catch {} return; }
+  toast(/Android/i.test(navigator.userAgent)
+    ? 'In Chrome, tap the ⋮ menu (top right), then “Add to home screen” or “Install app”. If it is already on your home screen, open it from there.'
+    : 'In Chrome or Edge, use the install icon at the right of the address bar, or the ⋮ menu → “Install Lead One ECG”. If it is already installed, open it from there.', 10000);
+};
 $('#btnHelpBack').onclick = $('#btnHelpBack2').onclick = () => show(helpFrom);
 $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) openFile(f); };
 for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runSample(b.dataset.demo);

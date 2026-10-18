@@ -735,6 +735,19 @@ $('#btnOpen').onclick = () => $('#fileIn').click();
 let helpFrom = 'scrHome';
 function openHelp() { const cur = document.body.dataset.screen; helpFrom = cur && cur !== 'scrHelp' ? cur : 'scrHome'; show('scrHelp'); }
 $('#btnHelp').onclick = $('#btnHelp2').onclick = openHelp;
+
+// Add to home screen: Chrome offers an install prompt once the page qualifies; otherwise explain the menu route
+let installEvt = null;
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+$('#btnInstall').hidden = isStandalone();
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
+addEventListener('appinstalled', () => { installEvt = null; $('#btnInstall').hidden = true; toast('Added. Open Lead One ECG from its icon on your home screen.', 7000); });
+$('#btnInstall').onclick = async () => {
+  if (installEvt) { const e = installEvt; installEvt = null; await e.prompt(); try { await e.userChoice; } catch {} return; }
+  toast(/Android/i.test(navigator.userAgent)
+    ? 'In Chrome, tap the ⋮ menu (top right), then “Add to home screen” or “Install app”. If it is already on your home screen, open it from there.'
+    : 'In Chrome or Edge, use the install icon at the right of the address bar, or the ⋮ menu → “Install Lead One ECG”. If it is already installed, open it from there.', 10000);
+};
 $('#btnHelpBack').onclick = $('#btnHelpBack2').onclick = () => show(helpFrom);
 $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) openFile(f); };
 for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runSample(b.dataset.demo);

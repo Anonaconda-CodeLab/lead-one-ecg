@@ -40,3 +40,19 @@ test('wellness-use acknowledgement is required before first use', () => {
   assert.ok(/not a medical device/i.test(ack) && /emergency/i.test(ack), 'states not a medical device and emergency advice');
   assert.ok(/if \(!acked\(\)\) show\('scrAck'\)/.test(h), 'shown at start-up until acknowledged');
 });
+
+test('home-screen install: manifest and icons are local, CSP stays offline', async () => {
+  const { readFileSync, existsSync } = await import('node:fs');
+  const h = distHtml();
+  assert.match(h, /manifest-src 'self'/);
+  assert.match(h, /connect-src 'none'/);
+  assert.match(h, /worker-src 'none'/);
+  assert.match(h, /<link rel="manifest" href="manifest.webmanifest">/);
+  assert.ok(/id="btnInstall"/.test(h), 'install button present');
+  const dir = new URL('../dist/', import.meta.url);
+  const m = JSON.parse(readFileSync(new URL('manifest.webmanifest', dir), 'utf8'));
+  assert.equal(m.display, 'standalone');
+  assert.equal(m.start_url, '/');
+  for (const i of m.icons) { assert.ok(!/^https?:/.test(i.src)); assert.ok(existsSync(new URL(i.src, dir)), i.src); }
+  assert.ok(m.icons.some(i => i.sizes === '192x192') && m.icons.some(i => i.sizes === '512x512'));
+});
