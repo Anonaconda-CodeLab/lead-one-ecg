@@ -88,9 +88,14 @@ When the recording ends, tap **View report**. You can also **Save recording file
 Choose the **Training** context to measure your exercise heart rate, recovery and zones. Two more choices appear:
 
 **Training type**
-- **Session**: any normal workout (intervals, runs, rides).
+- **Session**: any steady or mixed workout (runs, rides, gym).
+- **Intervals**: repeated hard efforts with easier recoveries between them (for example 4 × 4 minutes). The report finds
+  each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one.
+- **Tempo**: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and
+  your cardiac drift: how much your heart rate crept up in the second half at the same effort.
 - **Max HR ramp test**: start easy; the app beeps and vibrates every 3 minutes (with a 10-second warning) to tell you to
-  increase the effort, until you cannot continue. This finds your true maximum heart rate.
+  increase the effort, until you cannot continue. Turn the phone's media volume up; the beeps are high-pitched so they
+  carry over traffic. This finds your true maximum heart rate.
 - **LTHR test**: warm up, then go as hard as you can sustain for 30 minutes. The app tells you when 30 minutes are up. Your
   lactate threshold heart rate (LTHR) is the average of the last 20 minutes, and sets your training zones.
 

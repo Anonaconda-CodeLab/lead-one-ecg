@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.4.0
+- Fix: QRS width could be over-read during exercise (a constant 129 ms in one ramp test). When the main QRS spike points
+  downward and the ST segment is raised and sloping, the end of the QRS was pinned to the edge of an 80 ms search window.
+  The QRS end is now found by following each QRS wave until its slope levels off, for either polarity; if no clear end
+  exists, QRS width is shown as not measurable instead of a fixed value. The J-point level is corrected with it.
+- Fix: ordinary beats at high heart rates could be flagged as "different shape" ectopics. Beats are now compared with
+  the surrounding beats (a local template) over the QRS only, and on-time beats need a clearly different QRS to be
+  flagged. Early beats with a compensatory pause are detected as before.
+- Fix: "Run of N beats" now means N consecutive ectopic beats; separate beats close together are listed as a cluster.
+- Signal quality: the report now says whether unusable signal was a lost Bluetooth connection or noise, with matching advice.
+- New training types: Intervals (each effort detected, with recovery between efforts and fade across the session) and
+  Tempo (sustained block, steadiness and cardiac drift).
+- Louder training cues: higher-pitched square-wave beeps through a limiter (about +22 dB), with longer vibrations.
+- Fix: after importing a history file, the setup screen kept asking for date of birth and sex. A restored profile now
+  completes setup.
+- New QRS, ectopic, interval and tempo tests.
+
 ## 1.3.2
 - Linking to the app with `#manual` opens the user manual directly.
 - Fix: since 1.3.1, tapping Import on Android asked for microphone permission, because an unfiltered file picker offers

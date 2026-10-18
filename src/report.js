@@ -210,7 +210,7 @@ function avgBeatSvg(A) {
   const mark = (i, lab, col = 'var(--p-accent)') => `<line x1="${X(i).toFixed(2)}" x2="${X(i).toFixed(2)}" y1="6" y2="${H - 14}" stroke="${col}" stroke-width="0.25" stroke-dasharray="0.8 0.6"/><text x="${X(i).toFixed(2)}" y="5" font-size="2.2" text-anchor="middle" fill="${col}" font-weight="600">${lab}</text>`;
   s += mark(D.on, 'Q') + mark(D.R, 'R', 'var(--p-ink)') + mark(D.J, 'J') + mark(D.tpk, 'T', 'var(--p-ink)') + mark(D.tEnd, 'T end');
   const br = (a, b, y, lab) => `<path d="M${X(a).toFixed(2)} ${y - 1}v1H${X(b).toFixed(2)}v-1" fill="none" stroke="var(--p-ink)" stroke-width="0.3"/><text x="${((X(a) + X(b)) / 2).toFixed(2)}" y="${y + 3}" font-size="2.3" text-anchor="middle" fill="var(--p-ink)">${lab}</text>`;
-  s += br(D.on, D.J, H - 10.5, 'QRS ' + fmt(D.qrs) + ' ms') + br(D.on, D.tEnd, H - 4.5, 'QT ' + fmt(D.qt) + ' ms');
+  s += br(D.on, D.J, H - 10.5, D.qrsOk === false ? 'QRS end unclear' : 'QRS ' + fmt(D.qrs) + ' ms') + br(D.on, D.tEnd, H - 4.5, 'QT ' + fmt(D.qt) + ' ms');
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Average heartbeat">${s}</svg>`;
 }
 
@@ -331,7 +331,11 @@ function commentary(A, meta, R, B, X = null) {
   if (ctx === 'training' && X) {
     const E = X.ER, W = X.WM, L = HRR_LIMITS[X.rec];
     if (E) out.push(`Peak 20-second heart rate was ${f0(E.peak20)} bpm (${f0(100 * E.peak20 / W.v)} % of your working maximum of ${f0(W.v)} bpm${W.src === 'tanaka' ? ', estimated from age' : ''}).${B.peak ? ` Your usual training peak is ${f0(B.peak.m)} bpm.` : ''}`);
-    if (X.tt === 'session') out.push('Interval sessions such as 4 × 4 rarely reach true maximum heart rate: peaks seen in them are a floor, not a ceiling. A ramp test gives a measured value.');
+    if (X.tt === 'session' || X.tt === 'intervals' || X.tt === 'tempo') out.push('Training sessions, including intervals such as 4 × 4, rarely reach true maximum heart rate: peaks seen in them are a floor, not a ceiling. A ramp test gives a measured value.');
+    if (X.tt === 'intervals' && X.iv && X.iv.bouts.length) { const b = X.iv.bouts, rec = b.filter(x => !x.last && isFinite(x.recDrop));
+      out.push(`${b.length} hard ${b.length === 1 ? 'effort was' : 'efforts were'} detected, peaking at ${f0(Math.min(...b.map(x => x.peak)))}–${f0(Math.max(...b.map(x => x.peak)))} bpm${rec.length ? `, with heart rate falling ${f0(Math.min(...rec.map(x => x.recDrop)))}–${f0(Math.max(...rec.map(x => x.recDrop)))} bpm in the recoveries between them` : ''}.${isFinite(X.iv.fade) && X.iv.fade >= 5 ? ` Peak heart rate rose ${f0(X.iv.fade)} bpm from the first to the last effort, a common sign of accumulating fatigue (or of pushing harder on later repeats).` : ''}`); }
+    if (X.tt === 'tempo' && X.tempo && X.tempo.valid) { const T = X.tempo;
+      out.push(`The sustained block lasted ${f0(T.dur / 60)} minutes at an average of ${f0(T.avg)} bpm (${f0(100 * T.avg / X.WM.v)} % of your working maximum). Heart rate drifted ${T.drift >= 0 ? 'up' : 'down'} ${f0(Math.abs(T.drift))} % from the first to the second half${T.drift > 5 ? ', more than the 5 % usually seen at a steady effort; heat, dehydration or fatigue are the common causes' : ', a steady effort'}.`); }
     if (E && E.end != null && isFinite(E.hrr60)) {
       const ok = E.hrr60 > L.out;
       out.push(`Recovery was measured from the end of exercise at ${meta._clock(E.end)} (${E.src === 'marked' ? 'marked with Start recovery' : 'detected automatically'}): heart rate fell from ${f0(E.stop)} to ${f0(E.at60)} bpm in the first minute (${f0(E.hrr60)} bpm)${isFinite(E.hrr120) ? ` and to ${f0(E.at120)} bpm after two minutes (${f0(E.hrr120)} bpm)` : ''}. `
@@ -490,6 +494,15 @@ function gradeAll(A, meta, R, X = null) {
           text: !r.valid ? 'Fewer than three 3-minute steps were completed, so the test is not valid. Start easier and increase the load every 3 minutes until you cannot continue.'
             : r.plateau ? `Your heart rate levelled off at ${f(r.max)} bpm over the final steps, so this is your true maximum. It now sets your training zones.`
             : `Your heart rate was still rising when you stopped (${f(r.max)} bpm), so your true maximum is probably higher. This value is a floor, not a ceiling.` }); }
+      if (X.tt === 'intervals' && X.iv) { const b = X.iv.bouts;
+        add('intervals', { title: 'Interval efforts', short: 'interval efforts', value: b.length ? b.length + (b.length === 1 ? ' effort' : ' efforts') : 'None found', g: 'na', what: 'The hard efforts in this session, found automatically from your heart rate, and how far it fell between them.',
+          text: b.length ? `Peaks ranged from ${f(Math.min(...b.map(x => x.peak)))} to ${f(Math.max(...b.map(x => x.peak)))} bpm. ${isFinite(X.iv.fade) && X.iv.fade >= 5 ? `Your peak rose ${f(X.iv.fade)} bpm over the session, a sign of building fatigue.` : 'Your peaks stayed consistent across the session.'} See the training pages for each effort.` : 'No distinct efforts stood out from the rest of the session. Efforts are detected when heart rate rises well above the session’s easy level for at least 20 seconds.' }); }
+      if (X.tt === 'tempo' && X.tempo) { const T = X.tempo;
+        add('tempo', { title: 'Tempo steadiness', short: 'tempo steadiness', value: T.valid ? 'Drift ' + (T.drift >= 0 ? '+' : '−') + f(Math.abs(T.drift), 1) + ' %' : 'Too short', g: 'na', what: 'How evenly you held a sustained effort. Cardiac drift is how much your heart rate crept up in the second half at the same effort.',
+          text: !T.valid ? 'The sustained part lasted less than 10 minutes, too short to judge drift. Hold the tempo effort for at least 10 minutes.'
+            : T.drift > 10 ? 'A large drift: your heart rate climbed well above where it started. Heat, dehydration, fatigue or going too hard early are the usual reasons.'
+            : T.drift > 5 ? 'A moderate drift. Some rise is normal on long or warm efforts; less drift at the same pace over time is a sign of improving endurance.'
+            : `A steady effort: heart rate stayed within ±5 bpm of ${f(T.avg)} bpm for ${f(100 * T.within)} % of the block.` }); }
       if (X.tt === 'lthr' && X.lt) { const r = X.lt;
         add('lthr', { title: 'Threshold heart rate (LTHR)', short: 'threshold heart rate', value: r.valid ? f(r.lthr) + ' bpm' : 'Incomplete', g: 'na', what: 'The heart rate you can sustain for about an hour: your average over the last 20 minutes of a 30-minute all-out effort.',
           text: r.valid ? `Your threshold heart rate is ${f(r.lthr)} bpm. Zones based on it are more accurate than percentages of maximum for hard training.` : 'The effort lasted less than 25 minutes, so the threshold could not be measured reliably. Do a full 30-minute time trial at the hardest pace you can hold.' }); }
@@ -523,8 +536,13 @@ function gradeAll(A, meta, R, X = null) {
     add('j', { title: 'ST level (J-point)', short: 'ST level', value: f(v) + ' µV', g, what: 'The level of the ECG just after each beat, compared with the resting baseline.', text: { na: 'Could not be assessed.', norm: 'At the expected level.', bord: 'Slightly shifted. A chest strap gives a single view and cannot diagnose heart strain; mention it to a doctor if you have chest discomfort on exertion.', out: 'Clearly shifted. A chest strap cannot diagnose the cause, but this should be checked with a standard ECG, and urgently if you have chest pain.' }[g] }); }
   }
   // signal quality
-  { const v = A.noisePct + 100 * (meta.gap || 0) / FS / Math.max(1, A.dur), g = v > 20 ? 'out' : v >= 5 ? 'bord' : 'norm';
-    add('quality', { title: 'Signal quality', short: 'signal quality', value: f(100 - v) + ' % usable', g, what: 'How much of the recording was clean enough to analyse.', text: { norm: 'Good signal; the results are reliable.', bord: 'Part of the recording was noisy or missing, so the results are less precise. Moisten the electrodes and keep still.', out: 'Much of the recording was noisy or missing, so treat these results with caution and repeat the reading.' }[g] }); }
+  { const lost = 100 * (meta.gap || 0) / FS / Math.max(1, A.dur), noisy = A.noisePct, v = noisy + lost, g = v > 20 ? 'out' : v >= 5 ? 'bord' : 'norm';
+    const lostMin = (meta.gap || 0) / FS / 60, lostTxt = lostMin >= 1 ? Math.round(lostMin) + ' min' : Math.round(lostMin * 60) + ' s';
+    // say what actually happened: a lost connection needs different advice from a noisy signal
+    const why = lost >= noisy
+      ? `The strap's signal was lost for ${lostTxt} (the Bluetooth connection dropped); noise affected only ${f(noisy, 1)} % of the rest. Lost and noisy stretches are left out of every measurement. Keeping the phone close to the strap, for example in a chest or front pocket, helps.`
+      : `${f(noisy, 1)} % of the signal was noisy${lost > 0.5 ? ` and ${lostTxt} was lost` : ''}. Noisy stretches are left out of every measurement. Moisten the electrodes, tighten the strap and keep still where possible.`;
+    add('quality', { title: 'Signal quality', short: 'signal quality', value: f(100 - v) + ' % usable', g, what: 'How much of the recording was clean enough to analyse.', text: { norm: 'Good signal; the results are reliable.', bord: 'Part of the recording could not be used, so the results are a little less precise. ' + why, out: 'Much of the recording could not be used, so treat these results with caution and repeat the reading. ' + why }[g] }); }
   return G;
 }
 function overallVerdict(G) {
@@ -542,7 +560,7 @@ function overallVerdict(G) {
 const plain = t => `<div class="plain"><b>In plain terms</b> ${t}</div>`;
 
 /* ---------- training: working maximum heart rate, recovery, tests, zones ---------- */
-const TRAIN_TYPES = { session: 'Training session', ramp: 'Max HR ramp test', lthr: 'LTHR 30-min test' };
+const TRAIN_TYPES = { session: 'Training session', intervals: 'Interval training', tempo: 'Tempo session', ramp: 'Max HR ramp test', lthr: 'LTHR 30-min test' };
 const REC_TYPES = { active: 'Active recovery (kept moving)', passive: 'Passive recovery (stood, sat or lay still)' };
 /* HRR at 1 min: active cool-down after Cole et al. 1999 (<= 12 bpm abnormal); passive recovery produces larger falls, so its limit is higher */
 const HRR_LIMITS = { active: { out: 12, bord: 17, fav: 30 }, passive: { out: 18, bord: 22, fav: 40 } };
@@ -577,10 +595,11 @@ function latestLthr(hist, cur) {
 function trainingContext(A, meta, hist, age, sex) {
   const ER = A.exercise || null, tt = meta.ctx === 'training' ? (TRAIN_TYPES[meta.trainType] ? meta.trainType : 'session') : null;
   const ramp = tt === 'ramp' ? rampTest(A, ER) : null, lt = tt === 'lthr' ? lthrTest(A, ER) : null;
+  const iv = tt === 'intervals' ? intervalWork(A, ER) : null, tempo = tt === 'tempo' ? tempoWork(A, ER) : null;
   const cur = { id: meta.id || ('file-' + meta.start), start: meta.start, ctx: meta.ctx, trainType: tt, peak20: ER ? ER.peak20 : NaN,
     rampMax: ramp ? ramp.max : NaN, rampPlateau: ramp ? ramp.plateau : false, lthr: lt ? lt.lthr : NaN, lthrValid: lt ? lt.valid : false };
   const WM = maxHrEstimate(hist, cur, age, sex), LR = latestLthr(hist, cur);
-  return { ER, tt, rec: meta.recovery === 'passive' ? 'passive' : 'active', ramp, lt, WM, LR,
+  return { ER, tt, rec: meta.recovery === 'passive' ? 'passive' : 'active', ramp, lt, iv, tempo, WM, LR,
     zonesPct: zoneTime(A, WM.v, PCT_ZONES), zonesL: LR ? zoneTime(A, LR.lthr, LTHR_ZONES) : null };
 }
 const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.round(sec % 60)).padStart(2, '0');
@@ -715,7 +734,7 @@ function renderReport(A, meta0, st, hist = []) {
       ${C.paras.map(p => `<p>${p}</p>`).join('')}${baseCharts}</div>`);
 
   /* ---- plain-language page(s) ---- */
-  const order = ['hr', 'rmssd', 'sdnn', 'br', 'coupling', 'ramp', 'lthr', 'peak', 'maxhr', 'hrr', 'ect', 'pause', 'qtc', 'qrs', 't', 'j', 'quality'].filter(k => G[k]);
+  const order = ['hr', 'rmssd', 'sdnn', 'br', 'coupling', 'ramp', 'lthr', 'intervals', 'tempo', 'peak', 'maxhr', 'hrr', 'ect', 'pause', 'qtc', 'qrs', 't', 'j', 'quality'].filter(k => G[k]);
   const card = k => { const x = G[k]; return `<div class="pl-card g-${x.g}"><div class="pl-top"><b>${x.title}</b><span class="pl-val">${x.value}</span></div>${gchip(x.g)}<p class="pl-what">${x.what}</p><p>${x.text}</p></div>`; };
   const legend = `<div class="pl-legend">${['fav', 'norm', 'bord', 'out', 'na'].map(g => gchip(g)).join('')}</div>`;
   const help = `<div class="pl-help"><b>When to seek medical help.</b> Whatever this report shows, seek urgent care for chest pain or pressure, fainting, severe shortness of breath, or a racing or very irregular heartbeat with dizziness. This report is for general wellness and education only: it cannot diagnose or rule out any condition. For any health concern, see a doctor rather than relying on this report. The pages that follow give the detailed measurements.</div>`;
@@ -757,6 +776,15 @@ function renderReport(A, meta0, st, hist = []) {
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
         <div class="panel"><h3>Result</h3>${kvT('Threshold heart rate (LTHR)', r.valid ? fmt(r.lthr) + ' bpm' : '—', 'mean heart rate over the last 20 minutes of the effort')}${kvT('Window used', clock(r.from) + ' – ' + clock(r.end))}${kvT('Effort duration', fmt(r.effortMin) + ' min', r.short ? 'shorter than the 25 minutes needed' : '')}
         <p class="note-p" style="margin:0">${r.valid ? 'This threshold now sets your LTHR zones in later training reports.' : 'Not valid: run the full 30 minutes at the hardest pace you can hold, and tap Start recovery when you finish.'}</p></div>`; }
+    if (X.tt === 'intervals' && X.iv) { const v = X.iv;
+      tests = `<div class="sec-h"><h2>Interval efforts</h2><span>detected from 10-s heart rate</span></div>
+        ${v.bouts.length ? `<table class="ev"><thead><tr><th>#</th><th>Start</th><th>Effort</th><th>Peak</th><th>Average</th><th>Recovery</th><th>HR fall</th></tr></thead><tbody>${thin(v.bouts, 14).map(b => `<tr><td class="m">${b.n}</td><td class="m">${clock(b.t0)}</td><td class="m">${mmss(b.dur)}</td><td class="m">${fmt(b.peak)} bpm</td><td class="m">${fmt(b.mean)} bpm</td><td class="m">${b.last ? 'end of session' : mmss(b.recSec)}</td><td class="m">${b.last ? 'see below' : isFinite(b.recDrop) ? fmt(b.recDrop) + ' bpm' : '—'}</td></tr>`).join('')}</tbody></table>
+        <p class="note-p">An effort is a stretch of at least 20 s above ${fmt(v.thr)} bpm (60 % of the way from this session’s easy level, ${fmt(v.lo)} bpm, to its high, ${fmt(v.hi)} bpm). HR fall is the drop from the effort’s peak to the lowest point before the next effort; faster falls between efforts usually come with better fitness.${isFinite(v.fade) ? ` Peak heart rate changed by ${v.fade >= 0 ? '+' : '−'}${fmt(Math.abs(v.fade))} bpm from the first to the last effort.` : ''}</p>`
+          : '<p class="note-p">No distinct efforts were found: heart rate never rose well above the session’s easy level for 20 seconds or more.</p>'}`; }
+    if (X.tt === 'tempo' && X.tempo) { const T = X.tempo;
+      tests = `<div class="sec-h"><h2>Tempo steadiness</h2><span>the sustained block of this session</span></div>
+        <div class="panel"><h3>Sustained block</h3>${kvT('Block', clock(T.t0) + ' – ' + clock(T.end), mmss(T.dur) + ' long')}${kvT('Average heart rate', fmt(T.avg) + ' bpm', fmt(100 * T.avg / X.WM.v) + ' % of working maximum')}${kvT('First half / second half', fmt(T.m1) + ' / ' + fmt(T.m2) + ' bpm')}${kvT('Cardiac drift', (T.drift >= 0 ? '+' : '−') + fmt(Math.abs(T.drift), 1) + ' %', 'under 5 % = steady')}${kvT('Held within ±5 bpm', fmt(100 * T.within) + ' % of the block')}
+        <p class="note-p" style="margin:0">${!T.valid ? 'The block lasted less than 10 minutes, too short to judge drift reliably.' : 'Cardiac drift is the rise in heart rate at a steady effort as the session goes on. Less drift at the same pace over the weeks is a sign of improving endurance; heat and dehydration increase it.'}</p></div>`; }
     page(`${tests}
       <div class="sec-h"><h2>Recovery after exercise</h2><span>${E.end != null ? 'Measured from the end of exercise at ' + clock(E.end) : 'Not measured'}</span></div>
       ${E.end == null ? `<p class="note-p" style="font-size:8.6pt">The recording ended while you were still exercising, so recovery was not measured and no recovery flag is raised. To measure it, tap <b>Start recovery</b> on the recording screen when you stop, then keep recording for at least two minutes.</p>` : `
@@ -865,7 +893,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="cols2">
       <div class="fig"><div class="sec-h"><h2>RR interval vs QTc</h2><span>Rate-correction check</span></div>${rrQtc(A, R.qtc)}<div class="cap">A flat cloud indicates that the correction formula suits this heart-rate range. Bazett over-corrects at high heart rates.</div></div>
       <div class="fig"><div class="sec-h"><h2>Waveform trend</h2><span>5-minute averaged beats</span></div>
-        ${mw.length ? `<table class="ev"><thead><tr><th>Start</th><th>RR</th><th>QRS</th><th>QTc</th><th>T</th></tr></thead><tbody>${thin(mw, 10).map(m => `<tr><td class="m">${clock(m.t0).slice(0, 5)}</td><td class="m">${fmt(m.rr)}</td><td class="m">${fmt(m.qrs)}</td><td class="m">${fmt(m.qt / Math.sqrt(m.rr / 1000))}</td><td class="m">${fmt(m.tAmp)}</td></tr>`).join('')}</tbody></table>` : '<p class="cap">Insufficient clean beats.</p>'}</div>
+        ${mw.length ? `<table class="ev"><thead><tr><th>Start</th><th>RR</th><th>QRS</th><th>QTc</th><th>T</th></tr></thead><tbody>${thin(mw, 10).map(m => `<tr><td class="m">${clock(m.t0).slice(0, 5)}</td><td class="m">${fmt(m.rr)}</td><td class="m">${m.qrsOk === false ? '—' : fmt(m.qrs)}</td><td class="m">${fmt(m.qt / Math.sqrt(m.rr / 1000))}</td><td class="m">${fmt(m.tAmp)}</td></tr>`).join('')}</tbody></table>` : '<p class="cap">Insufficient clean beats.</p>'}</div>
     </div>`);
 
   /* ---- strips ---- */
@@ -903,10 +931,10 @@ function renderReport(A, meta0, st, hist = []) {
       <p><b>Acquisition.</b> Single-lead chest ECG from a Polar H10 at 130 samples/s (µV), recorded together with the strap’s own beat-to-beat intervals (1/1024 s resolution). Paused periods and Bluetooth drop-outs are excluded from all calculations.</p>
       <p><b>Signal conditioning.</b> Zero-phase 0.5 Hz high-pass, 40 Hz low-pass and 50 Hz notch filters. Two-second segments with flat signal, clipping or muscle noise are classed as artifact.</p>
       <p><b>Beat detection.</b> Pan–Tompkins-type energy detector with adaptive thresholds and search-back; R-peak times refined to sub-sample precision by parabolic interpolation.</p>
-      <p><b>Ectopic beats.</b> Flagged when QRS morphology departs from the averaged beat (correlation below 0.8 or abnormal amplitude), or when a beat is more than 20 % premature and followed by a compensatory interval. Beats within 3 s form one event.</p>
+      <p><b>Ectopic beats.</b> Flagged when a beat is more than 20 % premature and followed by a compensatory interval, or, if it arrives on time, only when its QRS clearly differs from the surrounding beats (local template; correlation below 0.6 or abnormal amplitude). Beats within 3 s form one event; only consecutive ectopic beats count as a run.</p>
       <p><b>HRV.</b> Time-domain indices follow Task Force (1996) definitions. Spectral analysis: 4 Hz resampling, linear detrending, Hann window, 5-minute segments; LF 0.04–0.15 Hz, HF 0.15–0.40 Hz. Strap intervals deviating more than 20 % from the local median are removed.</p>
       <p><b>Breathing.</b> Measured from the strap’s accelerometer (chest wall movement, 12.5 Hz after averaging): spectral peak of the three axes in 60-s windows, 3–42 breaths/min; windows with body movement or no clear rhythm are rejected. If fewer than 40 % of windows are usable, breathing is estimated instead from R-wave amplitude modulation and respiratory sinus arrhythmia (6–42/min at rest). Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.</p>
-      <p><b>Waveform.</b> Beats averaged in 5-minute blocks and upsampled; QRS limits by slope threshold, T end by the tangent method. QTc is the median of per-beat values.</p>
+      <p><b>Waveform.</b> Beats averaged in 5-minute blocks and upsampled; QRS onset by slope threshold, QRS end by following each QRS wave until its slope levels off (either polarity; not measured if no clear end), T end by the tangent method. QTc is the median of per-beat values.</p>
       <p><b>Grading.</b> HRV norms are approximate, based on Nunan et al. 2010 (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) adjusted for age, sex and position after Voss et al. 2015: below the 5th percentile = outside normal range, 5th–15th = borderline, above the 75th = favourable. QTc limits follow Goldenberg et al. 2006 (men ≤ 430 ms normal, 431–450 borderline; women ≤ 450, 451–470). Heart-rate recovery: 12 bpm or less at 1 minute is outside the normal range (Cole et al. 1999).</p>
       <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. LTHR is the mean heart rate of the last 20 min of a 30-min time trial; threshold zones follow Friel.</p>
       <p><b>Personal baseline.</b> Readings with the same context and position from the previous 30 days (minimum 5). Usual range: mean ± 1 SD of ln RMSSD; heart rate mean ± 1 SD. Exercise recovery is the fall from the 10-s peak heart rate at 60 and 120 s.</p>

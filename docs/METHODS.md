@@ -22,9 +22,12 @@ aligned to the ECG timeline (gaps padded, clock drift corrected to within 1 s).
   sub-sample precision by parabolic interpolation.
 
 ## Ectopic beats and pauses
-A beat is flagged as ectopic when its QRS morphology departs from the recording's median beat (correlation < 0.8 or
-abnormal amplitude), or when it is more than 20 % premature relative to the local median interval and followed by a
-compensatory interval. Beats within 3 s form one event. Pauses are clean RR intervals longer than 2 s.
+A beat is flagged as ectopic when it is more than 20 % premature relative to the local median interval and followed by
+a compensatory interval (QRS correlation below 0.8 then also counts), or, if it arrives on time, only when its QRS is
+clearly different: correlation below 0.6, or peak-to-peak amplitude below 0.4 or above 2.5 times normal. Each beat is
+compared with a local template (median of up to 40 surrounding clean beats) over the QRS only (−46 to +62 ms), so the
+shifts in P, ST and T at high heart rates do not cause false flags. Beats within 3 s form one event; only consecutive
+ectopic beats are called a couplet or run. Pauses are clean RR intervals longer than 2 s.
 
 ## Heart rate variability
 - Normal-to-normal (NN) intervals only. With strap intervals, values deviating more than 20 % from the local median are
@@ -47,8 +50,12 @@ compensatory interval. Beats within 3 s form one event. Pauses are clean RR inte
 Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.
 
 ## Waveform measurements
-Beats are averaged in 5-minute blocks and upsampled ×4. QRS onset and J point are found by slope thresholds; T end by the
-tangent method on the T-wave down-slope. QT is measured per beat; QTc is the median of per-beat Bazett values, with
+Beats are averaged in 5-minute blocks and upsampled ×4. QRS onset is found by a slope threshold. The J point is found by
+following the QRS limb by limb from the main peak (either polarity): a limb ends where its slope falls below 6 % of the
+maximum QRS slope, and a further large deflection within 40 ms (or a limb ending well beyond the baseline, as at the
+bottom of an S wave) continues the QRS. If no end is found within 120 ms of the peak, QRS width is reported as not
+measurable rather than given a fixed value; this matters during exercise, when a raised, sloping ST segment can run
+straight into the T wave. T end by the tangent method on the T-wave down-slope. QT is measured per beat; QTc is the median of per-beat Bazett values, with
 Fridericia shown for comparison. A single chest lead is not equivalent to a 12-lead ECG; waveform findings should be
 confirmed clinically.
 

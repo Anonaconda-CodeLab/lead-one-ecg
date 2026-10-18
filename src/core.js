@@ -179,10 +179,26 @@ function delineate(tp, fsu, R, rrMs, pol) {
   const thr = 0.06 * smax, run = Math.max(3, ms(10));
   let on = Math.max(1, R - ms(110)), c = 0;
   for (let i = R; i > Math.max(1, R - ms(140)); i--) { if (Math.abs(s[i]) < thr) { if (++c >= run) { on = i + run - 1; break; } } else c = 0; }
-  let S = R, sv = Infinity;
-  for (let i = R; i < Math.min(L - 1, R + ms(80)); i++) { const v = pol * (tp[i] - base); if (v < sv) { sv = v; S = i; } }
-  let J = Math.min(L - 2, R + ms(100)); c = 0;
-  for (let i = S; i < Math.min(L - 1, R + ms(150)); i++) { if (Math.abs(s[i]) < thr) { if (++c >= run) { J = i - run + 1; break; } } else c = 0; }
+  // QRS end (J): follow the QRS limb by limb from the main peak. A limb ends where its slope falls below the threshold;
+  // if another large deflection follows within 40 ms (an S wave after R, or r' after S), it belongs to the QRS too.
+  // This works for either polarity and stops before a raised, sloping ST segment (exercise), instead of drifting into it.
+  const rAbs = Math.abs(tp[R] - base) || 1, lim = Math.min(L - 2, R + ms(140));
+  let cur = R, S = R, J = -1;
+  for (let w = 0; w < 4 && cur < lim; w++) {
+    let i = cur + 1; const dir = Math.sign(s[i]) || 1;
+    while (i < lim && Math.sign(s[i]) === dir && Math.abs(s[i]) >= thr) i++;
+    if (i >= lim) break;
+    let nxt = -1;   // a further QRS wave: the limb ended far from the baseline (e.g. the bottom of an S wave),
+    // or a swing of more than 25 % of the main peak follows within 40 ms
+    const away = Math.abs(tp[i] - base) > 0.15 * rAbs && Math.sign(tp[i] - base) !== Math.sign(tp[R] - base);
+    for (let k = i + 1; k < Math.min(lim, i + ms(40)); k++) if (Math.abs(tp[k] - tp[i]) > (away ? 0.08 : 0.25) * rAbs) { nxt = k; break; }
+    if (nxt < 0) { J = i; break; }
+    let e = i; for (let k = i; k <= nxt; k++) if (Math.abs(tp[k] - tp[i]) > Math.abs(tp[e] - tp[i])) e = k;
+    while (e + 1 < lim && Math.sign(s[e + 1]) === Math.sign(tp[nxt] - tp[i]) && Math.abs(s[e + 1]) >= thr) e++;
+    S = cur = e;
+  }
+  const qrsOk = J > 0 && (J - R) <= ms(120);
+  if (J < 0) { J = S; for (let i = S; i < lim; i++) if (Math.abs(s[i]) < Math.abs(s[J])) J = i; }
   const tLim = Math.min(L - 2, R + ms(Math.min(0.62 * rrMs, 560)));
   let tpk = Math.min(J + ms(60), tLim), tv = -1;
   for (let i = J + ms(60); i <= tLim; i++) { const v = Math.abs(tp[i] - base); if (v > tv) { tv = v; tpk = i; } }
@@ -195,7 +211,7 @@ function delineate(tp, fsu, R, rrMs, pol) {
   for (let i = on; i <= Math.min(L - 1, Math.round(tEnd)); i++) { sys += Math.abs(tp[i] - base); sc++; }
   return {
     on, R, S, J, tpk, tEnd, base,
-    qrs: (J - on) / fsu * 1000, qt: (tEnd - on) / fsu * 1000,
+    qrs: (J - on) / fsu * 1000, qrsOk: qrsOk && (J - on) / fsu * 1000 >= 40 && (J - on) / fsu * 1000 <= 180, qt: (tEnd - on) / fsu * 1000,
     rAmp: tp[R] - base, jAmp: tp[J] - base, tAmp: tp[tpk] - base, sysAmp: sc ? sys / sc : NaN
   };
 }
@@ -448,6 +464,41 @@ function lthrTest(A, ER) {
   const from = Math.max(0, end - 1200), m = meanHRBetween(B, from, end);
   return { lthr: m.v, from, end, effortMin: end / 60, cover: m.cover, valid: end >= 25 * 60 && m.cover > 0.8 && isFinite(m.v), short: end < 25 * 60 };
 }
+/* interval training: the hard efforts and the recoveries between them, from 10-s heart rate up to the end of exercise.
+   An effort is a stretch above 60 % of the way from the session's low (10th percentile) to its high (98th percentile),
+   lasting at least 20 s; dips shorter than 20 s are bridged. */
+function intervalWork(A, ER) {
+  const B = cleanBeats(A), s10 = rollingHR(A, 10, 2, B); if (s10.length < 30) return null;
+  const end = ER && ER.end != null ? ER.end : s10[s10.length - 1].t, ex = s10.filter(p => p.t <= end);
+  if (ex.length < 30) return null;
+  const vs = ex.map(p => p.v).sort((a, b) => a - b), lo = vs[Math.floor(0.1 * vs.length)], hi = vs[Math.min(vs.length - 1, Math.floor(0.98 * vs.length))];
+  if (!(hi - lo >= 15)) return { bouts: [], lo, hi, thr: NaN, end };
+  const thr = lo + 0.6 * (hi - lo), segs = [];
+  let cur = null;
+  for (const p of ex) if (p.v >= thr) { if (cur && p.t - cur.t1 <= 20) cur.t1 = p.t; else { cur = { t0: p.t, t1: p.t }; segs.push(cur); } }
+  const efforts = segs.filter(q => q.t1 - q.t0 >= 20);
+  const bouts = efforts.map((q, i) => {
+    const pts = ex.filter(p => p.t >= q.t0 && p.t <= q.t1), pk = pts.reduce((a, b) => b.v > a.v ? b : a);
+    const nextT = i + 1 < efforts.length ? efforts[i + 1].t0 : end, rec = ex.filter(p => p.t > q.t1 && p.t <= nextT);
+    const mn = rec.length ? rec.reduce((a, b) => b.v < a.v ? b : a) : null;
+    return { n: i + 1, t0: q.t0, dur: q.t1 - q.t0, peak: pk.v, mean: mean(pts.map(p => p.v)), recSec: Math.max(0, nextT - q.t1), recMin: mn ? mn.v : NaN, recDrop: mn ? pk.v - mn.v : NaN, last: i + 1 === efforts.length };
+  });
+  const fade = bouts.length >= 3 ? bouts[bouts.length - 1].peak - bouts[0].peak : NaN;
+  return { bouts, thr, lo, hi, end, fade };
+}
+/* tempo: the sustained block (from the first time heart rate reaches 92 % of the session's upper-quartile level to the
+   end of exercise), how steadily it was held, and cardiac drift (mean HR of the second half vs the first half) */
+function tempoWork(A, ER) {
+  const B = cleanBeats(A), s10 = rollingHR(A, 10, 2, B); if (s10.length < 30) return null;
+  const end = ER && ER.end != null ? ER.end : s10[s10.length - 1].t, ex = s10.filter(p => p.t <= end);
+  if (ex.length < 30) return null;
+  const vs = ex.map(p => p.v).sort((a, b) => a - b), q75 = vs[Math.floor(0.75 * vs.length)];
+  const first = ex.find(p => p.v >= 0.92 * q75); if (!first) return null;
+  const main = ex.filter(p => p.t >= first.t), t0 = first.t, half = (t0 + end) / 2;
+  const m1 = mean(main.filter(p => p.t <= half).map(p => p.v)), m2 = mean(main.filter(p => p.t > half).map(p => p.v));
+  const avg = mean(main.map(p => p.v)), within = main.filter(p => Math.abs(p.v - avg) <= 5).length / Math.max(1, main.length);
+  return { t0, end, dur: end - t0, avg, m1, m2, drift: 100 * (m2 - m1) / m1, within, valid: end - t0 >= 10 * 60 && isFinite(m1) && isFinite(m2) };
+}
 const PCT_ZONES = [['Rest', 0, 0.6], ['Recovery', 0.6, 0.7], ['Aerobic', 0.7, 0.8], ['Anaerobic', 0.8, 0.9], ['Maximum', 0.9, 10]];
 const LTHR_ZONES = [['Z1 Recovery', 0, 0.85], ['Z2 Aerobic', 0.85, 0.90], ['Z3 Tempo', 0.90, 0.95], ['Z4 Sub-threshold', 0.95, 1.0],
   ['Z5a Super-threshold', 1.0, 1.03], ['Z5b Aerobic capacity', 1.03, 1.07], ['Z5c Anaerobic capacity', 1.07, 10]];
@@ -507,19 +558,23 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   const pre = Math.round(0.25 * FS), post = Math.round(Math.min(0.62, 0.85 * medRR / 1000) * FS);
   const good = []; for (let k = 1; k < nb; k++) if (rrOk[k] && Math.abs(rr[k] - lmed[k]) < 0.15 * lmed[k]) good.push(k);
   const G = buildTemplate(sig, r, good.length > 20 ? good : Array.from({ length: nb }, (_, i) => i), pre, post, 400);
+  // morphology: each beat is compared with a LOCAL template (median of the surrounding clean beats), over the QRS only
+  // (-46 to +62 ms). A session-wide template made ordinary beats look "different" at high heart rates, when the P wave,
+  // ST segment and T wave shift; comparing like with like removes those false flags.
   const corr = new Float64Array(nb).fill(1), amp = new Float64Array(nb).fill(1);
   if (G) {
-    const a0 = pre - 10, a1 = pre + 14, tm = []; for (let j = a0; j <= a1; j++) tm.push(G.tp[j]);
-    const mt = mean(tm); let st = 0; for (const v of tm) st += (v - mt) ** 2; st = Math.sqrt(st);
-    const tR = G.tp[pre] - mean(Array.from(G.tp.slice(pre - 10, pre - 5)));
+    const a0 = -6, a1 = 8, W = a1 - a0 + 1, goodSet = new Uint8Array(nb); for (const k of good) goodSet[k] = 1;
+    const col = new Float64Array(40), loc = new Float64Array(W), b = new Float64Array(W);
     for (let k = 0; k < nb; k++) {
-      const c = r[k]; if (c - 10 < 0 || c + 14 >= n) continue;
-      let mb = 0; for (let j = -10; j <= 14; j++) mb += sig[c + j]; mb /= 25;
-      let sxy = 0, sb = 0;
-      for (let j = -10; j <= 14; j++) { const bv = sig[c + j] - mb, tv = G.tp[pre + j] - mt; sxy += bv * tv; sb += bv * bv; }
-      corr[k] = sb > 0 && st > 0 ? sxy / (Math.sqrt(sb) * st) : 1;
-      let bb = 0; for (let j = -10; j <= -6; j++) bb += sig[c + j]; bb /= 5;
-      amp[k] = tR ? (sig[c] - bb) / tR : 1;
+      const c = r[k]; if (c + a0 < 0 || c + a1 >= n) continue;
+      const nb_ = []; for (let j = k - 20; j <= k + 20 && nb_.length < 40; j++) if (j !== k && j >= 0 && j < nb && goodSet[j] && r[j] + a0 >= 0 && r[j] + a1 < n) nb_.push(j);
+      if (nb_.length < 8) continue;
+      for (let q = 0; q < W; q++) { for (let m = 0; m < nb_.length; m++) col[m] = sig[r[nb_[m]] + a0 + q]; loc[q] = median(col.subarray(0, nb_.length)); b[q] = sig[c + a0 + q]; }
+      const ml = mean(loc), mb = mean(b); let sxy = 0, sl = 0, sb = 0, pl = -Infinity, ql = Infinity, pb = -Infinity, qb = Infinity;
+      for (let q = 0; q < W; q++) { const lv = loc[q] - ml, bv = b[q] - mb; sxy += lv * bv; sl += lv * lv; sb += bv * bv;
+        if (loc[q] > pl) pl = loc[q]; if (loc[q] < ql) ql = loc[q]; if (b[q] > pb) pb = b[q]; if (b[q] < qb) qb = b[q]; }
+      corr[k] = sl > 0 && sb > 0 ? sxy / Math.sqrt(sl * sb) : 1;
+      amp[k] = pl - ql > 0 ? (pb - qb) / (pl - ql) : 1;     // QRS peak-to-peak relative to the local template
     }
   }
   const ect = new Uint8Array(nb), ectKind = new Array(nb).fill(null);
@@ -527,15 +582,21 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     if (noise[k]) continue;
     const lm = lmed[k];
     const prem = rrOk[k] && k + 1 < nb && rrOk[k + 1] && rr[k] < 0.8 * lm && rr[k + 1] > 1.08 * lm && (rr[k + 1] - rr[k]) > 0.3 * lm;
-    const morph = corr[k] < 0.8 || amp[k] < 0.45 || amp[k] > 2.2;
+    // shape alone (normal timing) needs a clearly different QRS: a beat that arrives on time is rarely ectopic, and
+    // movement or electrode noise changes the shape of ordinary beats. Early beats need less shape evidence.
+    const morph = prem ? (corr[k] < 0.8 || amp[k] < 0.5 || amp[k] > 2) : (corr[k] < 0.6 || amp[k] < 0.4 || amp[k] > 2.5);
     if (prem || morph) { ect[k] = 1; ectKind[k] = morph ? (prem ? 'Premature, different shape' : 'Different shape') : 'Premature'; }
   }
   // events (group ectopic beats within 3 s)
   const events = [];
   for (let k = 0; k < nb; k++) if (ect[k]) {
     const ev = events[events.length - 1];
-    if (ev && t[k] - t[ev.last] < 3) { ev.last = k; ev.beats++; ev.kind = ev.beats > 1 ? 'Run of ' + ev.beats + ' beats' : ev.kind; }
-    else events.push({ first: k, last: k, beats: 1, kind: ectKind[k], time: t[k] });
+    // beats within 3 s form one event; only CONSECUTIVE ectopic beats are a "run"
+    if (ev && t[k] - t[ev.last] < 3) {
+      ev.run = ev.last === k - 1 ? ev.run + 1 : 1; ev.maxRun = Math.max(ev.maxRun, ev.run); ev.last = k; ev.beats++;
+      ev.kind = ev.maxRun >= 2 ? (ev.maxRun === 2 ? 'Couplet (2 in a row)' : 'Run of ' + ev.maxRun + ' beats') : ev.beats + ' ectopic beats within ' + Math.max(1, Math.round(t[k] - ev.time)) + ' s';
+    }
+    else events.push({ first: k, last: k, beats: 1, run: 1, maxRun: 1, kind: ectKind[k], time: t[k] });
   }
 
   // NN intervals
@@ -696,7 +757,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     maxHR, minHR, hi1, lo1,
     bradyPct: 100 * brady / (rateBeats || 1), tachyPct: 100 * tachy / (rateBeats || 1),
     pnnEpisodes: H.pnnEpisodes, zones, hrMax, hrvWin: H.windows, hrvWinSec: H.winSec,
-    qrs: pick(morphWin, m => m.qrs), jAmp: pick(morphWin, m => m.jAmp), sysAmp: pick(morphWin, m => m.sysAmp),
+    qrs: pick(morphWin.filter(m => m.qrsOk), m => m.qrs),   // windows whose QRS end could not be found are left out jAmp: pick(morphWin, m => m.jAmp), sysAmp: pick(morphWin, m => m.sysAmp),
     rAmp: pick(morphWin, m => m.rAmp), tAmp: pick(morphWin, m => m.tAmp),
     qtc: qtcVals.length ? median(qtcVals) : (morphWin.length ? median(morphWin.map(m => m.qt / Math.sqrt(m.rr / 1000))) : NaN),
     qtcF: qtcPts.length ? median(qtcPts.map(p => p.qtcF)) : NaN,
@@ -749,7 +810,7 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
   };
   // exercise kinds: 'training' (ramp to steady effort), 'intervals' (4x4 with active recovery, passive cool-down),
   // 'intervals-climb' (same, but the recording ends while still climbing), 'ramp' (3-min steps to failure), 'lthr' (30-min time trial)
-  const EX = ['training', 'intervals', 'intervals-climb', 'ramp', 'lthr'].includes(kind);
+  const EX = ['training', 'intervals', 'intervals-climb', 'ramp', 'lthr', 'tempo'].includes(kind);
   const brHz = kind === 'meditation' ? 0.1 : EX ? 0.4 : 0.23;
   const T = minutes * 60;
   // first-order heart-rate dynamics toward a target, for the newer exercise kinds
@@ -763,6 +824,7 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
       return [100, 60];                                              // passive cool-down
     }
     if (kind === 'ramp') { if (tc < 1530) return [Math.min(178, 100 + 12 * Math.floor(tc / 180)), 30]; return [105, 50]; }
+    if (kind === 'tempo') { if (tc < 420) return [100 + 30 * tc / 420, 40]; if (tc < 1920) return [148 + 9 * (tc - 420) / 1500, 45]; return [102, 55]; }   // 25-min tempo with slight drift
     if (kind === 'lthr') { if (tc < 300) return [110, 40]; if (tc < 2100) return [157 + 4 * (tc - 300) / 1800, 40]; return [100, 50]; }
     return null;
   };

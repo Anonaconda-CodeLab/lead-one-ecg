@@ -100,3 +100,23 @@ test('exercise is not graded against resting waveform norms, and QTc uses Frider
   const G2 = L.gradeAll({ ...A, jAmp: -230 }, { ctx: 'training', pos: 'walking', gap: 0 }, R);
   assert.equal(G2.j.g, 'bord');
 });
+
+test('interval training: each hard effort is found, with the recovery between efforts', async () => {
+  const { analyze, makeDemo } = load();
+  const api = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, acc: d.acc });
+  const I = api.intervalWork(A, A.exercise);
+  assert.equal(I.bouts.length, 4, '4 x 4 min efforts');
+  for (const b of I.bouts) assert.ok(b.dur > 150 && b.dur < 300, 'effort length ' + b.dur);
+  for (const b of I.bouts.filter(b => !b.last)) assert.ok(b.recDrop > 20, 'heart rate falls between efforts');
+});
+
+test('tempo: the sustained block, its average and cardiac drift', async () => {
+  const { analyze, makeDemo } = load();
+  const api = load(); const d = makeDemo(36, 3, 'tempo');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, acc: d.acc });
+  const T = api.tempoWork(A, A.exercise);
+  assert.ok(T.valid && T.dur > 18 * 60, 'block of about 25 min');
+  assert.ok(T.avg > 145 && T.avg < 160);
+  assert.ok(T.drift > 1 && T.drift < 8, 'slight upward drift ' + T.drift);
+});

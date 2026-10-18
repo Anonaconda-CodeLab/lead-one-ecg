@@ -101,9 +101,11 @@ const chipVal = el => { const b = el.querySelector('[aria-checked="true"]'); ret
 const CTX_CHIPS = Object.entries(CTX).map(([k, v]) => [k, v.short, v.sub]);
 const POS_CHIPS = Object.entries(POS).map(([k, v]) => [k, v.short]);
 
-const TT_CHIPS = [['session', 'Session', 'intervals, runs, rides'], ['ramp', 'Max HR ramp test', '3-min steps to failure'], ['lthr', 'LTHR test', '30-min time trial']];
+const TT_CHIPS = [['session', 'Session', 'steady or mixed'], ['intervals', 'Intervals', 'repeated hard efforts'], ['tempo', 'Tempo', 'sustained, comfortably hard'], ['ramp', 'Max HR ramp test', '3-min steps to failure'], ['lthr', 'LTHR test', '30-min time trial']];
 const REC_CHIPS = [['active', 'Active', 'keep moving'], ['passive', 'Passive', 'stand or sit still']];
 const TT_HINTS = { session: 'When you finish, tap Start recovery and keep recording for at least 2 minutes.',
+  intervals: 'Each hard effort is detected automatically, with your recovery between efforts. After the last one, tap Start recovery and keep recording for 2 minutes.',
+  tempo: 'Warm up, then hold a steady, comfortably hard effort for at least 10 minutes. The report shows how steady you held it and how much your heart rate drifted. Tap Start recovery when you finish.',
   ramp: 'Start easy. The app beeps and vibrates every 3 minutes: increase the load each time, until you cannot continue. Tap Start recovery the moment you stop.',
   lthr: 'Warm up first, then go as hard as you can sustain for 30 minutes. The app tells you when 30 minutes are up; tap Start recovery when you finish.' };
 function stickyChips(el, defs, get, set) { buildChips(el, defs, get(), v => { if (v) set(v); else buildChips(el, defs, get(), x => x && set(x)); stickyChips(el, defs, get, set); }); }
@@ -256,8 +258,9 @@ async function importHistoryFile(f) {
     for (const raw of j.history.slice(0, 20000)) { const x = cleanHistory(raw); if (!x) continue; have.has(x.id) ? updated++ : added++; await putHistory(x); }
     const s = getSettings(), p = cleanProfile(j.profile);
     if (!s.dob || !s.sex) patchSettings({ dob: s.dob || p.dob, sex: s.sex || p.sex, name: s.name || p.name });
+    if (getSettings().dob && getSettings().sex) patchSettings({ setupDone: true });   // a restored profile completes setup
     toast(added + updated ? `Imported ${added} new reading${added === 1 ? '' : 's'}${updated ? `, updated ${updated}` : ''}.` : 'The file contained no readings to import.'); refreshHistCount(); profileNote();
-    if (!$('#scrSettings').hidden) openSettings(!getSettings().setupDone);
+    if (!$('#scrSettings').hidden) { if (!$('#setupIntro').hidden && !needsSetup()) show('scrHome'); else openSettings(needsSetup()); }   // first-run import: profile restored, go straight to recording
   } catch (err) { toast('The history could not be saved on this device: ' + (err && err.message || err), 7000); }
 }
 $('#btnClearHist').onclick = async function () {
@@ -487,8 +490,16 @@ async function stopRecording(why) {
 /* ---------- recording screen ---------- */
 let lastBattRead = 0;
 /* training cues: ramp steps every 3 minutes, LTHR 30-minute mark */
-function beep(freq = 880, ms = 160, at = 0) { try { const a = S.audio; if (!a) return; const o = a.createOscillator(), g = a.createGain(); o.frequency.value = freq; o.connect(g); g.connect(a.destination); const t = a.currentTime + at; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.4, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000); o.start(t); o.stop(t + ms / 1000 + 0.02); } catch (e) {} }
-function cue(strong) { try { navigator.vibrate && navigator.vibrate(strong ? [350, 120, 350] : [120]); } catch (e) {} if (strong) { beep(880, 180, 0); beep(1175, 260, 0.25); } else beep(660, 120); }
+/* training cues: square waves at 2–3 kHz (where phone speakers and hearing are most sensitive), pushed through a
+   limiter to just below distortion, so they cut through traffic noise at full media volume */
+let cueOut = null;
+function cueBus(a) {
+  if (cueOut && cueOut.context === a) return cueOut;
+  const comp = a.createDynamicsCompressor(); comp.threshold.value = -18; comp.knee.value = 0; comp.ratio.value = 20; comp.attack.value = 0.001; comp.release.value = 0.05;
+  const g = a.createGain(); g.gain.value = 1.75; comp.connect(g); g.connect(a.destination); cueOut = comp; return comp;
+}
+function beep(freq = 2400, ms = 220, at = 0) { try { const a = S.audio; if (!a) return; if (a.state === 'suspended') a.resume(); const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = freq; o.connect(g); g.connect(cueBus(a)); const t = a.currentTime + at; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.008); g.gain.setValueAtTime(0.9, t + ms / 1000 - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000); o.start(t); o.stop(t + ms / 1000 + 0.02); } catch (e) {} }
+function cue(strong) { try { navigator.vibrate && navigator.vibrate(strong ? [400, 120, 400, 120, 400] : [200, 100, 200]); } catch (e) {} if (strong) { beep(2400, 220, 0); beep(2400, 220, 0.3); beep(3000, 450, 0.6); } else { beep(2000, 160, 0); beep(2000, 160, 0.25); } }
 function tickTraining() {
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = S.total / FS, P = $('#stepPanel');
@@ -729,7 +740,7 @@ $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = '';
 for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runSample(b.dataset.demo);
 function runSample(kind) {
   const d = new Date(); d.setDate(d.getDate() - 1);
-  const cfg = { rest: [5, 30, 2, 46, 'morning', 'lying', 'rest'], training: [17, 10, 0, 35, 'training', 'walking', 'intervals', 'session', 'passive'], ramp: [17, 40, 0, 31, 'training', 'walking', 'ramp', 'ramp', 'passive', 1530],
+  const cfg = { rest: [5, 30, 2, 46, 'morning', 'lying', 'rest'], training: [17, 10, 0, 35, 'training', 'walking', 'intervals', 'intervals', 'passive'], tempo: [7, 0, 0, 36, 'training', 'walking', 'tempo', 'tempo', 'active'], ramp: [17, 40, 0, 31, 'training', 'walking', 'ramp', 'ramp', 'passive', 1530],
     meditation: [20, 15, 0, 10, 'meditation', 'seated', 'meditation'] }[kind];
   d.setHours(cfg[0], cfg[1], cfg[2], 0);
   const demo = makeDemo(cfg[3], 7, cfg[6]);
@@ -743,14 +754,17 @@ $('#ackBox').onchange = () => { $('#btnAck').disabled = !$('#ackBox').checked; }
 $('#btnAck').onclick = () => {
   if (!$('#ackBox').checked) return;
   patchSettings({ ackWellness: ACK_VERSION, ackAt: Date.now() });
-  if (!getSettings().setupDone) openSettings(true); else show('scrHome');
+  if (needsSetup()) openSettings(true); else show('scrHome');
 };
 $('#btnAckManual').onclick = openHelp;
 const acked = () => getSettings().ackWellness === ACK_VERSION;
+/* the setup screen is only needed while the profile is missing; a profile restored from a history import counts */
+const needsSetup = () => { const st = getSettings(); return !st.setupDone && !(st.dob && st.sex); };
 envCheck(); initHomeSetup(); refreshPast(); profileNote();
-if (!acked()) show('scrAck'); else if (!getSettings().setupDone) openSettings(true); else show('scrHome');
+if (!acked()) show('scrAck'); else if (needsSetup()) openSettings(true); else show('scrHome');
 if (location.hash === '#manual') openHelp();   // direct link to the user manual, e.g. from the studio page
 if (location.hash === '#sample') runSample('rest');
 else if (location.hash === '#training') runSample('training');
 else if (location.hash === '#ramp') runSample('ramp');
+else if (location.hash === '#tempo') runSample('tempo');
 else if (location.hash === '#meditation') runSample('meditation');
