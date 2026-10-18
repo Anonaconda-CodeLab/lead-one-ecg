@@ -39,7 +39,7 @@ Everything runs in your browser: no account, no server, no data leaves your devi
 ## Getting started
 The full **[user manual](docs/MANUAL.md)** is also built into the app (home screen → *User manual*).
 
-1. Open **[leadone.anonacondacodelab.com](https://leadone.anonacondacodelab.com)**. **On a phone, use Google Chrome on
+1. Open **[leadone.anonacondacodelab.com](https://leadone.anonacondacodelab.com)**. **On a phone, use Google Chrome or Chromium on
    Android.** On a computer, use Chrome or Edge (Windows, macOS, ChromeOS) or another Chromium-based browser with Web
    Bluetooth. iPhone and iPad are not supported. The app must be served over **https**.
 2. On first launch, enter your date of birth and sex (used only for reference ranges, stored only on your device).

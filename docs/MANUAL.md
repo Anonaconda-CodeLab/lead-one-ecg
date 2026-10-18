@@ -36,7 +36,7 @@ The first time you open the app, it asks you to confirm that you have read and u
 ## What you need
 - A **Polar H10** chest strap.
 - A browser that supports Bluetooth for web apps (called "Web Bluetooth"):
-  - **On a phone, use Google Chrome on Android.** This is the browser the app is built and tested for. Other phone
+  - **On a phone, use Google Chrome or Chromium on Android.** This is the browser the app is built and tested for. Other phone
     browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.
   - **On a computer** (Windows, macOS or ChromeOS), use **Chrome or Microsoft Edge**. Other Chromium-based browsers such
     as Opera usually work too. Brave and Linux need a setting switched on first (see *Troubleshooting*), and recording
@@ -184,7 +184,7 @@ replacing your phone, or using an Incognito tab would lose them. The app shows a
 ## Troubleshooting
 
 ### "Bluetooth isn't available"
-On a phone, open the app in **Google Chrome on Android**, from its https address. On a computer, use Chrome or Edge.
+On a phone, open the app in **Google Chrome or Chromium on Android**, from its https address. On a computer, use Chrome or Edge.
 iPhone, iPad, Safari and Firefox are not supported. On Linux,
 enable `chrome://flags/#enable-experimental-web-platform-features`; in Brave, enable `brave://flags/#brave-web-bluetooth-api`.
 
