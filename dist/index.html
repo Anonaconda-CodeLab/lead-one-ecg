@@ -422,7 +422,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 <p>Words such as &quot;normal range&quot;, &quot;borderline&quot; or &quot;outside normal range&quot; in the app describe how a measurement compares with published values for healthy adults. They are <b>not</b> medical findings. For any health concern, see a doctor, and do not rely on this app.</p>
 <p>The first time you open the app, it asks you to confirm that you have read and understood this.</p>
 <h2>What you need</h2>
-<ul><li>A <b>Polar H10</b> chest strap.</li><li>A browser that supports Bluetooth for web apps (called &quot;Web Bluetooth&quot;):<ul><li><b>On a phone, use Google Chrome on Android.</b> This is the browser the app is built and tested for. Other phone browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.</li><li><b>On a computer</b> (Windows, macOS or ChromeOS), use <b>Chrome or Microsoft Edge</b>. Other Chromium-based browsers such as Opera usually work too. Brave and Linux need a setting switched on first (see <i>Troubleshooting</i>), and recording on Linux can be unreliable.</li><li><b>iPhone and iPad are not supported.</b> Browsers on iPhone and iPad, Chrome included, do not offer Web Bluetooth, so none of them can connect to the strap. <b>Firefox and Safari</b> do not support it on any device.</li></ul></li><li>The app's web address: <b><a href="https://leadone.anonacondacodelab.com" target="_blank" rel="noopener noreferrer">leadone.anonacondacodelab.com</a></b></li></ul>
+<ul><li>A <b>Polar H10</b> chest strap.</li><li>A browser that supports Bluetooth for web apps (called &quot;Web Bluetooth&quot;):<ul><li><b>On a phone, use Google Chrome or Chromium on Android.</b> This is the browser the app is built and tested for. Other phone browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.</li><li><b>On a computer</b> (Windows, macOS or ChromeOS), use <b>Chrome or Microsoft Edge</b>. Other Chromium-based browsers such as Opera usually work too. Brave and Linux need a setting switched on first (see <i>Troubleshooting</i>), and recording on Linux can be unreliable.</li><li><b>iPhone and iPad are not supported.</b> Browsers on iPhone and iPad, Chrome included, do not offer Web Bluetooth, so none of them can connect to the strap. <b>Firefox and Safari</b> do not support it on any device.</li></ul></li><li>The app's web address: <b><a href="https://leadone.anonacondacodelab.com" target="_blank" rel="noopener noreferrer">leadone.anonacondacodelab.com</a></b></li></ul>
 <p>There is nothing to install from an app store. To open the app from an icon like a normal app, tap <b>Add to home screen</b> under <b>More</b> on the home screen and confirm. If Chrome doesn't offer it there, tap Chrome's <b>⋮</b> menu and choose <b>Add to Home screen</b> (or <b>Install app</b>). The icon opens the same web address, so your recordings and history are all there. It opens full screen, without the address bar.</p>
 <h2>First-time setup</h2>
 <p>The first time you open the app it shows a short <b>Before you start</b> notice about wellness use. Tick the box to confirm you understand it, then tap <b>Continue</b>.</p>
@@ -464,7 +464,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 <ul><li><b>Settings → Export history</b> saves a backup file of your reading history. Keep it somewhere safe, such as Google Drive.</li><li><b>Settings → Import history</b> restores it, on the same phone or a new one. Readings already present are not duplicated.</li><li><b>Moving to a new phone:</b> send yourself the backup file (e-mail, Google Drive or a chat app), and <b>save it to the new phone first</b> (Download, or Save to Files). Then open the app; on the setup screen tap <b>Import your history file</b>, or later use <b>Settings → Import history</b>. Your profile comes across too.</li><li>To keep a particular recording in full, use <b>Save recording</b> or <b>Save as PDF</b> on its report. Imported history brings back your baseline and trends, but not the raw recordings.</li></ul>
 <h2>Troubleshooting</h2>
 <h3>&quot;Bluetooth isn't available&quot;</h3>
-<p>On a phone, open the app in <b>Google Chrome on Android</b>, from its https address. On a computer, use Chrome or Edge. iPhone, iPad, Safari and Firefox are not supported. On Linux, enable <code>chrome://flags/#enable-experimental-web-platform-features</code>; in Brave, enable <code>brave://flags/#brave-web-bluetooth-api</code>.</p>
+<p>On a phone, open the app in <b>Google Chrome or Chromium on Android</b>, from its https address. On a computer, use Chrome or Edge. iPhone, iPad, Safari and Firefox are not supported. On Linux, enable <code>chrome://flags/#enable-experimental-web-platform-features</code>; in Brave, enable <code>brave://flags/#brave-web-bluetooth-api</code>.</p>
 <h3>The strap connects, but the timer stays at 00:00:00 or &quot;No ECG from the strap&quot; appears</h3>
 <p>Another app is holding the strap's ECG stream. Force-close other heart-rate apps, unclip the sensor from the strap for 30 seconds, clip it back on, switch the phone's Bluetooth off and on, then reload the app and connect again.</p>
 <h3>The strap is not in the list or will not connect</h3>
@@ -503,7 +503,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
         <div id="devMeta" class="dev-meta">Moisten the electrodes, fit the strap, then connect.</div></div>
       </div>
       <button id="btnConnect" class="btn primary">Connect H10</button>
-      <p class="dev-meta browser-req" style="margin:0"><b>On a phone, use Google Chrome on Android.</b> On a computer, use Chrome or Edge. iPhone, iPad, Safari and Firefox can’t connect to the strap.</p>
+      <p class="dev-meta browser-req" style="margin:0"><b>On a phone, use Google Chrome or Chromium on Android.</b> On a computer, use Chrome or Edge. iPhone, iPad, Safari and Firefox can’t connect to the strap.</p>
     </div>
     <div id="envNote" class="note" hidden></div>
 
@@ -2752,7 +2752,7 @@ function btProblem() {
   if ('bluetooth' in navigator) return '';
   if (brave) return `<b>Brave has Bluetooth for websites switched off.</b> Open ${flag('brave-web-bluetooth-api')}, set it to Enabled${linux ? `, also enable ${flag('enable-experimental-web-platform-features')}` : ''}, then relaunch Brave.`;
   if (linux) return `<b>Chromium on Linux keeps Bluetooth for websites behind a setting.</b> Open ${flag('enable-experimental-web-platform-features')}, set it to Enabled, then relaunch. If you installed Chromium as a snap, also run <code>sudo snap connect chromium:bluez</code> once.`;
-  if (/Firefox|SamsungBrowser/.test(ua) || /iPhone|iPad|Macintosh/.test(ua) && !/Chrome/.test(ua)) return '<b>This browser can’t use Bluetooth from websites.</b> On a phone, use Google Chrome on Android; on a computer, use Chrome or Edge.';
+  if (/Firefox|SamsungBrowser/.test(ua) || /iPhone|iPad|Macintosh/.test(ua) && !/Chrome/.test(ua)) return '<b>This browser can’t use Bluetooth from websites.</b> On a phone, use Google Chrome or Chromium on Android; on a computer, use Chrome or Edge.';
   return `<b>Bluetooth for websites is switched off in this browser.</b> Try enabling ${flag('enable-experimental-web-platform-features')}, then relaunch.`;
 }
 function envCheck() { const note = $('#envNote'), msg = btProblem(); note.innerHTML = msg; note.hidden = !msg; return !msg || FRAMED; }
@@ -3080,7 +3080,9 @@ async function runReport(raw, meta) {
   } catch (e) { console.error(e); toast(e.message || String(e), 7000); show('scrHome'); }
 }
 async function renderInto() {
-  const st = getSettings(), meta = S.meta;
+  const meta = S.meta;
+  // sample reports never show the user's own profile: a fixed, made-up one (no name, age 40)
+  const st = meta.sample ? { name: '', sex: 'M', dob: new Date(new Date(meta.start).getFullYear() - 40, 0, 1).toISOString().slice(0, 10) } : getSettings();
   const hist = meta.sample ? sampleHistory(S.analysis, meta) : await getHistory();
   $('#reportPages').innerHTML = renderReport(S.analysis, meta, st, hist);
   fitPages();

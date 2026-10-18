@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.5.0
+- Privacy fix: sample reports showed the name, age and sex from your profile. They now use a fixed, made-up profile
+  (no name, age 40), so they are safe to screenshot and share.
 - Browser guidance now reads "Google Chrome or Chromium".
 - A gentle Ko-fi card at the bottom of the home screen after 20, 50 and 100 readings. "Not now" hides it until the next
   milestone; tapping Ko-fi hides it for good. Nothing is tracked.

@@ -618,7 +618,9 @@ async function runReport(raw, meta) {
   } catch (e) { console.error(e); toast(e.message || String(e), 7000); show('scrHome'); }
 }
 async function renderInto() {
-  const st = getSettings(), meta = S.meta;
+  const meta = S.meta;
+  // sample reports never show the user's own profile: a fixed, made-up one (no name, age 40)
+  const st = meta.sample ? { name: '', sex: 'M', dob: new Date(new Date(meta.start).getFullYear() - 40, 0, 1).toISOString().slice(0, 10) } : getSettings();
   const hist = meta.sample ? sampleHistory(S.analysis, meta) : await getHistory();
   $('#reportPages').innerHTML = renderReport(S.analysis, meta, st, hist);
   fitPages();

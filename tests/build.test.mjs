@@ -63,3 +63,8 @@ test('donation card is quiet: hidden by default, milestone-based, link isolated'
   assert.match(h, /id="btnDonate"[^>]*href="https:\/\/ko-fi\.com\/[^"]+" target="_blank" rel="noopener noreferrer"/);
   assert.match(h, /const DONATE_AT = \[20, 50, 100\]/);
 });
+
+test('sample reports never use the personal profile', () => {
+  const h = distHtml();
+  assert.match(h, /const st = meta\.sample \? \{ name: '', sex: 'M', dob: [^}]+\} : getSettings\(\);/);
+});
