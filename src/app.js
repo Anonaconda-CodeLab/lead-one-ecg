@@ -155,7 +155,10 @@ $('#btnSaveSettings').onclick = () => {
 $('#btnCloseSettings').onclick = () => show('scrHome');
 $('#btnSetupLater').onclick = () => { patchSettings({ setupDone: true }); profileNote(); show('scrHome'); };
 $('#btnFixProfile').onclick = () => openSettings(false);
-$('#btnSettings').onclick = () => { if (!S.recording) openSettings(false); };
+// the settings icon toggles: tap again (or press Esc) to go back without saving, except during first-run setup
+const settingsOpen = () => !$('#scrSettings').hidden && $('#setupIntro').hidden;
+$('#btnSettings').onclick = () => { if (S.recording) return; if (settingsOpen()) show('scrHome'); else openSettings(false); };
+addEventListener('keydown', e => { if (e.key === 'Escape' && settingsOpen()) show('scrHome'); });
 function profileNote() { const s = getSettings(); $('#profileNote').hidden = !!(s.dob && s.sex); }
 
 /* ---------- IndexedDB ---------- */

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 1.5.0
+- Settings: tapping the settings icon again, or pressing Esc, closes Settings without saving (as Cancel does).
 - Rest sample report: gentler slow heart-rate swings, so its SDNN (about 51 ms) is realistic for a calm morning
   reading; it was 96 ms.
 - Privacy fix: sample reports showed the name, age and sex from your profile. They now use a fixed, made-up profile
