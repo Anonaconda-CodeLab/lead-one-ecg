@@ -1,6 +1,8 @@
 # Changelog
 
 ## 1.5.0
+- A gentle Ko-fi card at the bottom of the home screen after 20, 50 and 100 readings. "Not now" hides it until the next
+  milestone; tapping Ko-fi hides it for good. Nothing is tracked.
 - Add to home screen: a new button under **More** installs the app as a home-screen icon that opens full screen. The
   app now has a web manifest and icons; it still has no service worker and makes no network requests.
 

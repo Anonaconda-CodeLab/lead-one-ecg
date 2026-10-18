@@ -325,3 +325,6 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 .step-panel.go{background:var(--accent);color:var(--accent-fg)} .step-panel.go small{color:inherit}
 .btn-recov{border:2px solid var(--ok);background:var(--surface);color:var(--ok);border-radius:16px;min-height:60px;font-size:18px;font-weight:700;letter-spacing:.04em}
 .btn-recov:disabled{opacity:1;background:var(--ok);color:var(--surface);cursor:default}
+.donate{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.donate p{margin:0}
+.donate .acts{display:flex;gap:8px;flex-wrap:wrap}

@@ -58,9 +58,14 @@ function md(text) {
   }
   flushP(); flushL(); flushQ(); return out.join('\n');
 }
+// gentle donation card on the home screen, shown at a few reading milestones only (see app.js)
+const donate = kofi ? `<div id="donateCard" class="card donate" hidden>
+      <p><b>Enjoying Lead One?</b><br><span class="dev-meta">You've made <span id="donateN">20</span> readings. The app is free, with no ads or tracking. If it's useful to you, a coffee helps keep it going.</span></p>
+      <div class="acts"><a id="btnDonate" class="btn coffee" href="${kofi}" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a><button id="btnDonateLater" class="btn">Not now</button></div>
+    </div>` : '';
 const manual = md(readFileSync(join(root, 'docs', 'MANUAL.md'), 'utf8'));
 const b64 = f => readFileSync(join(root, 'src', 'fonts', f)).toString('base64');
-const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION|APP_URL|APP_HOST)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about).replace('{{MANUAL}}', () => manual);
+const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION|APP_URL|APP_HOST)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about).replace('{{DONATE}}', donate).replace('{{MANUAL}}', () => manual);
 
 const fonts = `@font-face{font-family:"Instrument Sans";font-style:normal;font-display:swap;font-weight:400 700;font-stretch:75% 100%;src:url(data:font/woff2;base64,${b64('InstrumentSans-latin-variable.woff2')}) format("woff2-variations")}
 @font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:400;src:url(data:font/woff2;base64,${b64('IBMPlexMono-latin-400.woff2')}) format("woff2")}

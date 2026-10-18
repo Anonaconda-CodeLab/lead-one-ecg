@@ -225,12 +225,24 @@ function backupDue(h, s, now = Date.now()) {
   return now - last > BACKUP_EVERY;
 }
 async function backupNote(h) {
-  h = h || await getHistory(); const s = getSettings(), b = $('#backupBanner');
+  h = h || await getHistory(); donateNote(h); const s = getSettings(), b = $('#backupBanner');
   if (!backupDue(h, s)) { b.hidden = true; return; }
   const n = h.filter(x => (num(x.start) || 0) > (num(s.lastBackup) || 0)).length;
   $('#backupText').textContent = (s.lastBackup ? `Last backup ${agoText(s.lastBackup)}. ` : 'Your history has never been backed up. ')
     + `${n} reading${n === 1 ? '' : 's'} exist only in this browser; clearing Chrome's data or changing phones would lose them.`;
   b.hidden = false;
+}
+/* gentle donation request: at 20, 50 and 100 readings, never during a recording, never again after Ko-fi is tapped */
+const DONATE_AT = [20, 50, 100];
+function donateNote(h) {
+  const c = $('#donateCard'); if (!c) return;
+  const s = getSettings(), n = h.length, m = DONATE_AT.filter(x => n >= x).pop() || 0;
+  c.hidden = s.donateDone || !m || (num(s.donateSeen) || 0) >= m;
+  if (!c.hidden) { $('#donateN').textContent = n; c.dataset.m = m; }
+}
+if ($('#donateCard')) {
+  $('#btnDonate').onclick = () => { patchSettings({ donateDone: true }); $('#donateCard').hidden = true; };
+  $('#btnDonateLater').onclick = () => { patchSettings({ donateSeen: +$('#donateCard').dataset.m }); $('#donateCard').hidden = true; };
 }
 $('#btnBackupNow').onclick = () => $('#btnExportHist').click();
 $('#btnBackupLater').onclick = () => { patchSettings({ backupSnooze: Date.now() + SNOOZE }); $('#backupBanner').hidden = true; };

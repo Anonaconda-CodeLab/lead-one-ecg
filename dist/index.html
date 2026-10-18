@@ -340,6 +340,9 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 .step-panel.go{background:var(--accent);color:var(--accent-fg)} .step-panel.go small{color:inherit}
 .btn-recov{border:2px solid var(--ok);background:var(--surface);color:var(--ok);border-radius:16px;min-height:60px;font-size:18px;font-weight:700;letter-spacing:.04em}
 .btn-recov:disabled{opacity:1;background:var(--ok);color:var(--surface);cursor:default}
+.donate{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.donate p{margin:0}
+.donate .acts{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head><body>
 <main id="app">
@@ -556,6 +559,10 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
         <li>Data is saved to the device every minute, so an interrupted recording can still be analyzed.</li>
       </ul>
     </details>
+    <div id="donateCard" class="card donate" hidden>
+      <p><b>Enjoying Lead One?</b><br><span class="dev-meta">You've made <span id="donateN">20</span> readings. The app is free, with no ads or tracking. If it's useful to you, a coffee helps keep it going.</span></p>
+      <div class="acts"><a id="btnDonate" class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a><button id="btnDonateLater" class="btn">Not now</button></div>
+    </div>
     <p class="wellness-line"><b>For general wellness and education only. Not a medical device.</b> It cannot diagnose or rule out any condition. If you feel unwell, call your local emergency number; do not stop to record.</p>
   </section>
 
@@ -2680,12 +2687,24 @@ function backupDue(h, s, now = Date.now()) {
   return now - last > BACKUP_EVERY;
 }
 async function backupNote(h) {
-  h = h || await getHistory(); const s = getSettings(), b = $('#backupBanner');
+  h = h || await getHistory(); donateNote(h); const s = getSettings(), b = $('#backupBanner');
   if (!backupDue(h, s)) { b.hidden = true; return; }
   const n = h.filter(x => (num(x.start) || 0) > (num(s.lastBackup) || 0)).length;
   $('#backupText').textContent = (s.lastBackup ? `Last backup ${agoText(s.lastBackup)}. ` : 'Your history has never been backed up. ')
     + `${n} reading${n === 1 ? '' : 's'} exist only in this browser; clearing Chrome's data or changing phones would lose them.`;
   b.hidden = false;
+}
+/* gentle donation request: at 20, 50 and 100 readings, never during a recording, never again after Ko-fi is tapped */
+const DONATE_AT = [20, 50, 100];
+function donateNote(h) {
+  const c = $('#donateCard'); if (!c) return;
+  const s = getSettings(), n = h.length, m = DONATE_AT.filter(x => n >= x).pop() || 0;
+  c.hidden = s.donateDone || !m || (num(s.donateSeen) || 0) >= m;
+  if (!c.hidden) { $('#donateN').textContent = n; c.dataset.m = m; }
+}
+if ($('#donateCard')) {
+  $('#btnDonate').onclick = () => { patchSettings({ donateDone: true }); $('#donateCard').hidden = true; };
+  $('#btnDonateLater').onclick = () => { patchSettings({ donateSeen: +$('#donateCard').dataset.m }); $('#donateCard').hidden = true; };
 }
 $('#btnBackupNow').onclick = () => $('#btnExportHist').click();
 $('#btnBackupLater').onclick = () => { patchSettings({ backupSnooze: Date.now() + SNOOZE }); $('#backupBanner').hidden = true; };
