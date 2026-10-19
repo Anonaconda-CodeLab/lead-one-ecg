@@ -328,3 +328,6 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 .donate{display:flex;flex-direction:column;gap:10px;margin-top:16px}
 .donate p{margin:0}
 .donate .acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Android app: browser guidance does not apply */
+.native .browser-req{display:none}

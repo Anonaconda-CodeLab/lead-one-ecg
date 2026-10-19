@@ -1,6 +1,6 @@
 {
   "name": "lead-one-ecg-android",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "private": true,
   "description": "Android build of Lead One ECG (Capacitor wrapper around ../dist)",
   "license": "GPL-3.0-or-later",

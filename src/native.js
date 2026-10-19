@@ -14,6 +14,7 @@ const LeadOneNative = NATIVE ? {
 } : null;
 
 if (NATIVE) (() => {
+  document.documentElement.classList.add('native');   // hides browser-only guidance (see style.css)
   // Web Bluetooth subset used by app.js, implemented on @capacitor-community/bluetooth-le
   const BLE = 'BluetoothLe';
   const STD = { heart_rate: 0x180d, battery_service: 0x180f, device_information: 0x180a,

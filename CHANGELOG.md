@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.2
+- Android app (first test build): the same app with native Bluetooth, recording with the screen off, Android's own save
+  and print screens, and no internet permission. Browser guidance is hidden in the app.
+
 ## 1.5.1
 - Maximum and minimum heart rate now come from a 5-beat running median of normal beats. A single stray interval (for
   example a mildly premature beat and its compensatory pause) set a 195 bpm "maximum" in one LTHR test whose real

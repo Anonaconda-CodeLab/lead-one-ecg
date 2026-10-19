@@ -236,7 +236,7 @@ async function backupNote(h) {
   if (!backupDue(h, s)) { b.hidden = true; return; }
   const n = h.filter(x => (num(x.start) || 0) > (num(s.lastBackup) || 0)).length;
   $('#backupText').textContent = (s.lastBackup ? `Last backup ${agoText(s.lastBackup)}. ` : 'Your history has never been backed up. ')
-    + `${n} reading${n === 1 ? '' : 's'} exist only in this browser; clearing Chrome's data or changing phones would lose them.`;
+    + `${n} reading${n === 1 ? '' : 's'} ${NATIVE ? 'exist only in this app; uninstalling it, clearing its storage or changing phones would lose them.' : "exist only in this browser; clearing Chrome's data or changing phones would lose them."}`;
   b.hidden = false;
 }
 /* gentle donation request: at 20, 50 and 100 readings, never during a recording, never again after Ko-fi is tapped */
@@ -321,7 +321,7 @@ async function connectFlow() {
     setDev('on', S.device.name || 'Polar H10', devMetaText());
   } catch (e) {
     S.connected = false;
-    const msg = e && e.name === 'NotFoundError' ? 'No strap was selected.' : e && e.name === 'SecurityError' ? 'Bluetooth is blocked here. Open the app from its own web address in Chrome.' : 'Connection failed: ' + (e && e.message ? e.message : e);
+    const msg = e && e.name === 'NotFoundError' ? 'No strap was selected.' : e && e.name === 'SecurityError' ? (NATIVE ? 'Bluetooth permission was refused. Allow “Nearby devices” for Lead One ECG in Android settings.' : 'Bluetooth is blocked here. Open the app from its own web address in Chrome.') : 'Connection failed: ' + (e && e.message ? e.message : e);
     setDev('off', 'Polar H10 not connected', msg);
   }
 }
