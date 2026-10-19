@@ -31,21 +31,21 @@ jobs:
       - name: Signing key
         env:
           KS: ${{ secrets.LEADONE_KEYSTORE_B64 }}
-          PW: ${{ secrets.LEADONE_KEYSTORE_PASSWORD }}
         run: |
-          if [ -z "$KS" ] || [ -z "$PW" ]; then
-            echo "::error::Add the repository secrets LEADONE_KEYSTORE_B64 and LEADONE_KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions), then run this workflow again."
-            exit 1
-          fi
-          echo "$KS" | base64 -d > "$RUNNER_TEMP/leadone.jks"
+          if [ -n "$KS" ]; then echo "$KS" | base64 -d > "$RUNNER_TEMP/leadone.jks"; echo "LEADONE_KEYSTORE=$RUNNER_TEMP/leadone.jks" >> "$GITHUB_ENV"; fi
       - name: Build the APK
         working-directory: mobile/android
         env:
-          LEADONE_KEYSTORE: ${{ runner.temp }}/leadone.jks
           LEADONE_KEYSTORE_PASSWORD: ${{ secrets.LEADONE_KEYSTORE_PASSWORD }}
           LEADONE_KEY_PASSWORD: ${{ secrets.LEADONE_KEYSTORE_PASSWORD }}
           LEADONE_KEY_ALIAS: leadone
         run: chmod +x gradlew && ./gradlew --no-daemon assembleRelease
+      - name: Require the release key
+        run: |
+          if [ ! -f mobile/android/app/build/outputs/apk/release/app-release.apk ]; then
+            echo "::error::The app compiled, but it is unsigned. Add the repository secrets LEADONE_KEYSTORE_B64 and LEADONE_KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions), then run this workflow again."
+            exit 1
+          fi
       - name: Check the APK (no internet permission, signed)
         run: |
           APK=mobile/android/app/build/outputs/apk/release/app-release.apk
