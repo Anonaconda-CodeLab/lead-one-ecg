@@ -38,27 +38,45 @@ import java.nio.charset.StandardCharsets;
 )
 public class LeadOnePlugin extends Plugin {
 
-    /* Save a text file (history backup, recording) through Android's own "save as" screen. */
+    /* Saving a file is two steps. pickSaveLocation opens Android's "save as" screen with only the file name: Capacitor
+       keeps the pending call in the app's saved state while that screen is open, and Android limits that state to
+       about 1 MB, so a recording passed along here would be lost. writeChunk then writes the data in pieces. */
     @PluginMethod
-    public void saveFile(PluginCall call) {
+    public void pickSaveLocation(PluginCall call) {
         Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         i.addCategory(Intent.CATEGORY_OPENABLE);
         i.setType(call.getString("mime", "application/json"));
         i.putExtra(Intent.EXTRA_TITLE, call.getString("name", "LeadOne-ECG.json"));
-        startActivityForResult(call, i, "saveFileResult");
+        startActivityForResult(call, i, "pickSaveLocationResult");
     }
 
     @ActivityCallback
-    private void saveFileResult(PluginCall call, ActivityResult result) {
+    private void pickSaveLocationResult(PluginCall call, ActivityResult result) {
         if (call == null) return;
         JSObject r = new JSObject();
         Uri uri = result.getData() != null ? result.getData().getData() : null;
-        if (result.getResultCode() != Activity.RESULT_OK || uri == null) { r.put("saved", false); call.resolve(r); return; }
-        try (OutputStream os = getContext().getContentResolver().openOutputStream(uri, "wt")) {
-            os.write(call.getString("text", "").getBytes(StandardCharsets.UTF_8));
-            r.put("saved", true);
-            call.resolve(r);
+        if (result.getResultCode() != Activity.RESULT_OK || uri == null) { r.put("uri", ""); call.resolve(r); return; }
+        r.put("uri", uri.toString());
+        call.resolve(r);
+    }
+
+    private OutputStream openFile;   // stays open from the first piece to the last, so every storage provider works
+
+    @PluginMethod
+    public void writeChunk(PluginCall call) {
+        String u = call.getString("uri", "");
+        boolean first = Boolean.TRUE.equals(call.getBoolean("first", false)), last = Boolean.TRUE.equals(call.getBoolean("last", false));
+        try {
+            if (first) {
+                if (openFile != null) { try { openFile.close(); } catch (Exception ignored) {} }
+                openFile = getContext().getContentResolver().openOutputStream(Uri.parse(u), "wt");
+            }
+            if (openFile == null) throw new Exception("could not open the file");
+            openFile.write(call.getString("text", "").getBytes(StandardCharsets.UTF_8));
+            if (last) { openFile.close(); openFile = null; }
+            call.resolve();
         } catch (Exception e) {
+            if (openFile != null) { try { openFile.close(); } catch (Exception ignored) {} openFile = null; }
             call.reject(e.getMessage() != null ? e.getMessage() : "write failed");
         }
     }

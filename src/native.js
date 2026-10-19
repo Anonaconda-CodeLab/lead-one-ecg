@@ -6,7 +6,14 @@ const NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform =
 const nativeCall = (plugin, method, opts) => window.Capacitor.nativePromise(plugin, method, opts || {});
 const nativeOn = (plugin, event, cb) => window.Capacitor.addListener(plugin, event, cb);
 const LeadOneNative = NATIVE ? {
-  saveFile: (name, text, mime) => nativeCall('LeadOne', 'saveFile', { name, text, mime: mime || 'application/json' }),
+  async saveFile(name, text, mime) {   // pick the place first (name only), then write in 256 KB pieces
+    const r = await nativeCall('LeadOne', 'pickSaveLocation', { name, mime: mime || 'application/json' });
+    if (!r || !r.uri) return { saved: false };
+    const N = 256 * 1024;
+    for (let i = 0; i === 0 || i < text.length; i += N)
+      await nativeCall('LeadOne', 'writeChunk', { uri: r.uri, text: text.slice(i, i + N), first: i === 0, last: i + N >= text.length });
+    return { saved: true };
+  },
   print: name => nativeCall('LeadOne', 'print', { name }),
   keepScreenOn: on => nativeCall('LeadOne', 'keepScreenOn', { on: !!on }).catch(() => {}),
   vibrate: pattern => nativeCall('LeadOne', 'vibrate', { pattern }).catch(() => {}),

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.3
+- Android app: Save recording wrote an empty file for recordings over about 1 MB. The file is now written in pieces
+  after the save location is chosen.
+
 ## 1.5.2
 - Android app (first test build): the same app with native Bluetooth, recording with the screen off, Android's own save
   and print screens, and no internet permission. Browser guidance is hidden in the app.
