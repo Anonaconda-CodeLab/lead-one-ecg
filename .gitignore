@@ -1,6 +1,9 @@
 # Personal health data: never commit recordings, history exports or reports
 *.json
 !package.json
+!mobile/package.json
+!mobile/package-lock.json
+!mobile/capacitor.config.json
 *.pdf
 *.csv
 *.txt
@@ -14,3 +17,7 @@ node_modules/
 dist/fragment.html
 .DS_Store
 Thumbs.db
+
+# Android signing keys never go in the repository
+*.jks
+*.keystore

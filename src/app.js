@@ -44,6 +44,10 @@ function ms2(sec) { sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 6
 function durText(sec) { const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); if (h) return `${h} h ${m} min`; if (sec < 60) return Math.round(sec) + ' s'; if (sec < 600) { const r = Math.round(sec), ss = r % 60; return Math.floor(r / 60) + ' min' + (ss ? ' ' + ss + ' s' : ''); } return `${Math.round(sec / 60)} min`; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function downloadFile(name, text) {
+  if (NATIVE) {   // Android app: Android's own "save as" screen
+    LeadOneNative.saveFile(name, text).then(r => { if (r && r.saved) toast('Saved.'); }).catch(e => toast('Could not save the file: ' + (e.message || e), 6000));
+    return;
+  }
   if (FRAMED) { toast('Saving files works when the app is opened from its own web address in Chrome.', 6000); return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
@@ -430,6 +434,8 @@ function onData(ev) {
   }
   if (S.total >= MAX_SAMPLES) stopRecording('limit');
   else if (S.autoMin && (S.total - S.pausedSamples - S.gapSamples) >= S.autoMin * 60 * FS) stopRecording('auto');
+  // screen off (Android app): timers are slowed, so training cues are also checked as ECG data arrives
+  else if (document.hidden && now - (S.lastTT || 0) > 500) { S.lastTT = now; tickTraining(); }
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
@@ -438,7 +444,7 @@ function sessionMeta(status) {
 
 /* ---------- start / pause / stop ---------- */
 let wakeLock = null;
-async function keepAwake() { try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
+async function keepAwake() { if (NATIVE) { LeadOneNative.keepScreenOn(true); return; } try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.recording) keepAwake(); });
 
 async function startRecording() {
@@ -457,6 +463,7 @@ async function startRecording() {
   try { await startEcg(); } catch (e) { S.recording = false; toast('Could not start: ' + e.message); return; }
   if (!(await startAcc())) toast('The motion sensor could not be started; breathing will be estimated from the ECG.', 5000);
   putSession(sessionMeta('recording')); keepAwake(); persistStorage();
+  if (NATIVE) LeadOneNative.recording(true, 'Recording ECG. It continues with the screen off.');   // foreground service: keeps recording with the screen off
   $('#notesIn').value = ''; upNotes();
   $('#recBatt').textContent = S.battery != null ? S.battery + '%' : '--';
   $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
@@ -490,6 +497,7 @@ async function stopRecording(why) {
   if (AC.fs && AC.total) { accData = new Int16Array(3 * AC.total); let q = 0; for (const c of AC.chunks) { accData.set(c, q); q += c.length; } }
   await putSession(sessionMeta('complete'));
   try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null;
+  if (NATIVE) { LeadOneNative.keepScreenOn(false); LeadOneNative.recording(false); }
   $('#dim').hidden = true;
   const raw = new Int32Array(S.total); let o = 0; for (const c of S.chunks) { raw.set(c, o); o += c.length; }
   S.raw = raw; S.meta = sessionMeta('complete'); S.analysis = null;
@@ -514,7 +522,7 @@ function cueBus(a) {
   const g = a.createGain(); g.gain.value = 1.75; comp.connect(g); g.connect(a.destination); cueOut = comp; return comp;
 }
 function beep(freq = 2400, ms = 220, at = 0) { try { const a = S.audio; if (!a) return; if (a.state === 'suspended') a.resume(); const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = freq; o.connect(g); g.connect(cueBus(a)); const t = a.currentTime + at; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.008); g.gain.setValueAtTime(0.9, t + ms / 1000 - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000); o.start(t); o.stop(t + ms / 1000 + 0.02); } catch (e) {} }
-function cue(strong) { try { navigator.vibrate && navigator.vibrate(strong ? [400, 120, 400, 120, 400] : [200, 100, 200]); } catch (e) {} if (strong) { beep(2400, 220, 0); beep(2400, 220, 0.3); beep(3000, 450, 0.6); } else { beep(2000, 160, 0); beep(2000, 160, 0.25); } }
+function cue(strong) { const vib = strong ? [400, 120, 400, 120, 400] : [200, 100, 200]; if (NATIVE) LeadOneNative.vibrate(vib); else try { navigator.vibrate && navigator.vibrate(vib); } catch (e) {} if (strong) { beep(2400, 220, 0); beep(2400, 220, 0.3); beep(3000, 450, 0.6); } else { beep(2000, 160, 0); beep(2000, 160, 0.25); } }
 function tickTraining() {
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = S.total / FS, P = $('#stepPanel');
@@ -663,7 +671,12 @@ function savePdf() {
   document.title = 'ECG ' + d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + pad2(d.getMinutes());
   const z = [...document.querySelectorAll('.zoomer')].map(p => p.style.zoom);
   document.querySelectorAll('.zoomer').forEach(p => p.style.zoom = 1);
-  setTimeout(() => { window.print(); setTimeout(() => { document.title = old; document.querySelectorAll('.zoomer').forEach((p, i) => p.style.zoom = z[i]); }, 500); }, 60);
+  const restore = () => { document.title = old; document.querySelectorAll('.zoomer').forEach((p, i) => p.style.zoom = z[i]); };
+  if (NATIVE) {   // Android app: the system print screen, which offers "Save as PDF"; keep the print layout until it closes
+    setTimeout(() => LeadOneNative.print(document.title).catch(e => toast('Printing failed: ' + (e.message || e), 6000)).finally(restore), 60);
+    toast('In the print screen, choose “Save as PDF” as the printer.'); return;
+  }
+  setTimeout(() => { window.print(); setTimeout(restore, 500); }, 60);
   toast('In the print screen, choose “Save as PDF” as the printer.');
 }
 function b64(bytes) { let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(bin); }
@@ -756,7 +769,7 @@ $('#btnHelp').onclick = $('#btnHelp2').onclick = openHelp;
 // Add to home screen: Chrome offers an install prompt once the page qualifies; otherwise explain the menu route
 let installEvt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-$('#btnInstall').hidden = isStandalone();
+$('#btnInstall').hidden = NATIVE || isStandalone();
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
 addEventListener('appinstalled', () => { installEvt = null; $('#btnInstall').hidden = true; toast('Added. Open Lead One ECG from its icon on your home screen.', 7000); });
 $('#btnInstall').onclick = async () => {

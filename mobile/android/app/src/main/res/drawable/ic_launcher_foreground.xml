@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lead One ECG mark: a single ECG trace, centred in the adaptive-icon safe zone -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:translateX="15.6" android:translateY="16.8" android:scaleX="2.4" android:scaleY="2.4">
+        <path android:pathData="M5,17h6l2,-5 3,11 3,-15 2,9h6"
+            android:strokeColor="#FFFFFF" android:strokeWidth="2.2"
+            android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" />
+    </group>
+</vector>

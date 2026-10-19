@@ -68,3 +68,12 @@ test('sample reports never use the personal profile', () => {
   const h = distHtml();
   assert.match(h, /const st = meta\.sample \? \{ name: '', sex: 'M', dob: [^}]+\} : getSettings\(\);/);
 });
+
+test('Android app: no internet permission, native layer inactive in browsers', async () => {
+  const { readFileSync } = await import('node:fs');
+  const m = readFileSync(new URL('../mobile/android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8');
+  assert.match(m, /android\.permission\.INTERNET" tools:node="remove"/);
+  assert.ok(!/<uses-permission android:name="android\.permission\.INTERNET" \/>/.test(m));
+  const h = distHtml();
+  assert.match(h, /const NATIVE = !!\(window\.Capacitor && typeof window\.Capacitor\.isNativePlatform === 'function'/);
+});

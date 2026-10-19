@@ -2471,6 +2471,123 @@ function renderReport(A, meta0, st, hist = []) {
   return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.5.1 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
+/* ---------- Android app (Capacitor) ----------
+   In the Android app the page runs inside Android's WebView, which lacks Web Bluetooth, file downloads, printing,
+   vibration and screen wake locks. This file supplies native stand-ins so the rest of the app runs unchanged.
+   In a browser NATIVE is false and nothing here is used. All calls stay on the phone: the app has no internet permission. */
+const NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+const nativeCall = (plugin, method, opts) => window.Capacitor.nativePromise(plugin, method, opts || {});
+const nativeOn = (plugin, event, cb) => window.Capacitor.addListener(plugin, event, cb);
+const LeadOneNative = NATIVE ? {
+  saveFile: (name, text, mime) => nativeCall('LeadOne', 'saveFile', { name, text, mime: mime || 'application/json' }),
+  print: name => nativeCall('LeadOne', 'print', { name }),
+  keepScreenOn: on => nativeCall('LeadOne', 'keepScreenOn', { on: !!on }).catch(() => {}),
+  vibrate: pattern => nativeCall('LeadOne', 'vibrate', { pattern }).catch(() => {}),
+  recording: (on, text) => nativeCall('LeadOne', on ? 'startRecording' : 'stopRecording', { text: text || '' }).catch(() => {})
+} : null;
+
+if (NATIVE) (() => {
+  // Web Bluetooth subset used by app.js, implemented on @capacitor-community/bluetooth-le
+  const BLE = 'BluetoothLe';
+  const STD = { heart_rate: 0x180d, battery_service: 0x180f, device_information: 0x180a,
+    heart_rate_measurement: 0x2a37, battery_level: 0x2a19, firmware_revision_string: 0x2a26 };
+  const uuid = u => typeof u === 'number' ? `0000${u.toString(16).padStart(4, '0')}-0000-1000-8000-00805f9b34fb`
+    : STD[u] != null ? uuid(STD[u]) : String(u).toLowerCase();
+  const hexToView = h => { const m = String(h || '').replace(/[^0-9a-f]/gi, '').match(/../g) || []; return new DataView(Uint8Array.from(m, x => parseInt(x, 16)).buffer); };
+  const toHex = v => { const u = v instanceof DataView ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength) : v instanceof ArrayBuffer ? new Uint8Array(v) : new Uint8Array(v.buffer, v.byteOffset || 0, v.byteLength); return Array.from(u, x => x.toString(16).padStart(2, '0')).join(''); };
+  const domErr = (name, message) => { const e = new Error(message); e.name = name; return e; };
+  let ready = null;
+  const init = () => ready = ready || (async () => {
+    await nativeCall(BLE, 'initialize', { androidNeverForLocation: true });
+    const on = await nativeCall(BLE, 'isEnabled');
+    if (!on || !on.value) await nativeCall(BLE, 'requestEnable').catch(() => {});
+  })().catch(e => { ready = null; throw e; });
+
+  class Emitter {
+    constructor() { this._l = {}; }
+    addEventListener(t, f) { (this._l[t] = this._l[t] || []).push(f); }
+    removeEventListener(t, f) { this._l[t] = (this._l[t] || []).filter(x => x !== f); }
+    _emit(t, e) { for (const f of (this._l[t] || []).slice()) { try { f(e); } catch (err) { console.error(err); } } }
+  }
+  class Characteristic extends Emitter {
+    constructor(dev, service, id) { super(); this.dev = dev; this.service = service; this.uuid = id; this.value = null; }
+    async startNotifications() {
+      const sub = nativeOn(BLE, `notification|${this.dev.id}|${this.service}|${this.uuid}`, ev => {
+        this.value = hexToView(ev && ev.value); this._emit('characteristicvaluechanged', { target: this });
+      });
+      this.dev._subs.push(sub);
+      await nativeCall(BLE, 'startNotifications', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
+      return this;
+    }
+    async readValue() {
+      const r = await nativeCall(BLE, 'read', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
+      return this.value = hexToView(r && r.value);
+    }
+    async writeValueWithResponse(v) { await nativeCall(BLE, 'write', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid, value: toHex(v) }); }
+    writeValue(v) { return this.writeValueWithResponse(v); }
+  }
+  class Service {
+    constructor(dev, s) { this.dev = dev; this.uuid = s.uuid.toLowerCase(); this._chars = (s.characteristics || []).map(c => String(c.uuid).toLowerCase()); }
+    async getCharacteristic(c) {
+      const id = uuid(c);
+      if (!this._chars.includes(id)) throw domErr('NotFoundError', 'No characteristic ' + c);
+      return new Characteristic(this.dev, this.uuid, id);
+    }
+  }
+  class Device extends Emitter {
+    constructor(id, name) {
+      super(); this.id = id; this.name = name || 'Polar H10'; this._subs = []; this._services = [];
+      const dev = this;
+      this.gatt = {
+        connected: false, device: dev,
+        async connect() {
+          await init(); dev._drop();
+          if (!dev._discSub) dev._discSub = nativeOn(BLE, `disconnected|${dev.id}`, () => {
+            dev.gatt.connected = false; dev._drop(); dev._emit('gattserverdisconnected', { target: dev });
+          });
+          await nativeCall(BLE, 'connect', { deviceId: dev.id, timeout: 15000 });
+          const r = await nativeCall(BLE, 'getServices', { deviceId: dev.id });
+          dev._services = (r && r.services) || []; dev.gatt.connected = true;
+          return dev.gatt;
+        },
+        disconnect() { nativeCall(BLE, 'disconnect', { deviceId: dev.id }).catch(() => {}); },
+        async getPrimaryService(s) {
+          const id = uuid(s), found = dev._services.find(x => String(x.uuid).toLowerCase() === id);
+          if (!found) throw domErr('NotFoundError', 'No service ' + s);
+          return new Service(dev, found);
+        }
+      };
+    }
+    _drop() { for (const s of this._subs) { try { s.remove(); } catch (e) {} } this._subs = []; }   // old notification listeners must not double up after a reconnect
+  }
+  const bluetooth = {
+    async requestDevice(opts) {
+      await init();
+      const prefixes = ((opts && opts.filters) || []).map(f => f.namePrefix).filter(Boolean);
+      let common = prefixes[0] || ''; for (const p of prefixes) while (!p.startsWith(common)) common = common.slice(0, -1);
+      try {
+        const d = await nativeCall(BLE, 'requestDevice', common ? { namePrefix: common } : {});
+        return new Device(d.deviceId, d.name);
+      } catch (e) {
+        const m = String(e && e.message || e);
+        throw domErr(/cancel|no device/i.test(m) ? 'NotFoundError' : 'NetworkError', m);
+      }
+    },
+    getAvailability: async () => true
+  };
+  try { Object.defineProperty(navigator, 'bluetooth', { value: bluetooth, configurable: true }); } catch (e) { navigator.bluetooth = bluetooth; }
+
+  // Android Back button: go back inside the app; on the home or recording screen, leave the app running in the background
+  window.leadOneBack = () => {
+    const scr = document.body.dataset.screen || 'scrHome';
+    if (scr === 'scrHome' || scr === 'scrRec' || scr === 'scrAck') return false;
+    if (scr === 'scrSettings' && !document.getElementById('setupIntro').hidden) return false;   // first-run setup
+    const back = scr === 'scrHelp' ? document.getElementById('btnHelpBack') : scr === 'scrReport' ? document.getElementById('btnBack') : null;
+    if (back) back.click(); else if (typeof show === 'function') show('scrHome');
+    return true;
+  };
+})();
+
 /* ===== Lead One ECG · recorder, storage, history, UI =====
    Storage keys keep their original 'h10ecg' names so existing recordings and history remain readable.
    Copyright (C) 2026 Anonaconda Code Lab
@@ -2517,6 +2634,10 @@ function ms2(sec) { sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 6
 function durText(sec) { const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); if (h) return `${h} h ${m} min`; if (sec < 60) return Math.round(sec) + ' s'; if (sec < 600) { const r = Math.round(sec), ss = r % 60; return Math.floor(r / 60) + ' min' + (ss ? ' ' + ss + ' s' : ''); } return `${Math.round(sec / 60)} min`; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function downloadFile(name, text) {
+  if (NATIVE) {   // Android app: Android's own "save as" screen
+    LeadOneNative.saveFile(name, text).then(r => { if (r && r.saved) toast('Saved.'); }).catch(e => toast('Could not save the file: ' + (e.message || e), 6000));
+    return;
+  }
   if (FRAMED) { toast('Saving files works when the app is opened from its own web address in Chrome.', 6000); return; }
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name;
   document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
@@ -2903,6 +3024,8 @@ function onData(ev) {
   }
   if (S.total >= MAX_SAMPLES) stopRecording('limit');
   else if (S.autoMin && (S.total - S.pausedSamples - S.gapSamples) >= S.autoMin * 60 * FS) stopRecording('auto');
+  // screen off (Android app): timers are slowed, so training cues are also checked as ECG data arrives
+  else if (document.hidden && now - (S.lastTT || 0) > 500) { S.lastTT = now; tickTraining(); }
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
@@ -2911,7 +3034,7 @@ function sessionMeta(status) {
 
 /* ---------- start / pause / stop ---------- */
 let wakeLock = null;
-async function keepAwake() { try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
+async function keepAwake() { if (NATIVE) { LeadOneNative.keepScreenOn(true); return; } try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.recording) keepAwake(); });
 
 async function startRecording() {
@@ -2930,6 +3053,7 @@ async function startRecording() {
   try { await startEcg(); } catch (e) { S.recording = false; toast('Could not start: ' + e.message); return; }
   if (!(await startAcc())) toast('The motion sensor could not be started; breathing will be estimated from the ECG.', 5000);
   putSession(sessionMeta('recording')); keepAwake(); persistStorage();
+  if (NATIVE) LeadOneNative.recording(true, 'Recording ECG. It continues with the screen off.');   // foreground service: keeps recording with the screen off
   $('#notesIn').value = ''; upNotes();
   $('#recBatt').textContent = S.battery != null ? S.battery + '%' : '--';
   $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
@@ -2963,6 +3087,7 @@ async function stopRecording(why) {
   if (AC.fs && AC.total) { accData = new Int16Array(3 * AC.total); let q = 0; for (const c of AC.chunks) { accData.set(c, q); q += c.length; } }
   await putSession(sessionMeta('complete'));
   try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null;
+  if (NATIVE) { LeadOneNative.keepScreenOn(false); LeadOneNative.recording(false); }
   $('#dim').hidden = true;
   const raw = new Int32Array(S.total); let o = 0; for (const c of S.chunks) { raw.set(c, o); o += c.length; }
   S.raw = raw; S.meta = sessionMeta('complete'); S.analysis = null;
@@ -2987,7 +3112,7 @@ function cueBus(a) {
   const g = a.createGain(); g.gain.value = 1.75; comp.connect(g); g.connect(a.destination); cueOut = comp; return comp;
 }
 function beep(freq = 2400, ms = 220, at = 0) { try { const a = S.audio; if (!a) return; if (a.state === 'suspended') a.resume(); const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = freq; o.connect(g); g.connect(cueBus(a)); const t = a.currentTime + at; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.008); g.gain.setValueAtTime(0.9, t + ms / 1000 - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000); o.start(t); o.stop(t + ms / 1000 + 0.02); } catch (e) {} }
-function cue(strong) { try { navigator.vibrate && navigator.vibrate(strong ? [400, 120, 400, 120, 400] : [200, 100, 200]); } catch (e) {} if (strong) { beep(2400, 220, 0); beep(2400, 220, 0.3); beep(3000, 450, 0.6); } else { beep(2000, 160, 0); beep(2000, 160, 0.25); } }
+function cue(strong) { const vib = strong ? [400, 120, 400, 120, 400] : [200, 100, 200]; if (NATIVE) LeadOneNative.vibrate(vib); else try { navigator.vibrate && navigator.vibrate(vib); } catch (e) {} if (strong) { beep(2400, 220, 0); beep(2400, 220, 0.3); beep(3000, 450, 0.6); } else { beep(2000, 160, 0); beep(2000, 160, 0.25); } }
 function tickTraining() {
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = S.total / FS, P = $('#stepPanel');
@@ -3136,7 +3261,12 @@ function savePdf() {
   document.title = 'ECG ' + d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + pad2(d.getMinutes());
   const z = [...document.querySelectorAll('.zoomer')].map(p => p.style.zoom);
   document.querySelectorAll('.zoomer').forEach(p => p.style.zoom = 1);
-  setTimeout(() => { window.print(); setTimeout(() => { document.title = old; document.querySelectorAll('.zoomer').forEach((p, i) => p.style.zoom = z[i]); }, 500); }, 60);
+  const restore = () => { document.title = old; document.querySelectorAll('.zoomer').forEach((p, i) => p.style.zoom = z[i]); };
+  if (NATIVE) {   // Android app: the system print screen, which offers "Save as PDF"; keep the print layout until it closes
+    setTimeout(() => LeadOneNative.print(document.title).catch(e => toast('Printing failed: ' + (e.message || e), 6000)).finally(restore), 60);
+    toast('In the print screen, choose “Save as PDF” as the printer.'); return;
+  }
+  setTimeout(() => { window.print(); setTimeout(restore, 500); }, 60);
   toast('In the print screen, choose “Save as PDF” as the printer.');
 }
 function b64(bytes) { let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(bin); }
@@ -3229,7 +3359,7 @@ $('#btnHelp').onclick = $('#btnHelp2').onclick = openHelp;
 // Add to home screen: Chrome offers an install prompt once the page qualifies; otherwise explain the menu route
 let installEvt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-$('#btnInstall').hidden = isStandalone();
+$('#btnInstall').hidden = NATIVE || isStandalone();
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
 addEventListener('appinstalled', () => { installEvt = null; $('#btnInstall').hidden = true; toast('Added. Open Lead One ECG from its icon on your home screen.', 7000); });
 $('#btnInstall').onclick = async () => {

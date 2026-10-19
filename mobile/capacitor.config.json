@@ -1,0 +1,10 @@
+{
+  "appId": "com.anonacondacodelab.leadone",
+  "appName": "Lead One ECG",
+  "webDir": "../dist",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  }
+}

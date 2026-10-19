@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Lead One ECG</string>
+    <string name="title_activity_main">Lead One ECG</string>
+    <string name="package_name">com.anonacondacodelab.leadone</string>
+    <string name="custom_url_scheme">com.anonacondacodelab.leadone</string>
+</resources>
