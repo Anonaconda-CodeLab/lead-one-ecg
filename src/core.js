@@ -462,7 +462,10 @@ function rampTest(A, ER, step = 180) {
 function lthrTest(A, ER) {
   const B = cleanBeats(A), end = ER && ER.end != null ? ER.end : (B.T.length ? B.T[B.T.length - 1] : A.dur);
   const from = Math.max(0, end - 1200), m = meanHRBetween(B, from, end);
-  return { lthr: m.v, from, end, effortMin: end / 60, cover: m.cover, valid: end >= 25 * 60 && m.cover > 0.8 && isFinite(m.v), short: end < 25 * 60 };
+  // the effort begins when heart rate first reaches 90 % of the threshold; Start may have been pressed a little early
+  const s20 = rollingHR(A, 20, 1, B), on = isFinite(m.v) ? s20.find(q => q.t < from && q.v >= 0.9 * m.v) : null;
+  const onset = on ? Math.max(0, on.t - 10) : 0, eff = end - onset;
+  return { lthr: m.v, from, end, onset, effortMin: eff / 60, cover: m.cover, valid: eff >= 25 * 60 && m.cover > 0.8 && isFinite(m.v), short: eff < 25 * 60 };
 }
 /* interval training: the hard efforts and the recoveries between them, from 10-s heart rate up to the end of exercise.
    An effort is a stretch above 60 % of the way from the session's low (10th percentile) to its high (98th percentile),
@@ -617,9 +620,17 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   const { rmssd, pnn50, pnn200, sdnn, sd1, sd2 } = H;
 
   progress(0.6, 'Measuring heart rate'); await tick();
-  // instantaneous extremes (NN only)
+  // extremes from a 5-beat running median of normal beats: one stray interval (for example a premature beat the
+  // detector missed, and its compensatory pause) cannot set the maximum or minimum
   let maxHR = { v: -1, t: 0, k: 0 }, minHR = { v: 1e9, t: 0, k: 0 };
-  for (let k = 1; k < nb; k++) if (nn[k]) { const h = 60000 / rr[k]; if (h > maxHR.v) maxHR = { v: h, t: t[k], k }; if (h < minHR.v) minHR = { v: h, t: t[k], k }; }
+  { const ks = []; for (let k = 1; k < nb; k++) if (nn[k]) ks.push(k);
+    for (let i = 2; i + 2 < ks.length; i++) {
+      if (t[ks[i + 2]] - t[ks[i - 2]] > 8) continue;                  // the five beats must be close together
+      const w = [ks[i - 2], ks[i - 1], ks[i], ks[i + 1], ks[i + 2]].map(k => rr[k]).sort((a, b) => a - b), h = 60000 / w[2], k = ks[i];
+      if (h > maxHR.v) maxHR = { v: h, t: t[k], k }; if (h < minHR.v) minHR = { v: h, t: t[k], k };
+    }
+    if (maxHR.v < 0) for (const k of ks) { const h = 60000 / rr[k]; if (h > maxHR.v) maxHR = { v: h, t: t[k], k }; if (h < minHR.v) minHR = { v: h, t: t[k], k }; }
+  }
   let brady = 0, tachy = 0, rateBeats = 0;
   for (let k = 1; k < nb; k++) if (rrOk[k] && !ect[k]) { rateBeats++; const h = 60000 / rr[k]; if (h < 50) brady++; if (h > 150) tachy++; }
   // sliding 1-minute means

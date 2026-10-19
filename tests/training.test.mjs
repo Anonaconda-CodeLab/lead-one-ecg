@@ -52,6 +52,15 @@ test('LTHR: mean heart rate over the last 20 minutes of the time trial', async (
   const r = L.lthrTest(A, A.exercise);
   assert.ok(r.valid);
   near(r.lthr, 159.5, 2, 'LTHR');
+  near(r.onset, 300, 90, 'effort timed from when it began, not from the warm-up');
+  near(r.effortMin, 30, 1.5, 'effort length');
+  assert.ok(r.cover > 0.95);
+});
+
+test('session maximum is not set by one stray beat', async () => {
+  const A = await run('ramp', 31, { recMark: 1530 });       // contains an injected premature beat near peak effort
+  const r = L.rampTest(A, A.exercise);
+  assert.ok(A.maxHR.v <= r.max + 8, `max ${A.maxHR.v.toFixed(0)} vs 20-s peak ${r.max.toFixed(0)}`);
 });
 
 test('zones: %max and LTHR (Friel) boundaries', async () => {

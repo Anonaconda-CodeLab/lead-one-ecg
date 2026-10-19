@@ -61,7 +61,8 @@ confirmed clinically.
 
 ## Training
 ### End of exercise and recovery
-Heart rate is averaged in 10-s and 20-s windows (time-weighted over clean beats). The end of exercise is the moment the
+Session maximum and minimum heart rate come from a 5-beat running median of normal beats (beats spanning at most 8 s),
+so one stray interval, such as a premature beat too mild to be flagged and its compensatory pause, cannot set them. Heart rate is averaged in 10-s and 20-s windows (time-weighted over clean beats). The end of exercise is the moment the
 user taps **Start recovery**; if they do not, it is detected automatically as the highest point that everything after it
 stays below, followed by a fall of at least 10 bpm within 2 minutes and no renewed effort (nothing within 12 bpm of it from
 1 minute later onwards). Recovery is always measured from this point, never from a peak in the middle of a session, so
@@ -90,7 +91,9 @@ least a minute before failure (at least three steps required).
 
 ### LTHR test
 30-minute time trial; lactate-threshold heart rate = mean heart rate over the last 20 minutes before the end of exercise
-(valid if the effort lasted at least 25 minutes). Threshold zones follow Friel: Z1 < 85 %, Z2 85–89 %, Z3 90–94 %,
+(valid if the effort lasted at least 25 minutes and the window has signal for at least 80 % of its length; Bluetooth gaps
+are left out). The effort is timed from the moment the 20-s heart rate first reaches 90 % of that mean, so pressing Start a
+few minutes early does not lengthen it. Threshold zones follow Friel: Z1 < 85 %, Z2 85–89 %, Z3 90–94 %,
 Z4 95–99 %, Z5a 100–102 %, Z5b 103–106 %, Z5c > 106 % of LTHR [11]. Training reports show LTHR zones first (from the most
 recent valid test) and zones by working maximum (50–60/60–70/70–80/80–90/90+ %) alongside.
 

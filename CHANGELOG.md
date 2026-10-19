@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.1
+- Maximum and minimum heart rate now come from a 5-beat running median of normal beats. A single stray interval (for
+  example a mildly premature beat and its compensatory pause) set a 195 bpm "maximum" in one LTHR test whose real
+  peak was about 166 bpm.
+- LTHR test: the effort is now timed from when heart rate first reaches effort level, not from pressing Start, and the
+  report says how much of the 20-minute window had signal when Bluetooth dropped out.
+
 ## 1.5.0
 - Settings: tapping the settings icon again, or pressing Esc, closes Settings without saving (as Cancel does).
 - Rest sample report: gentler slow heart-rate swings, so its SDNN (about 51 ms) is realistic for a calm morning

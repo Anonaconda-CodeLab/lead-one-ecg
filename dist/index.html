@@ -402,7 +402,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.5.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.5.1 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
@@ -1095,7 +1095,10 @@ function rampTest(A, ER, step = 180) {
 function lthrTest(A, ER) {
   const B = cleanBeats(A), end = ER && ER.end != null ? ER.end : (B.T.length ? B.T[B.T.length - 1] : A.dur);
   const from = Math.max(0, end - 1200), m = meanHRBetween(B, from, end);
-  return { lthr: m.v, from, end, effortMin: end / 60, cover: m.cover, valid: end >= 25 * 60 && m.cover > 0.8 && isFinite(m.v), short: end < 25 * 60 };
+  // the effort begins when heart rate first reaches 90 % of the threshold; Start may have been pressed a little early
+  const s20 = rollingHR(A, 20, 1, B), on = isFinite(m.v) ? s20.find(q => q.t < from && q.v >= 0.9 * m.v) : null;
+  const onset = on ? Math.max(0, on.t - 10) : 0, eff = end - onset;
+  return { lthr: m.v, from, end, onset, effortMin: eff / 60, cover: m.cover, valid: eff >= 25 * 60 && m.cover > 0.8 && isFinite(m.v), short: eff < 25 * 60 };
 }
 /* interval training: the hard efforts and the recoveries between them, from 10-s heart rate up to the end of exercise.
    An effort is a stretch above 60 % of the way from the session's low (10th percentile) to its high (98th percentile),
@@ -1250,9 +1253,17 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   const { rmssd, pnn50, pnn200, sdnn, sd1, sd2 } = H;
 
   progress(0.6, 'Measuring heart rate'); await tick();
-  // instantaneous extremes (NN only)
+  // extremes from a 5-beat running median of normal beats: one stray interval (for example a premature beat the
+  // detector missed, and its compensatory pause) cannot set the maximum or minimum
   let maxHR = { v: -1, t: 0, k: 0 }, minHR = { v: 1e9, t: 0, k: 0 };
-  for (let k = 1; k < nb; k++) if (nn[k]) { const h = 60000 / rr[k]; if (h > maxHR.v) maxHR = { v: h, t: t[k], k }; if (h < minHR.v) minHR = { v: h, t: t[k], k }; }
+  { const ks = []; for (let k = 1; k < nb; k++) if (nn[k]) ks.push(k);
+    for (let i = 2; i + 2 < ks.length; i++) {
+      if (t[ks[i + 2]] - t[ks[i - 2]] > 8) continue;                  // the five beats must be close together
+      const w = [ks[i - 2], ks[i - 1], ks[i], ks[i + 1], ks[i + 2]].map(k => rr[k]).sort((a, b) => a - b), h = 60000 / w[2], k = ks[i];
+      if (h > maxHR.v) maxHR = { v: h, t: t[k], k }; if (h < minHR.v) minHR = { v: h, t: t[k], k };
+    }
+    if (maxHR.v < 0) for (const k of ks) { const h = 60000 / rr[k]; if (h > maxHR.v) maxHR = { v: h, t: t[k], k }; if (h < minHR.v) minHR = { v: h, t: t[k], k }; }
+  }
   let brady = 0, tachy = 0, rateBeats = 0;
   for (let k = 1; k < nb; k++) if (rrOk[k] && !ect[k]) { rateBeats++; const h = 60000 / rr[k]; if (h < 50) brady++; if (h > 150) tachy++; }
   // sliding 1-minute means
@@ -2289,7 +2300,7 @@ function renderReport(A, meta0, st, hist = []) {
         <p class="note-p" style="margin:0">${!r.valid ? 'Test not valid: fewer than three steps were completed.' : r.plateau ? 'The measured maximum is used as your working maximum without a margin.' : 'Without a plateau, this value is a floor; the +2 % margin applies.'}</p></div></div>`; }
     if (X.tt === 'lthr' && X.lt) { const r = X.lt;
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
-        <div class="panel"><h3>Result</h3>${kvT('Threshold heart rate (LTHR)', r.valid ? fmt(r.lthr) + ' bpm' : '—', 'mean heart rate over the last 20 minutes of the effort')}${kvT('Window used', clock(r.from) + ' – ' + clock(r.end))}${kvT('Effort duration', fmt(r.effortMin) + ' min', r.short ? 'shorter than the 25 minutes needed' : '')}
+        <div class="panel"><h3>Result</h3>${kvT('Threshold heart rate (LTHR)', r.valid ? fmt(r.lthr) + ' bpm' : '—', 'mean heart rate over the last 20 minutes of the effort')}${kvT('Window used', clock(r.from) + ' – ' + clock(r.end), r.cover < 0.995 ? `signal for ${fmt(20 * r.cover)} of the 20 minutes; gaps are left out` : '')}${kvT('Effort duration', fmt(r.effortMin) + ' min', r.short ? 'shorter than the 25 minutes needed' : r.onset > 30 ? `from ${clock(r.onset)}, when heart rate first reached effort level` : '')}
         <p class="note-p" style="margin:0">${r.valid ? 'This threshold now sets your LTHR zones in later training reports.' : 'Not valid: warm up first, press Start as the 30-minute effort begins, hold the hardest pace you can for the full 30 minutes, and tap Start recovery when you finish.'}</p></div>`; }
     if (X.tt === 'intervals' && X.iv) { const v = X.iv;
       tests = `<div class="sec-h"><h2>Interval efforts</h2><span>detected from 10-s heart rate</span></div>
@@ -2348,7 +2359,7 @@ function renderReport(A, meta0, st, hist = []) {
     ${plain(isTraining ? 'How hard your heart worked during the session and how quickly it settled afterwards. The chart traces your heart rate through the session; coloured bands show the training zones.' : 'How fast your heart beat and whether the rhythm was steady. The chart shows your heart rate minute by minute; small triangles along the bottom mark extra beats (orange) and long gaps between beats (red).')}
     <div class="grid3">
       <div class="panel"><h3>Beats</h3>${A.stillPct != null ? kv('Time still', fmt(A.stillPct) + ' %', 'from the motion sensor') : ''}${kv('Number of beats', fmt(A.beats))}${kv('Ectopic beats / events', fmt(A.ectopicBeats) + ' / ' + fmt(nEv), null, nEv > 0)}${kv('Ectopic share', fmt(evPct, 2) + ' %')}${kv('Artifact or noise', fmt(A.noisePct, 2) + ' %')}${kv('Paused / signal lost', (pausedSec > 1 ? durShort(pausedSec) : 'none') + ' / ' + (lostSec > 1 ? durShort(lostSec) : 'none'))}</div>
-      <div class="panel"><h3>Heart rate</h3>${kv('Maximum', fmt(A.maxHR.v) + ' bpm', 'at ' + clock(A.maxHR.t))}${kv('Minimum', fmt(A.minHR.v) + ' bpm', 'at ' + clock(A.minHR.t))}${A.hi1 ? kv('Highest 1-min mean', fmt(A.hi1.v) + ' bpm', clock(A.hi1.t0) + ' – ' + clock(A.hi1.t1)) : ''}${A.lo1 ? kv('Lowest 1-min mean', fmt(A.lo1.v) + ' bpm', clock(A.lo1.t0) + ' – ' + clock(A.lo1.t1)) : ''}</div>
+      <div class="panel"><h3>Heart rate</h3>${kv('Maximum', fmt(A.maxHR.v) + ' bpm', 'at ' + clock(A.maxHR.t) + ' · 5-beat median')}${kv('Minimum', fmt(A.minHR.v) + ' bpm', 'at ' + clock(A.minHR.t) + ' · 5-beat median')}${A.hi1 ? kv('Highest 1-min mean', fmt(A.hi1.v) + ' bpm', clock(A.hi1.t0) + ' – ' + clock(A.hi1.t1)) : ''}${A.lo1 ? kv('Lowest 1-min mean', fmt(A.lo1.v) + ' bpm', clock(A.lo1.t0) + ' – ' + clock(A.lo1.t1)) : ''}</div>
       ${thirdPanel}
     </div>
     <div class="fig"><div class="sec-h"><h2>Heart rate over time</h2><span>${A.hrBin}-second means · shaded band = minimum to maximum</span></div>${hrChart(A, startMs, meta.pauses || [], isTraining && X.ER ? X.ER.end : null)}
@@ -2451,13 +2462,13 @@ function renderReport(A, meta0, st, hist = []) {
       <p><b>Breathing.</b> Measured from the strap’s accelerometer (chest wall movement, 12.5 Hz after averaging): spectral peak of the three axes in 60-s windows, 3–42 breaths/min; windows with body movement or no clear rhythm are rejected. If fewer than 40 % of windows are usable, breathing is estimated instead from R-wave amplitude modulation and respiratory sinus arrhythmia (6–42/min at rest). Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.</p>
       <p><b>Waveform.</b> Beats averaged in 5-minute blocks and upsampled; QRS onset by slope threshold, QRS end by following each QRS wave until its slope levels off (either polarity; not measured if no clear end), T end by the tangent method. QTc is the median of per-beat values.</p>
       <p><b>Grading.</b> HRV norms are approximate, based on Nunan et al. 2010 (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) adjusted for age, sex and position after Voss et al. 2015: below the 5th percentile = outside normal range, 5th–15th = borderline, above the 75th = favourable. QTc limits follow Goldenberg et al. 2006 (men ≤ 430 ms normal, 431–450 borderline; women ≤ 450, 451–470). Heart-rate recovery: 12 bpm or less at 1 minute is outside the normal range (Cole et al. 1999).</p>
-      <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. LTHR is the mean heart rate of the last 20 min of a 30-min time trial; threshold zones follow Friel.</p>
+      <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. LTHR is the mean heart rate of the last 20 min of a 30-min time trial (gaps excluded; at least 80 % coverage); the effort is timed from when heart rate first reaches 90 % of that value. Threshold zones follow Friel. Session maximum and minimum heart rate are taken from a 5-beat running median of normal beats, so a single stray interval cannot set them.</p>
       <p><b>Personal baseline.</b> Readings with the same context and position from the previous 30 days (minimum 5). Usual range: mean ± 1 SD of ln RMSSD; heart rate mean ± 1 SD. Exercise recovery is the fall from the 10-s peak heart rate at 60 and 120 s.</p>
     </div>
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.5.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.5.1 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* ===== Lead One ECG · recorder, storage, history, UI =====
