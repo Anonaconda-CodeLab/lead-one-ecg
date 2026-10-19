@@ -70,7 +70,7 @@ function cleanMeta(m) {
     trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark)
   };
 }
-const HNUM = ['start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr'];
+const HNUM = ['start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
 function cleanHistory(x) {
   if (!x || typeof x !== 'object' || num(x.start) == null) return null;
   const o = { id: str(x.id, 80), ctx: own(CTX, x.ctx), pos: own(POS, x.pos), src: x.src === 'h10' ? 'h10' : 'ecg', notes: str(x.notes, 200),
@@ -105,11 +105,12 @@ const chipVal = el => { const b = el.querySelector('[aria-checked="true"]'); ret
 const CTX_CHIPS = Object.entries(CTX).map(([k, v]) => [k, v.short, v.sub]);
 const POS_CHIPS = Object.entries(POS).map(([k, v]) => [k, v.short]);
 
-const TT_CHIPS = [['session', 'Session', 'steady or mixed'], ['intervals', 'Intervals', 'repeated hard efforts'], ['tempo', 'Tempo', 'sustained, comfortably hard'], ['ramp', 'Max HR ramp test', '3-min steps to failure'], ['lthr', 'LTHR test', '30-min time trial']];
+const TT_CHIPS = [['session', 'Session', 'steady or mixed'], ['intervals', 'Intervals', 'repeated hard efforts'], ['tempo', 'Tempo', 'sustained, comfortably hard'], ['dfa', 'DFA-α1 test', 'aerobic threshold, 3-min steps'], ['ramp', 'Max HR ramp test', '3-min steps to failure'], ['lthr', 'LTHR test', '30-min time trial']];
 const REC_CHIPS = [['active', 'Active', 'keep moving'], ['passive', 'Passive', 'stand or sit still']];
 const TT_HINTS = { session: 'When you finish, tap Start recovery and keep recording for at least 2 minutes.',
   intervals: 'Each hard effort is detected automatically, with your recovery between efforts. After the last one, tap Start recovery and keep recording for 2 minutes.',
   tempo: 'Warm up, then hold a steady, comfortably hard effort for at least 10 minutes. The report shows how steady you held it and how much your heart rate drifted. Tap Start recovery when you finish.',
+  dfa: 'Finds your aerobic threshold from beat-to-beat variation. Best on a bike or treadmill. Start very easy for the first 6 minutes, then raise the effort a little at each beep (every 3 minutes). Keep pedalling or running smoothly; avoid talking, stopping or coasting. The live α1 falls as you work harder: keep going until it is below 0.5 or you are near your limit, then tap Start recovery.',
   ramp: 'Start easy. The app beeps and vibrates every 3 minutes: increase the load each time, until you cannot continue. Tap Start recovery the moment you stop.',
   lthr: 'Warm up first, without recording. Press Start at the moment you begin the 30-minute effort, and go as hard as you can sustain. The app tells you when 30 minutes are up; tap Start recovery then and keep recording for 2 minutes.' };
 function stickyChips(el, defs, get, set) { buildChips(el, defs, get(), v => { if (v) set(v); else buildChips(el, defs, get(), x => x && set(x)); stickyChips(el, defs, get, set); }); }
@@ -468,7 +469,8 @@ async function startRecording() {
   $('#recBatt').textContent = S.battery != null ? S.battery + '%' : '--';
   $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
   $('#btnRecov').hidden = S.ctx !== 'training'; $('#btnRecov').disabled = false; $('#btnRecov').textContent = 'Start recovery';
-  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr'); $('#stepPanel').classList.remove('go');
+  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa'); $('#stepPanel').classList.remove('go');
+  $('#a1Live').hidden = S.trainType !== 'dfa'; S.a1 = null; S.a1At = 0; $('#a1Val').textContent = '—'; $('#a1Msg').textContent = 'α1 appears after 2 minutes';
   if (S.trainType) $('#recCtx').textContent += ' · ' + TRAIN_TYPES[S.trainType] + ' · ' + (S.recovery === 'passive' ? 'passive' : 'active') + ' recovery';
   setPausedUI(false); show('scrRec'); tickRec(); requestAnimationFrame(drawLive);
 }
@@ -523,11 +525,23 @@ function cueBus(a) {
 }
 function beep(freq = 2400, ms = 220, at = 0) { try { const a = S.audio; if (!a) return; if (a.state === 'suspended') a.resume(); const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = freq; o.connect(g); g.connect(cueBus(a)); const t = a.currentTime + at; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.008); g.gain.setValueAtTime(0.9, t + ms / 1000 - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000); o.start(t); o.stop(t + ms / 1000 + 0.02); } catch (e) {} }
 function cue(strong) { const vib = strong ? [400, 120, 400, 120, 400] : [200, 100, 200]; if (NATIVE) LeadOneNative.vibrate(vib); else try { navigator.vibrate && navigator.vibrate(vib); } catch (e) {} if (strong) { beep(2400, 220, 0); beep(2400, 220, 0.3); beep(3000, 450, 0.6); } else { beep(2000, 160, 0); beep(2000, 160, 0.25); } }
+/* live DFA-alpha1 from the strap's beat intervals: last 2 minutes, recomputed every 10 s */
+function liveAlpha1(el) {
+  if (el - (S.a1At || 0) < 10 && S.a1At) return; S.a1At = el;
+  const W = S.rr.filter(p => p[1] > 0 && p[0] > el - 120), v = W.map(p => p[1]); let bad = 0; const x = [];
+  for (let i = 0; i < v.length; i++) { const nb = v.slice(Math.max(0, i - 5), i + 6); const m = median(nb); if (v[i] < 250 || v[i] > 2500 || Math.abs(v[i] - m) > 0.2 * m) bad++; else x.push(v[i]); }
+  const val = $('#a1Val'), msg = $('#a1Msg');
+  if (el < 115 || x.length < 90) { val.textContent = '—'; msg.textContent = 'α1 appears after 2 minutes'; return; }
+  if (bad > 0.05 * v.length) { val.textContent = '—'; msg.textContent = 'beat signal unsteady: moisten the strap'; return; }
+  const a = dfaAlpha1(x); if (!isFinite(a)) return; S.a1 = a; val.textContent = a.toFixed(2);
+  msg.textContent = a > 0.75 ? 'below aerobic threshold (above 0.75)' : a > 0.5 ? 'between the thresholds (0.75 to 0.5)' : 'past the anaerobic threshold: you can stop when ready';
+}
 function tickTraining() {
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = S.total / FS, P = $('#stepPanel');
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
-  if (S.trainType === 'ramp') {
+  if (S.trainType === 'dfa') liveAlpha1(el);
+  if (S.trainType === 'ramp' || S.trainType === 'dfa') {
     const step = Math.floor(el / 180) + 1, left = 180 - (el % 180);
     if (step > S.lastStep) { S.lastStep = step; cue(true); S.goUntil = Date.now() + 5000; }
     if (left <= 10.5 && left > 9.9 && S.warned !== step) { S.warned = step; cue(false); }
@@ -614,7 +628,8 @@ function historyEntry(A, meta) {
     peak: A.exercise ? A.exercise.peak20 : null, peak20: A.exercise ? A.exercise.peak20 : null, hrr60: A.exercise && A.exercise.end != null ? A.exercise.hrr60 : null,
     ect: A.ectopicBeats, beats: A.beats, src: A.hrvSource, trainType: meta.ctx === 'training' ? (meta.trainType || 'session') : '', recovery: meta.recovery || '',
     ...(meta.ctx === 'training' && meta.trainType === 'ramp' ? (r => ({ rampMax: r.max, rampPlateau: r.plateau && r.valid }))(rampTest(A, A.exercise)) : {}),
-    ...(meta.ctx === 'training' && meta.trainType === 'lthr' ? (r => ({ lthr: r.lthr, lthrValid: r.valid }))(lthrTest(A, A.exercise)) : {})
+    ...(meta.ctx === 'training' && meta.trainType === 'lthr' ? (r => ({ lthr: r.lthr, lthrValid: r.valid }))(lthrTest(A, A.exercise)) : {}),
+    ...(meta.ctx === 'training' && (meta.trainType === 'dfa' || meta.trainType === 'ramp') ? (r => r.valid ? { hrvt1: r.vt1, hrvt2: isFinite(r.vt2) ? r.vt2 : null } : {})(dfaTest(A, A.exercise)) : {})
   };
 }
 async function runReport(raw, meta) {
@@ -783,7 +798,7 @@ $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = '';
 for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runSample(b.dataset.demo);
 function runSample(kind) {
   const d = new Date(); d.setDate(d.getDate() - 1);
-  const cfg = { rest: [5, 30, 2, 46, 'morning', 'lying', 'rest'], training: [17, 10, 0, 35, 'training', 'walking', 'intervals', 'intervals', 'passive'], tempo: [7, 0, 0, 36, 'training', 'walking', 'tempo', 'tempo', 'active'], ramp: [17, 40, 0, 31, 'training', 'walking', 'ramp', 'ramp', 'passive', 1530],
+  const cfg = { rest: [5, 30, 2, 46, 'morning', 'lying', 'rest'], training: [17, 10, 0, 35, 'training', 'walking', 'intervals', 'intervals', 'passive'], tempo: [7, 0, 0, 36, 'training', 'walking', 'tempo', 'tempo', 'active'], ramp: [17, 40, 0, 31, 'training', 'walking', 'ramp', 'ramp', 'passive', 1530], dfa: [9, 0, 0, 33, 'training', 'walking', 'dfa', 'dfa', 'active', 1800],
     meditation: [20, 15, 0, 10, 'meditation', 'seated', 'meditation'] }[kind];
   d.setHours(cfg[0], cfg[1], cfg[2], 0);
   const demo = makeDemo(cfg[3], 7, cfg[6]);
@@ -810,4 +825,5 @@ if (location.hash === '#sample') runSample('rest');
 else if (location.hash === '#training') runSample('training');
 else if (location.hash === '#ramp') runSample('ramp');
 else if (location.hash === '#tempo') runSample('tempo');
+else if (location.hash === '#dfa') runSample('dfa');
 else if (location.hash === '#meditation') runSample('meditation');

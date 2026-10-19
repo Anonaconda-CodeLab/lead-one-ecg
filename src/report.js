@@ -331,6 +331,7 @@ function commentary(A, meta, R, B, X = null) {
   if (ctx === 'training' && X) {
     const E = X.ER, W = X.WM, L = HRR_LIMITS[X.rec];
     if (E) out.push(`Peak 20-second heart rate was ${f0(E.peak20)} bpm (${f0(100 * E.peak20 / W.v)} % of your working maximum of ${f0(W.v)} bpm${W.src === 'tanaka' ? ', estimated from age' : ''}).${B.peak ? ` Your usual training peak is ${f0(B.peak.m)} bpm.` : ''}`);
+    if (X.tt === 'dfa' && X.dfa) out.push(X.dfa.valid ? `DFA α1 fell from ${X.dfa.startA1.toFixed(2)} at easy effort to ${X.dfa.minA1.toFixed(2)}; it crossed 0.75 (aerobic threshold) at about ${f0(X.dfa.vt1)} bpm${isFinite(X.dfa.vt2) ? ` and 0.5 (anaerobic threshold) at about ${f0(X.dfa.vt2)} bpm` : ''}.` : 'The DFA α1 thresholds could not be determined from this recording (see the training pages).');
     if (X.tt === 'session' || X.tt === 'intervals' || X.tt === 'tempo') out.push('Training sessions, including intervals such as 4 × 4, rarely reach true maximum heart rate: peaks seen in them are a floor, not a ceiling. A ramp test gives a measured value.');
     if (X.tt === 'intervals' && X.iv && X.iv.bouts.length) { const b = X.iv.bouts, rec = b.filter(x => !x.last && isFinite(x.recDrop));
       out.push(`${b.length} hard ${b.length === 1 ? 'effort was' : 'efforts were'} detected, peaking at ${f0(Math.min(...b.map(x => x.peak)))}–${f0(Math.max(...b.map(x => x.peak)))} bpm${rec.length ? `, with heart rate falling ${f0(Math.min(...rec.map(x => x.recDrop)))}–${f0(Math.max(...rec.map(x => x.recDrop)))} bpm in the recoveries between them` : ''}.${isFinite(X.iv.fade) && X.iv.fade >= 5 ? ` Peak heart rate rose ${f0(X.iv.fade)} bpm from the first to the last effort, a common sign of accumulating fatigue (or of pushing harder on later repeats).` : ''}`); }
@@ -494,6 +495,9 @@ function gradeAll(A, meta, R, X = null) {
           text: !r.valid ? 'Fewer than three 3-minute steps were completed, so the test is not valid. Start easier and increase the load every 3 minutes until you cannot continue.'
             : r.plateau ? `Your heart rate levelled off at ${f(r.max)} bpm over the final steps, so this is your true maximum. It now sets your training zones.`
             : `Your heart rate was still rising when you stopped (${f(r.max)} bpm), so your true maximum is probably higher. This value is a floor, not a ceiling.` }); }
+      if (X.tt === 'dfa' && X.dfa) { const r = X.dfa;
+        add('dfa', { title: 'Aerobic threshold (DFA α1)', short: 'aerobic threshold', value: r.valid ? f(r.vt1) + ' bpm' : 'Not determined', g: 'na', what: 'The heart rate where easy effort turns moderate, found from how orderly your beat-to-beat variation is (DFA α1 falls to 0.75).',
+          text: r.valid ? `Your aerobic threshold is about ${f(r.vt1)} bpm${isFinite(r.vt2) ? `, and your anaerobic threshold about ${f(r.vt2)} bpm (α1 = 0.5)` : ''}. Easy, base-building training stays below the aerobic threshold.` : DFA_WHY[r.reason] || DFA_WHY.flat }); }
       if (X.tt === 'intervals' && X.iv) { const b = X.iv.bouts;
         add('intervals', { title: 'Interval efforts', short: 'interval efforts', value: b.length ? b.length + (b.length === 1 ? ' effort' : ' efforts') : 'None found', g: 'na', what: 'The hard efforts in this session, found automatically from your heart rate, and how far it fell between them.',
           text: b.length ? `Peaks ranged from ${f(Math.min(...b.map(x => x.peak)))} to ${f(Math.max(...b.map(x => x.peak)))} bpm. ${isFinite(X.iv.fade) && X.iv.fade >= 5 ? `Your peak rose ${f(X.iv.fade)} bpm over the session, a sign of building fatigue.` : 'Your peaks stayed consistent across the session.'} See the training pages for each effort.` : 'No distinct efforts stood out from the rest of the session. Efforts are detected when heart rate rises well above the session’s easy level for at least 20 seconds.' }); }
@@ -560,7 +564,14 @@ function overallVerdict(G) {
 const plain = t => `<div class="plain"><b>In plain terms</b> ${t}</div>`;
 
 /* ---------- training: working maximum heart rate, recovery, tests, zones ---------- */
-const TRAIN_TYPES = { session: 'Training session', intervals: 'Interval training', tempo: 'Tempo session', ramp: 'Max HR ramp test', lthr: 'LTHR 30-min test' };
+const DFA_WHY = {
+  short: 'Too little steady signal to analyse. The test needs at least 4 minutes of clean beat intervals; aim for 20–30 minutes in 3-minute steps.',
+  artifacts: 'Too many irregular or missed beats (over 5 % in most windows), so α1 could not be measured reliably. Moisten the electrodes, fit the strap snugly and keep the phone close.',
+  startLow: 'α1 was already below 0.75 at the start, so the threshold could not be found. Start the test at a truly easy effort (you could chat comfortably) for the first 6 minutes.',
+  notHard: 'α1 never dropped below 0.75, so the effort did not reach the aerobic threshold. Keep raising the effort at each step until breathing is clearly hard.',
+  flat: 'α1 did not fall steadily as the effort rose, so no threshold could be read from it. Keep the effort rising in even steps and the movement smooth (no stopping, coasting or talking).'
+};
+const TRAIN_TYPES = { session: 'Training session', intervals: 'Interval training', tempo: 'Tempo session', dfa: 'DFA-α1 threshold test', ramp: 'Max HR ramp test', lthr: 'LTHR 30-min test' };
 const REC_TYPES = { active: 'Active recovery (kept moving)', passive: 'Passive recovery (stood, sat or lay still)' };
 /* HRR at 1 min: active cool-down after Cole et al. 1999 (<= 12 bpm abnormal); passive recovery produces larger falls, so its limit is higher */
 const HRR_LIMITS = { active: { out: 12, bord: 17, fav: 30 }, passive: { out: 18, bord: 22, fav: 40 } };
@@ -596,10 +607,11 @@ function trainingContext(A, meta, hist, age, sex) {
   const ER = A.exercise || null, tt = meta.ctx === 'training' ? (TRAIN_TYPES[meta.trainType] ? meta.trainType : 'session') : null;
   const ramp = tt === 'ramp' ? rampTest(A, ER) : null, lt = tt === 'lthr' ? lthrTest(A, ER) : null;
   const iv = tt === 'intervals' ? intervalWork(A, ER) : null, tempo = tt === 'tempo' ? tempoWork(A, ER) : null;
+  const dfa = tt === 'dfa' || tt === 'ramp' ? dfaTest(A, ER) : null;
   const cur = { id: meta.id || ('file-' + meta.start), start: meta.start, ctx: meta.ctx, trainType: tt, peak20: ER ? ER.peak20 : NaN,
     rampMax: ramp ? ramp.max : NaN, rampPlateau: ramp ? ramp.plateau : false, lthr: lt ? lt.lthr : NaN, lthrValid: lt ? lt.valid : false };
   const WM = maxHrEstimate(hist, cur, age, sex), LR = latestLthr(hist, cur);
-  return { ER, tt, rec: meta.recovery === 'passive' ? 'passive' : 'active', ramp, lt, iv, tempo, WM, LR,
+  return { ER, tt, rec: meta.recovery === 'passive' ? 'passive' : 'active', ramp, lt, iv, tempo, dfa, WM, LR,
     zonesPct: zoneTime(A, WM.v, PCT_ZONES), zonesL: LR ? zoneTime(A, LR.lthr, LTHR_ZONES) : null };
 }
 const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.round(sec % 60)).padStart(2, '0');
@@ -617,6 +629,21 @@ function recoveryChart(A, ER, startMs) {
   g += mk(ER.end, ER.stop, 'Stop', true) + mk(ER.end + 60, ER.at60, '+1 min') + mk(ER.end + 120, ER.at120, '+2 min');
   if (isFinite(ER.floor) && ER.floorT > ER.end + 130 && ER.floorT <= t1) g += mk(ER.floorT, ER.floor, 'Floor');
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate around the end of exercise">${F.g}${g}</svg>`;
+}
+
+/* DFA alpha1 against heart rate: each 2-minute window as a dot, the fitted line, and the 0.75 / 0.5 thresholds */
+function dfaChart(r) {
+  const ok = r.pts.filter(p => p.ok); if (ok.length < 5) return '';
+  const W = 92, H = 64, hrs = ok.map(p => p.hr), x0 = Math.floor((Math.min(...hrs) - 3) / 10) * 10, x1 = Math.ceil((Math.max(...hrs) + 3) / 10) * 10;
+  const y1 = Math.max(1.5, Math.ceil(Math.max(...ok.map(p => p.a1)) * 4) / 4), F = frame({ W, H, padB: 8, x0, x1, y0: 0, y1, yTicks: niceTicks(0, y1, 5), yFmt: v => v.toFixed(2), xLabel: false });
+  let g = '';
+  for (const v of niceTicks(x0, x1, 5)) g += `<text x="${F.X(v).toFixed(2)}" y="${H - 8 + 3.2}" text-anchor="middle" font-size="2.3" fill="var(--p-muted)" font-family="var(--f-mono)">${v}</text>`;
+  g += `<text x="${(F.X((x0 + x1) / 2)).toFixed(2)}" y="${H - 0.8}" text-anchor="middle" font-size="2.3" fill="var(--p-muted)">heart rate (bpm)</text>`;
+  for (const [v, lab] of [[0.75, 'aerobic 0.75'], [0.5, 'anaerobic 0.5']]) g += `<line x1="${F.X(x0)}" x2="${F.X(x1)}" y1="${F.Y(v).toFixed(2)}" y2="${F.Y(v).toFixed(2)}" stroke="var(--p-teal)" stroke-width="0.35" stroke-dasharray="1.2 0.8"/><text x="${(F.X(x1) - 0.6).toFixed(2)}" y="${(F.Y(v) - 0.8).toFixed(2)}" text-anchor="end" font-size="2.1" fill="var(--p-teal)">${lab}</text>`;
+  for (const p of ok) g += `<circle cx="${F.X(p.hr).toFixed(2)}" cy="${F.Y(Math.min(y1, p.a1)).toFixed(2)}" r="0.55" fill="var(--p-accent)" opacity=".55"/>`;
+  if (r.fit && r.fit.b < 0) { const a = r.fit.a, b = r.fit.b, h0 = Math.max(x0, r.fit.hrLo), h1 = Math.min(x1, r.fit.hrHi); g += `<line x1="${F.X(h0).toFixed(2)}" y1="${F.Y(a + b * h0).toFixed(2)}" x2="${F.X(h1).toFixed(2)}" y2="${F.Y(a + b * h1).toFixed(2)}" stroke="var(--p-ink)" stroke-width="0.45"/>`; }
+  for (const [v, y, lab] of [[r.vt1, 0.75, 'HRVT1'], [r.vt2, 0.5, 'HRVT2']]) if (isFinite(v)) g += `<line x1="${F.X(v).toFixed(2)}" x2="${F.X(v).toFixed(2)}" y1="${F.Y(y).toFixed(2)}" y2="${F.padT + F.ih}" stroke="var(--p-ink)" stroke-width="0.3" stroke-dasharray="0.8 0.6"/><circle cx="${F.X(v).toFixed(2)}" cy="${F.Y(y).toFixed(2)}" r="1" fill="var(--p-ink)"/><text x="${(F.X(v) + 1.4).toFixed(2)}" y="${(F.Y(y) + 3.6).toFixed(2)}" font-size="2.3" font-weight="600" fill="var(--p-ink)" stroke="var(--p-bg)" stroke-width="0.9" paint-order="stroke" stroke-linejoin="round">${lab} ${fmt(v)}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="DFA alpha1 against heart rate">${F.g}${g}</svg>`;
 }
 
 /* ---------- page assembly ---------- */
@@ -697,6 +724,7 @@ function renderReport(A, meta0, st, hist = []) {
     const maxTile = kpi('Working max HR', fmt(W.v), 'bpm', W.highMax ? chip('info', 'High-max individual') : chip('info', W.src === 'tanaka' ? 'Age estimate' : W.src === 'ramp' ? 'Ramp test' : 'Your data + 2 %'), `age formulas ${fmt(W.AF.lo)}–${fmt(W.AF.hi)}`);
     const peakTile = kpi('Peak heart rate', fmt(E.peak20), 'bpm', chip('info', fmt(100 * E.peak20 / W.v) + ' % of max'), '20-s mean at ' + clock(E.peak20T || 0));
     const first = X.tt === 'ramp' && X.ramp ? kpi('Measured max HR', X.ramp.valid ? fmt(X.ramp.max) : '—', X.ramp.valid ? 'bpm' : '', X.ramp.valid ? chip(X.ramp.plateau ? 'in' : 'info', X.ramp.plateau ? 'Plateau: true max' : 'No plateau: a floor') : chip('info', 'Test incomplete'), `${X.ramp.completed} steps of 3 min`)
+      : X.tt === 'dfa' && X.dfa ? kpi('Aerobic threshold', X.dfa.valid ? fmt(X.dfa.vt1) : '—', X.dfa.valid ? 'bpm' : '', X.dfa.valid ? chip('info', 'DFA α1 = 0.75') : chip('info', 'Not determined'), isFinite(X.dfa.vt2) ? `anaerobic (α1 0.5) ${fmt(X.dfa.vt2)} bpm` : 'HRVT1 from beat-to-beat variation')
       : X.tt === 'lthr' && X.lt ? kpi('Threshold HR (LTHR)', X.lt.valid ? fmt(X.lt.lthr) : '—', X.lt.valid ? 'bpm' : '', X.lt.valid ? chip('info', 'Last 20 min of 30') : chip('info', 'Test too short'), `effort ${fmt(X.lt.effortMin)} min`)
       : kpi('Time ≥ 80 % max', durShort(hi80).split(' ')[0], durShort(hi80).split(' ').slice(1).join(' '), chip('info', 'Anaerobic + maximum'), '≥ ' + A.zones[3].bpmLo + ' bpm');
     tiles = [first, peakTile, recTile, maxTile, kpi('QTc', fmt(G.qtc && G.qtc.frid ? A.qtcF : A.qtc), 'ms', gc('qtc'), (G.qtc && G.qtc.frid ? 'Fridericia' : 'Bazett') + ' · ref ' + R.qtc[0] + '–' + R.qtc[1]), rhythmTile];
@@ -734,7 +762,7 @@ function renderReport(A, meta0, st, hist = []) {
       ${C.paras.map(p => `<p>${p}</p>`).join('')}${baseCharts}</div>`);
 
   /* ---- plain-language page(s) ---- */
-  const order = ['hr', 'rmssd', 'sdnn', 'br', 'coupling', 'ramp', 'lthr', 'intervals', 'tempo', 'peak', 'maxhr', 'hrr', 'ect', 'pause', 'qtc', 'qrs', 't', 'j', 'quality'].filter(k => G[k]);
+  const order = ['hr', 'rmssd', 'sdnn', 'br', 'coupling', 'dfa', 'ramp', 'lthr', 'intervals', 'tempo', 'peak', 'maxhr', 'hrr', 'ect', 'pause', 'qtc', 'qrs', 't', 'j', 'quality'].filter(k => G[k]);
   const card = k => { const x = G[k]; return `<div class="pl-card g-${x.g}"><div class="pl-top"><b>${x.title}</b><span class="pl-val">${x.value}</span></div>${gchip(x.g)}<p class="pl-what">${x.what}</p><p>${x.text}</p></div>`; };
   const legend = `<div class="pl-legend">${['fav', 'norm', 'bord', 'out', 'na'].map(g => gchip(g)).join('')}</div>`;
   const help = `<div class="pl-help"><b>When to seek medical help.</b> Whatever this report shows, seek urgent care for chest pain or pressure, fainting, severe shortness of breath, or a racing or very irregular heartbeat with dizziness. This report is for general wellness and education only: it cannot diagnose or rule out any condition. For any health concern, see a doctor rather than relying on this report. The pages that follow give the detailed measurements.</div>`;
@@ -776,6 +804,13 @@ function renderReport(A, meta0, st, hist = []) {
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
         <div class="panel"><h3>Result</h3>${kvT('Threshold heart rate (LTHR)', r.valid ? fmt(r.lthr) + ' bpm' : '—', 'mean heart rate over the last 20 minutes of the effort')}${kvT('Window used', clock(r.from) + ' – ' + clock(r.end), r.cover < 0.995 ? `signal for ${fmt(20 * r.cover)} of the 20 minutes; gaps are left out` : '')}${kvT('Effort duration', fmt(r.effortMin) + ' min', r.short ? 'shorter than the 25 minutes needed' : r.onset > 30 ? `from ${clock(r.onset)}, when heart rate first reached effort level` : '')}
         <p class="note-p" style="margin:0">${r.valid ? 'This threshold now sets your LTHR zones in later training reports.' : 'Not valid: warm up first, press Start as the 30-minute effort begins, hold the hardest pace you can for the full 30 minutes, and tap Start recovery when you finish.'}</p></div>`; }
+    let dfaAfter = '';
+    if (X.dfa && (X.tt === 'dfa' ? X.dfa.pts.length >= 12 : X.dfa.valid)) { const r = X.dfa;   // a ramp test shows DFA thresholds only when they were found
+      const dfaSec = `<div class="sec-h"><h2>DFA α1 thresholds</h2><span>2-minute windows every 10 s · ${r.src === 'strap' ? 'strap beat intervals' : 'ECG beats'}</span></div>
+        <div class="cols2"><div>${dfaChart(r)}</div>
+        <div class="panel"><h3>Result</h3>${kvT('Aerobic threshold (HRVT1)', r.valid ? fmt(r.vt1) + ' bpm' : '—', 'heart rate where α1 = 0.75')}${kvT('Anaerobic threshold (HRVT2)', isFinite(r.vt2) ? fmt(r.vt2) + ' bpm' : '—', isFinite(r.vt2) ? 'heart rate where α1 = 0.5' : 'α1 did not reach 0.5')}${kvT('α1 at easy effort', isFinite(r.startA1) ? r.startA1.toFixed(2) : '—', 'about 1.0 or higher is expected')}${kvT('Lowest α1', isFinite(r.minA1) ? r.minA1.toFixed(2) : '—')}${r.fit ? kvT('Fit', 'r² ' + r.fit.r2.toFixed(2), r.fit.n + ' windows on the falling part') : ''}${kvT('Artifacts', fmt(r.artPct, 1) + ' %', 'windows over 5 % are left out')}
+        <p class="note-p" style="margin:0">${r.valid ? (X.tt === 'ramp' ? 'Estimated from the ramp test. A dedicated DFA-α1 test, stopped once α1 is below 0.5, gives the same result without going to exhaustion.' : 'Thresholds from α1 agree with laboratory gas-exchange thresholds within a few beats per minute in most studies, best in cycling with smooth effort. Repeat the test every 6–8 weeks.') : DFA_WHY[r.reason] || DFA_WHY.flat}</p></div></div>`;
+      if (X.tt === 'dfa') tests = dfaSec; else dfaAfter = dfaSec; }
     if (X.tt === 'intervals' && X.iv) { const v = X.iv;
       tests = `<div class="sec-h"><h2>Interval efforts</h2><span>detected from 10-s heart rate</span></div>
         ${v.bouts.length ? `<table class="ev"><thead><tr><th>#</th><th>Start</th><th>Effort</th><th>Peak</th><th>Average</th><th>Recovery</th><th>HR fall</th></tr></thead><tbody>${thin(v.bouts, 14).map(b => `<tr><td class="m">${b.n}</td><td class="m">${clock(b.t0)}</td><td class="m">${mmss(b.dur)}</td><td class="m">${fmt(b.peak)} bpm</td><td class="m">${fmt(b.mean)} bpm</td><td class="m">${b.last ? 'end of session' : mmss(b.recSec)}</td><td class="m">${b.last ? 'see below' : isFinite(b.recDrop) ? fmt(b.recDrop) + ' bpm' : '—'}</td></tr>`).join('')}</tbody></table>
@@ -803,6 +838,7 @@ function renderReport(A, meta0, st, hist = []) {
           ${G.hrr ? `<div>${gchip(G.hrr.g)}</div>` : ''}</div>
       </div>
       <div class="fig">${recoveryChart(A, E, startMs)}<div class="cap">Heart rate (10-s means) from two minutes before the end of exercise; shaded area = recovery.</div></div>`}`);
+    if (dfaAfter) page(dfaAfter);
 
     const zRows = (zs, base, unit) => zs.map(z => `<tr><td>${esc(z.name)}</td><td class="m">${Math.round(z.lo * 100)}${z.hi > 5 ? '+' : '–' + Math.round(z.hi * 100)} %</td><td class="m">${z.hi > 5 ? '≥ ' + z.bpmLo : z.bpmLo + '–' + z.bpmHi} bpm</td><td class="m">${durShort(z.sec)}</td></tr>`).join('');
     page(`
@@ -936,7 +972,7 @@ function renderReport(A, meta0, st, hist = []) {
       <p><b>Breathing.</b> Measured from the strap’s accelerometer (chest wall movement, 12.5 Hz after averaging): spectral peak of the three axes in 60-s windows, 3–42 breaths/min; windows with body movement or no clear rhythm are rejected. If fewer than 40 % of windows are usable, breathing is estimated instead from R-wave amplitude modulation and respiratory sinus arrhythmia (6–42/min at rest). Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.</p>
       <p><b>Waveform.</b> Beats averaged in 5-minute blocks and upsampled; QRS onset by slope threshold, QRS end by following each QRS wave until its slope levels off (either polarity; not measured if no clear end), T end by the tangent method. QTc is the median of per-beat values.</p>
       <p><b>Grading.</b> HRV norms are approximate, based on Nunan et al. 2010 (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) adjusted for age, sex and position after Voss et al. 2015: below the 5th percentile = outside normal range, 5th–15th = borderline, above the 75th = favourable. QTc limits follow Goldenberg et al. 2006 (men ≤ 430 ms normal, 431–450 borderline; women ≤ 450, 451–470). Heart-rate recovery: 12 bpm or less at 1 minute is outside the normal range (Cole et al. 1999).</p>
-      <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. LTHR is the mean heart rate of the last 20 min of a 30-min time trial (gaps excluded; at least 80 % coverage); the effort is timed from when heart rate first reaches 90 % of that value. Threshold zones follow Friel. Session maximum and minimum heart rate are taken from a 5-beat running median of normal beats, so a single stray interval cannot set them.</p>
+      <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. DFA α1 (detrended fluctuation analysis, box sizes 4–16 beats) is computed in 2-min windows every 10 s from the strap's beat intervals (artifacts removed; windows with over 5 % artifacts excluded); a line fitted to α1 against heart rate on its falling part gives HRVT1 at α1 = 0.75 and HRVT2 at 0.5 (Rogers et al. 2021). LTHR is the mean heart rate of the last 20 min of a 30-min time trial (gaps excluded; at least 80 % coverage); the effort is timed from when heart rate first reaches 90 % of that value. Threshold zones follow Friel. Session maximum and minimum heart rate are taken from a 5-beat running median of normal beats, so a single stray interval cannot set them.</p>
       <p><b>Personal baseline.</b> Readings with the same context and position from the previous 30 days (minimum 5). Usual range: mean ± 1 SD of ln RMSSD; heart rate mean ± 1 SD. Exercise recovery is the fall from the 10-s peak heart rate at 60 and 120 s.</p>
     </div>
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> {{APP_NAME}} is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);

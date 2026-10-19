@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0
+- New training type: **DFA-α1 test**. 3-minute steps with the usual beeps, a live DFA α1 readout on the recording screen,
+  and a report page plotting α1 against heart rate with the aerobic (α1 = 0.75) and anaerobic (α1 = 0.5) thresholds.
+  Max HR ramp tests also show these thresholds when α1 falls clearly enough. New DFA-α1 sample report.
+
 ## 1.5.3
 - Android app: Save recording wrote an empty file for recordings over about 1 MB. The file is now written in pieces
   after the save location is chosen.

@@ -301,7 +301,7 @@ function hrvFromSeries(S, dur) {
 }
 /* the strap's own beat intervals: [[tEndSec, rrMs], …], rrMs < 0 marks a break (pause / disconnect) */
 function seriesFromH10(list) {
-  const S = { T: [], V: [], C: [], artifacts: 0, total: 0 };
+  const S = { T: [], V: [], C: [], artifacts: 0, total: 0, badT: [] };
   let seg = [];
   const flush = () => {
     for (let i = 0; i < seg.length; i++) {
@@ -310,7 +310,7 @@ function seriesFromH10(list) {
       seg[i].bad = seg[i][1] < 300 || seg[i][1] > 2500 || Math.abs(seg[i][1] - lm) > 0.2 * lm;
     }
     for (let i = 0; i < seg.length; i++) {
-      S.total++; if (seg[i].bad) { S.artifacts++; continue; }
+      S.total++; if (seg[i].bad) { S.artifacts++; S.badT.push(seg[i][0]); continue; }
       S.T.push(seg[i][0]); S.V.push(seg[i][1]); S.C.push(i > 0 && !seg[i - 1].bad ? 1 : 0);
     }
     seg = [];
@@ -457,6 +457,72 @@ function rampTest(A, ER, step = 180) {
   const plateau = !!(mx && comp.length >= 3 && ref && mx.v - ref.hr <= 2);
   return { steps, fail, failSrc: ER && ER.end != null ? ER.src : 'end', completed: comp.length, max: mx ? mx.v : NaN, maxT: mx ? mx.t : NaN,
     plateau, valid: comp.length >= 3 && !!mx };
+}
+/* DFA alpha1: short-term fractal scaling of beat intervals (detrended fluctuation analysis, box sizes 4-16 beats).
+   About 1.0 at easy effort, falling with intensity: 0.75 marks the aerobic threshold (HRVT1), 0.5 the anaerobic
+   threshold (HRVT2) [Rogers et al. 2021; Gronwald et al. 2019]. */
+function dfaAlpha1(x) {
+  const N = x.length; if (N < 50) return NaN;
+  let m = 0; for (let i = 0; i < N; i++) m += x[i]; m /= N;
+  const y = new Float64Array(N); let c = 0; for (let i = 0; i < N; i++) { c += x[i] - m; y[i] = c; }
+  const L = [], F = [];
+  for (let n = 4; n <= 16; n++) {
+    const nb = Math.floor(N / n); if (nb < 2) break;
+    const sx = n * (n - 1) / 2, sxx = (n - 1) * n * (2 * n - 1) / 6, d = n * sxx - sx * sx;
+    let ss = 0, cnt = 0;
+    for (let dir = 0; dir < 2; dir++) for (let b = 0; b < nb; b++) {          // boxes from the start and from the end
+      const o = dir ? N - (b + 1) * n : b * n;
+      let sy = 0, sxy = 0; for (let i = 0; i < n; i++) { sy += y[o + i]; sxy += i * y[o + i]; }
+      const b1 = (n * sxy - sx * sy) / d, b0 = (sy - b1 * sx) / n;
+      for (let i = 0; i < n; i++) { const r = y[o + i] - b0 - b1 * i; ss += r * r; } cnt += n;
+    }
+    if (ss > 0) { L.push(Math.log(n)); F.push(0.5 * Math.log(ss / cnt)); }
+  }
+  if (L.length < 5) return NaN;
+  const k = L.length, mx = L.reduce((a, b) => a + b) / k, my = F.reduce((a, b) => a + b) / k;
+  let num = 0, den = 0; for (let i = 0; i < k; i++) { num += (L[i] - mx) * (F[i] - my); den += (L[i] - mx) ** 2; }
+  return num / den;
+}
+/* beat intervals for DFA: the strap's 1-ms intervals when recorded (artifacts removed), otherwise ECG normal beats */
+function dfaBeats(A) {
+  if (A.h10 && A.h10.T.length > 100) return { T: A.h10.T, V: A.h10.V, badT: A.h10.badT || [], src: 'strap' };
+  const T = [], V = [], badT = [];
+  for (let k = 1; k < A.beats; k++) { if (A.rrOk[k] && !A.ect[k] && !A.ect[k - 1]) { T.push(A.t[k]); V.push(A.rr[k]); } else badT.push(A.t[k]); }
+  return { T, V, badT, src: 'ecg' };
+}
+/* DFA-alpha1 threshold test: alpha1 in 2-minute windows every 10 s through an incremental effort, then the heart rates
+   where the alpha1-versus-heart-rate line crosses 0.75 (HRVT1, aerobic) and 0.5 (HRVT2, anaerobic). */
+function dfaTest(A, ER, WIN = 120, STEP = 10) {
+  const B = dfaBeats(A), end = ER && ER.end != null ? ER.end : A.dur;
+  const pts = [];
+  for (let t1 = WIN; t1 <= end + 1e-6; t1 += STEP) {
+    const i0 = lowerBound(B.T, t1 - WIN), i1 = lowerBound(B.T, t1), n = i1 - i0;
+    const bad = lowerBound(B.badT, t1) - lowerBound(B.badT, t1 - WIN), art = n + bad ? bad / (n + bad) : 1;
+    if (n < 90) continue;
+    const x = B.V.slice(i0, i1), a1 = dfaAlpha1(x), hr = 60000 * n / x.reduce((a, b) => a + b, 0);
+    if (isFinite(a1)) pts.push({ t: t1 - WIN / 2, a1, hr, art, ok: art <= 0.05 });
+  }
+  const ok = pts.filter(p => p.ok), out = { pts, src: B.src, end, valid: false, vt1: NaN, vt2: NaN, fit: null, reason: '' };
+  out.artPct = pts.length ? 100 * pts.reduce((a, p) => a + p.art, 0) / pts.length : NaN;
+  if (ok.length < 12) { out.reason = pts.length < 12 ? 'short' : 'artifacts'; return out; }
+  const sm = ok.map((p, i) => median(ok.slice(Math.max(0, i - 2), i + 3).map(q => q.a1)));   // 5-window running median
+  out.startA1 = median(sm.slice(0, Math.min(6, sm.length))); out.minA1 = Math.min(...sm); out.maxHR = Math.max(...ok.map(p => p.hr));
+  // fit the falling part: from the highest (smoothed) alpha1 in the first 60 % of the test to the end
+  const firstPart = Math.max(1, Math.floor(0.6 * sm.length)); let top = 0;
+  for (let i = 1; i < firstPart; i++) if (sm[i] > sm[top]) top = i;
+  const use = ok.slice(top).filter(p => p.a1 >= 0.2 && p.a1 <= 1.5);
+  if (use.length < 8) { out.reason = 'flat'; return out; }
+  const mh = use.reduce((a, p) => a + p.hr, 0) / use.length, ma = use.reduce((a, p) => a + p.a1, 0) / use.length;
+  let sxy = 0, sxx = 0, syy = 0; for (const p of use) { sxy += (p.hr - mh) * (p.a1 - ma); sxx += (p.hr - mh) ** 2; syy += (p.a1 - ma) ** 2; }
+  const b = sxx ? sxy / sxx : 0, a = ma - b * mh, r2 = sxx && syy ? sxy * sxy / (sxx * syy) : 0;
+  out.fit = { a, b, r2, n: use.length, hrLo: Math.min(...use.map(p => p.hr)), hrHi: Math.max(...use.map(p => p.hr)) };
+  if (!(b < 0) || r2 < 0.3) { out.reason = 'flat'; return out; }
+  const at = v => (v - a) / b, inRange = h => h >= out.fit.hrLo - 5 && h <= out.fit.hrHi + 3;
+  if (out.startA1 < 0.75) out.reason = 'startLow';
+  else if (out.minA1 > 0.8) out.reason = 'notHard';
+  else { const v1 = at(0.75); if (inRange(v1)) { out.vt1 = v1; out.valid = true; } else out.reason = 'flat'; }
+  if (out.valid && out.minA1 <= 0.55) { const v2 = at(0.5); if (inRange(v2) && v2 > out.vt1) out.vt2 = v2; }
+  return out;
 }
 /* LTHR: mean heart rate over the last 20 minutes of a 30-minute time trial */
 function lthrTest(A, ER) {
@@ -762,6 +828,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     noisePct: 100 * noiseBeats / nb, noiseTimePct: 100 * noisyBlocks / noisyB.length,
     meanHR, meanNN, rmssd, sdnn, pnn50, pnn200, sd1, sd2,
     lnRmssd: Math.log(rmssd), fd: H.fd, hfPct: H.fd ? H.fd.hfPct : NaN, lfhf: H.fd ? H.fd.lfhf : NaN,
+    h10: useH10 ? h10Series : null,
     hrvSource: useH10 ? 'h10' : 'ecg', hrvCount: H.series.T.length, h10Artifacts: h10Series ? h10Series.artifacts : 0, h10Total: h10Series ? h10Series.total : 0,
     ecgRmssd: ecgHrv.rmssd, ecgSdnn: ecgHrv.sdnn,
     breath, breathShare, breathSlow, breathShareSlow, breathSource, stillPct, hasAcc: !!(opts.acc && opts.acc.data), exercise, hr10,
@@ -821,7 +888,7 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
   };
   // exercise kinds: 'training' (ramp to steady effort), 'intervals' (4x4 with active recovery, passive cool-down),
   // 'intervals-climb' (same, but the recording ends while still climbing), 'ramp' (3-min steps to failure), 'lthr' (30-min time trial)
-  const EX = ['training', 'intervals', 'intervals-climb', 'ramp', 'lthr', 'tempo'].includes(kind);
+  const EX = ['training', 'intervals', 'intervals-climb', 'ramp', 'lthr', 'tempo', 'dfa'].includes(kind);
   const brHz = kind === 'meditation' ? 0.1 : EX ? 0.4 : 0.23;
   const T = minutes * 60;
   // first-order heart-rate dynamics toward a target, for the newer exercise kinds
@@ -836,6 +903,7 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
     }
     if (kind === 'ramp') { if (tc < 1530) return [Math.min(178, 100 + 12 * Math.floor(tc / 180)), 30]; return [105, 50]; }
     if (kind === 'tempo') { if (tc < 420) return [100 + 30 * tc / 420, 40]; if (tc < 1920) return [148 + 9 * (tc - 420) / 1500, 45]; return [102, 55]; }   // 25-min tempo with slight drift
+    if (kind === 'dfa') { if (tc < 1800) return [100 + 8 * Math.floor(tc / 180), 30]; return [105, 50]; }   // 3-min steps of +8 bpm
     if (kind === 'lthr') { if (tc < 300) return [110, 40]; if (tc < 2100) return [157 + 4 * (tc - 300) / 1800, 40]; return [100, 50]; }
     return null;
   };
@@ -852,10 +920,15 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
   };
   const pvcAt = kind === 'rest' ? [8.1, 15.3, 32.25, 39.1].map(m => m * 60).filter(x => x < T - 10) : EX ? [T * 0.4] : [];
   const pauseAt = kind === 'rest' && T > 500 ? 480 : -1;
-  let tc = 0.8, nextPvc = 0, pausedone = false;
+  let tc = 0.8, nextPvc = 0, pausedone = false, ar = 0, pg = 0;
   while (tc < T - 1) {
     const hr = hrAt(tc), rsaAmp = kind === 'meditation' ? 0.09 : EX ? 0.006 : 0.03;
     let rr = 60 / hr * (1 + rsaAmp * Math.sin(2 * Math.PI * brHz * tc) + 0.025 * Math.sin(2 * Math.PI * tc / 11 + 0.7) * (EX ? 0.3 : 1) + 0.012 * gauss());
+    if (kind === 'dfa') {   // fractal (correlated) beat-to-beat variation at easy effort, turning uncorrelated as effort rises
+      const w = Math.min(0.9, Math.max(0.2, 0.3 + 0.0057 * (hr - 100))), e = gauss();
+      ar = 0.93 * ar + 0.37 * gauss(); const anti = e - 0.6 * pg; pg = e;
+      rr = 60 / hr * (1 + 0.012 * ((1 - w) * 1.3 * ar + w * anti));
+    }
     { const tg = target(tc); if (tg) hrState += (tg[0] - hrState) * (1 - Math.exp(-rr / tg[1])); }
     const resp = 1 + 0.07 * Math.sin(2 * Math.PI * brHz * tc + 1.2);
     if (nextPvc < pvcAt.length && tc > pvcAt[nextPvc]) {

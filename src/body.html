@@ -123,7 +123,7 @@
       <button id="btnHelp" class="row-btn"><span>User manual<small>How to record, read your report, and keep your data safe</small></span><span class="chev">›</span></button>
       <button id="btnOpen" class="row-btn"><span>Open a recording file<small>A file saved from this app, or a Polar Sensor Logger ECG export</small></span><span class="chev">›</span></button>
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
-        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
+        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="dfa">DFA-α1 test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
     </div>
     <input type="file" id="fileIn" accept=".json,.txt,application/json,text/plain,application/octet-stream,.csv,text/csv" hidden>
 
@@ -147,6 +147,7 @@
     <div class="rec-top"><span class="live-chip" id="liveChip"><i></i><span id="liveTxt">Recording</span></span><span id="recConn" class="conn">Connected</span></div>
     <div id="recCtx" class="rec-ctx"></div>
     <div id="stepPanel" class="step-panel" hidden><div class="sp-l"><small id="spLabel">Step</small><b id="spStep">1</b></div><div class="sp-r"><b id="spCount">3:00</b><small id="spMsg">until the next step</small></div></div>
+    <div id="a1Live" class="a1-live" hidden><b id="a1Val">—</b><span><small>DFA α1</small><span id="a1Msg">α1 appears after 2 minutes</span></span></div>
     <div id="recTimer" class="timer">00:00:00</div>
     <div id="recRemain" class="timer-sub"></div>
     <div class="vitals">

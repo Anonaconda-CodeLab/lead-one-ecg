@@ -89,6 +89,17 @@ failure and taps Start recovery. Failure is the marked or detected end of exerci
 before failure. A plateau is declared when it is within 2 bpm of the heart rate at the end of the last step completed at
 least a minute before failure (at least three steps required).
 
+### DFA-α1 thresholds
+Detrended fluctuation analysis [14] of the beat intervals (the strap's 1-ms intervals when recorded, otherwise ECG normal
+beats): the series is mean-centred and integrated, split into boxes of 4–16 beats (from the start and from the end), each box
+is detrended with a straight line, and α1 is the slope of log fluctuation against log box size. It is computed over 2-minute
+windows every 10 s up to the end of exercise; windows with fewer than 90 beats or more than 5 % artifacts (strap intervals
+outside 300–2500 ms or more than 20 % from the local median, or ectopic beats) are left out. After a 5-window running median,
+a straight line is fitted to α1 against heart rate from the highest α1 in the first 60 % of the test onward (α1 between
+0.2 and 1.5). HRVT1 is the heart rate where the line crosses 0.75 [12] and HRVT2 where it crosses 0.5 [13], reported only
+when α1 actually reached those levels, the line falls (r² ≥ 0.3), and the crossing lies within the observed heart-rate range.
+The recording screen shows α1 live over the last 2 minutes, updated every 10 s.
+
 ### LTHR test
 30-minute time trial; lactate-threshold heart rate = mean heart rate over the last 20 minutes before the end of exercise
 (valid if the effort lasted at least 25 minutes and the window has signal for at least 80 % of its length; Bluetooth gaps
@@ -143,3 +154,10 @@ usual RMSSD range is mean ± 1 SD of ln(RMSSD); heart rate uses mean ± 1 SD. Co
 10. Gulati M, Shaw LJ, Thisted RA, Black HR, Bairey Merz CN, Arnsdorf MF. Heart rate response to exercise stress testing in
     asymptomatic women: the St. James Women Take Heart Project. *Circulation.* 2010;122(2):130–137.
 11. Friel J. *The Triathlete's Training Bible.* 4th ed. Boulder, CO: VeloPress; 2016.
+12. Rogers B, Giles D, Draper N, Hoos O, Gronwald T. A new detection method defining the aerobic threshold for endurance
+    exercise and training prescription based on fractal correlation properties of heart rate variability. *Front Physiol.*
+    2021;11:596567.
+13. Rogers B, Giles D, Draper N, Mourot L, Gronwald T. Detection of the anaerobic threshold in endurance sports: validation of
+    a new method using correlation properties of heart rate variability. *J Funct Morphol Kinesiol.* 2021;6(2):38.
+14. Peng CK, Havlin S, Stanley HE, Goldberger AL. Quantification of scaling exponents and crossover phenomena in
+    nonstationary heartbeat time series. *Chaos.* 1995;5(1):82–87.

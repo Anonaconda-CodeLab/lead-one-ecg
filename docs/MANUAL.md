@@ -95,6 +95,15 @@ Choose the **Training** context to measure your exercise heart rate, recovery an
   each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one.
 - **Tempo**: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and
   your cardiac drift: how much your heart rate crept up in the second half at the same effort.
+- **DFA-α1 test**: finds your **aerobic threshold** (the top of truly easy training) without a lab, from how orderly your
+  beat-to-beat variation is. This measure, DFA α1, is about 1.0 when you are relaxed and falls as effort rises: it crosses
+  **0.75 at the aerobic threshold** and **0.5 at the anaerobic threshold**. Best on a bike or treadmill, where effort can rise
+  smoothly. Start **very easy for the first 6 minutes**, then raise the effort a little at each beep (every 3 minutes). Keep
+  pedalling or running smoothly; talking, stopping and coasting disturb the reading. The recording screen shows a **live α1**
+  after the first 2 minutes. Keep going until it is below 0.5 or you are near your limit, then tap **Start recovery**. The
+  report plots α1 against heart rate and gives both thresholds. A good, snug strap contact matters: if more than 5 % of beats
+  in a stretch are irregular or missed, that stretch is left out. A Max HR ramp test also shows these thresholds when α1
+  falls clearly enough.
 - **Max HR ramp test**: start easy; the app beeps and vibrates every 3 minutes (with a 10-second warning) to tell you to
   increase the effort, until you cannot continue. Turn the phone's media volume up; the beeps are high-pitched so they
   carry over traffic. This finds your true maximum heart rate.

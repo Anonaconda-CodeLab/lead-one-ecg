@@ -129,3 +129,31 @@ test('tempo: the sustained block, its average and cardiac drift', async () => {
   assert.ok(T.avg > 145 && T.avg < 160);
   assert.ok(T.drift > 1 && T.drift < 8, 'slight upward drift ' + T.drift);
 });
+
+test('DFA alpha1: known exponents for white noise, pink noise and a random walk', () => {
+  let s = 1; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const g = () => Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r());
+  const avg = f => { let t = 0; for (let k = 0; k < 30; k++) t += f(); return t / 30; };
+  near(avg(() => L.dfaAlpha1(Array.from({ length: 250 }, g))), 0.55, 0.08, 'white noise');
+  near(avg(() => { let c = 0; return L.dfaAlpha1(Array.from({ length: 250 }, () => c += g())); }), 1.47, 0.1, 'random walk');
+  assert.ok(Number.isNaN(L.dfaAlpha1([1, 2, 3])), 'too short');
+});
+
+test('DFA-alpha1 test: thresholds from strap intervals and from ECG agree', async () => {
+  const res = [];
+  for (const strap of [true, false]) {
+    const d = L.makeDemo(33, 7, 'dfa');
+    const A = await L.analyze(d.raw, { age: 50, rr: strap ? d.rr : null, acc: d.acc, recMark: 1800 });
+    const r = L.dfaTest(A, A.exercise); res.push(r);
+    assert.ok(r.valid, 'valid'); assert.equal(r.src, strap ? 'strap' : 'ecg');
+    near(r.vt1, 132, 6, 'HRVT1'); near(r.vt2, 155, 7, 'HRVT2'); assert.ok(r.startA1 > 0.9 && r.minA1 < 0.5);
+  }
+  near(res[0].vt1, res[1].vt1, 3, 'strap vs ECG');
+});
+
+test('DFA-alpha1 test: no threshold from a resting recording', async () => {
+  const d = L.makeDemo(10, 2, 'rest');
+  const A = await L.analyze(d.raw, { age: 50, rr: d.rr });
+  const r = L.dfaTest(A, null);
+  assert.ok(!r.valid && Number.isNaN(r.vt1));
+});

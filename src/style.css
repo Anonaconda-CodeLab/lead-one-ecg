@@ -331,3 +331,9 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 
 /* Android app: browser guidance does not apply */
 .native .browser-req{display:none}
+
+/* live DFA alpha1 during the DFA test */
+.a1-live{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 16px;margin-top:10px}
+.a1-live b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500;font-size:34px;line-height:1;min-width:3.2ch}
+.a1-live small{display:block;color:var(--muted);font-size:12.5px;letter-spacing:.02em}
+.a1-live span{font-size:14px}

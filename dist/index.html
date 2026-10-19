@@ -343,6 +343,15 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 .donate{display:flex;flex-direction:column;gap:10px;margin-top:16px}
 .donate p{margin:0}
 .donate .acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Android app: browser guidance does not apply */
+.native .browser-req{display:none}
+
+/* live DFA alpha1 during the DFA test */
+.a1-live{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 16px;margin-top:10px}
+.a1-live b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500;font-size:34px;line-height:1;min-width:3.2ch}
+.a1-live small{display:block;color:var(--muted);font-size:12.5px;letter-spacing:.02em}
+.a1-live span{font-size:14px}
 </style>
 </head><body>
 <main id="app">
@@ -402,7 +411,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.5.1 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.6.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
@@ -437,7 +446,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 <h2>Training sessions</h2>
 <p>Choose the <b>Training</b> context to measure your exercise heart rate, recovery and zones. Two more choices appear:</p>
 <p><b>Training type</b></p>
-<ul><li><b>Session</b>: any steady or mixed workout (runs, rides, gym).</li><li><b>Intervals</b>: repeated hard efforts with easier recoveries between them (for example 4 × 4 minutes). The report finds each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one.</li><li><b>Tempo</b>: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and your cardiac drift: how much your heart rate crept up in the second half at the same effort.</li><li><b>Max HR ramp test</b>: start easy; the app beeps and vibrates every 3 minutes (with a 10-second warning) to tell you to increase the effort, until you cannot continue. Turn the phone's media volume up; the beeps are high-pitched so they carry over traffic. This finds your true maximum heart rate.</li><li><b>LTHR test</b>: warm up first <b>without recording</b>. Press <b>Start</b> at the moment you begin the 30-minute effort, then go as hard as you can sustain. The app tells you when 30 minutes are up; tap <b>Start recovery</b> then and keep recording for 2 minutes. Your lactate threshold heart rate (LTHR) is the average of the last 20 minutes before you tapped Start recovery, and sets your training zones. (If you do record the warm-up, the 30-minute cue comes early: time the effort yourself and tap Start recovery exactly when it ends.)</li></ul>
+<ul><li><b>Session</b>: any steady or mixed workout (runs, rides, gym).</li><li><b>Intervals</b>: repeated hard efforts with easier recoveries between them (for example 4 × 4 minutes). The report finds each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one.</li><li><b>Tempo</b>: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and your cardiac drift: how much your heart rate crept up in the second half at the same effort.</li><li><b>DFA-α1 test</b>: finds your <b>aerobic threshold</b> (the top of truly easy training) without a lab, from how orderly your beat-to-beat variation is. This measure, DFA α1, is about 1.0 when you are relaxed and falls as effort rises: it crosses <b>0.75 at the aerobic threshold</b> and <b>0.5 at the anaerobic threshold</b>. Best on a bike or treadmill, where effort can rise smoothly. Start <b>very easy for the first 6 minutes</b>, then raise the effort a little at each beep (every 3 minutes). Keep pedalling or running smoothly; talking, stopping and coasting disturb the reading. The recording screen shows a <b>live α1</b> after the first 2 minutes. Keep going until it is below 0.5 or you are near your limit, then tap <b>Start recovery</b>. The report plots α1 against heart rate and gives both thresholds. A good, snug strap contact matters: if more than 5 % of beats in a stretch are irregular or missed, that stretch is left out. A Max HR ramp test also shows these thresholds when α1 falls clearly enough.</li><li><b>Max HR ramp test</b>: start easy; the app beeps and vibrates every 3 minutes (with a 10-second warning) to tell you to increase the effort, until you cannot continue. Turn the phone's media volume up; the beeps are high-pitched so they carry over traffic. This finds your true maximum heart rate.</li><li><b>LTHR test</b>: warm up first <b>without recording</b>. Press <b>Start</b> at the moment you begin the 30-minute effort, then go as hard as you can sustain. The app tells you when 30 minutes are up; tap <b>Start recovery</b> then and keep recording for 2 minutes. Your lactate threshold heart rate (LTHR) is the average of the last 20 minutes before you tapped Start recovery, and sets your training zones. (If you do record the warm-up, the 30-minute cue comes early: time the effort yourself and tap Start recovery exactly when it ends.)</li></ul>
 <p><b>Recovery after exercise</b></p>
 <ul><li><b>Active</b>: you keep moving gently after stopping (walking, easy pedalling).</li><li><b>Passive</b>: you stand, sit or lie still.</li></ul>
 <p>Heart rate falls faster when you stand still, so the app judges active recovery against a more relaxed limit.</p>
@@ -544,7 +553,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
       <button id="btnHelp" class="row-btn"><span>User manual<small>How to record, read your report, and keep your data safe</small></span><span class="chev">›</span></button>
       <button id="btnOpen" class="row-btn"><span>Open a recording file<small>A file saved from this app, or a Polar Sensor Logger ECG export</small></span><span class="chev">›</span></button>
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
-        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
+        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="dfa">DFA-α1 test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
     </div>
     <input type="file" id="fileIn" accept=".json,.txt,application/json,text/plain,application/octet-stream,.csv,text/csv" hidden>
 
@@ -571,6 +580,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
     <div class="rec-top"><span class="live-chip" id="liveChip"><i></i><span id="liveTxt">Recording</span></span><span id="recConn" class="conn">Connected</span></div>
     <div id="recCtx" class="rec-ctx"></div>
     <div id="stepPanel" class="step-panel" hidden><div class="sp-l"><small id="spLabel">Step</small><b id="spStep">1</b></div><div class="sp-r"><b id="spCount">3:00</b><small id="spMsg">until the next step</small></div></div>
+    <div id="a1Live" class="a1-live" hidden><b id="a1Val">—</b><span><small>DFA α1</small><span id="a1Msg">α1 appears after 2 minutes</span></span></div>
     <div id="recTimer" class="timer">00:00:00</div>
     <div id="recRemain" class="timer-sub"></div>
     <div class="vitals">
@@ -934,7 +944,7 @@ function hrvFromSeries(S, dur) {
 }
 /* the strap's own beat intervals: [[tEndSec, rrMs], …], rrMs < 0 marks a break (pause / disconnect) */
 function seriesFromH10(list) {
-  const S = { T: [], V: [], C: [], artifacts: 0, total: 0 };
+  const S = { T: [], V: [], C: [], artifacts: 0, total: 0, badT: [] };
   let seg = [];
   const flush = () => {
     for (let i = 0; i < seg.length; i++) {
@@ -943,7 +953,7 @@ function seriesFromH10(list) {
       seg[i].bad = seg[i][1] < 300 || seg[i][1] > 2500 || Math.abs(seg[i][1] - lm) > 0.2 * lm;
     }
     for (let i = 0; i < seg.length; i++) {
-      S.total++; if (seg[i].bad) { S.artifacts++; continue; }
+      S.total++; if (seg[i].bad) { S.artifacts++; S.badT.push(seg[i][0]); continue; }
       S.T.push(seg[i][0]); S.V.push(seg[i][1]); S.C.push(i > 0 && !seg[i - 1].bad ? 1 : 0);
     }
     seg = [];
@@ -1090,6 +1100,72 @@ function rampTest(A, ER, step = 180) {
   const plateau = !!(mx && comp.length >= 3 && ref && mx.v - ref.hr <= 2);
   return { steps, fail, failSrc: ER && ER.end != null ? ER.src : 'end', completed: comp.length, max: mx ? mx.v : NaN, maxT: mx ? mx.t : NaN,
     plateau, valid: comp.length >= 3 && !!mx };
+}
+/* DFA alpha1: short-term fractal scaling of beat intervals (detrended fluctuation analysis, box sizes 4-16 beats).
+   About 1.0 at easy effort, falling with intensity: 0.75 marks the aerobic threshold (HRVT1), 0.5 the anaerobic
+   threshold (HRVT2) [Rogers et al. 2021; Gronwald et al. 2019]. */
+function dfaAlpha1(x) {
+  const N = x.length; if (N < 50) return NaN;
+  let m = 0; for (let i = 0; i < N; i++) m += x[i]; m /= N;
+  const y = new Float64Array(N); let c = 0; for (let i = 0; i < N; i++) { c += x[i] - m; y[i] = c; }
+  const L = [], F = [];
+  for (let n = 4; n <= 16; n++) {
+    const nb = Math.floor(N / n); if (nb < 2) break;
+    const sx = n * (n - 1) / 2, sxx = (n - 1) * n * (2 * n - 1) / 6, d = n * sxx - sx * sx;
+    let ss = 0, cnt = 0;
+    for (let dir = 0; dir < 2; dir++) for (let b = 0; b < nb; b++) {          // boxes from the start and from the end
+      const o = dir ? N - (b + 1) * n : b * n;
+      let sy = 0, sxy = 0; for (let i = 0; i < n; i++) { sy += y[o + i]; sxy += i * y[o + i]; }
+      const b1 = (n * sxy - sx * sy) / d, b0 = (sy - b1 * sx) / n;
+      for (let i = 0; i < n; i++) { const r = y[o + i] - b0 - b1 * i; ss += r * r; } cnt += n;
+    }
+    if (ss > 0) { L.push(Math.log(n)); F.push(0.5 * Math.log(ss / cnt)); }
+  }
+  if (L.length < 5) return NaN;
+  const k = L.length, mx = L.reduce((a, b) => a + b) / k, my = F.reduce((a, b) => a + b) / k;
+  let num = 0, den = 0; for (let i = 0; i < k; i++) { num += (L[i] - mx) * (F[i] - my); den += (L[i] - mx) ** 2; }
+  return num / den;
+}
+/* beat intervals for DFA: the strap's 1-ms intervals when recorded (artifacts removed), otherwise ECG normal beats */
+function dfaBeats(A) {
+  if (A.h10 && A.h10.T.length > 100) return { T: A.h10.T, V: A.h10.V, badT: A.h10.badT || [], src: 'strap' };
+  const T = [], V = [], badT = [];
+  for (let k = 1; k < A.beats; k++) { if (A.rrOk[k] && !A.ect[k] && !A.ect[k - 1]) { T.push(A.t[k]); V.push(A.rr[k]); } else badT.push(A.t[k]); }
+  return { T, V, badT, src: 'ecg' };
+}
+/* DFA-alpha1 threshold test: alpha1 in 2-minute windows every 10 s through an incremental effort, then the heart rates
+   where the alpha1-versus-heart-rate line crosses 0.75 (HRVT1, aerobic) and 0.5 (HRVT2, anaerobic). */
+function dfaTest(A, ER, WIN = 120, STEP = 10) {
+  const B = dfaBeats(A), end = ER && ER.end != null ? ER.end : A.dur;
+  const pts = [];
+  for (let t1 = WIN; t1 <= end + 1e-6; t1 += STEP) {
+    const i0 = lowerBound(B.T, t1 - WIN), i1 = lowerBound(B.T, t1), n = i1 - i0;
+    const bad = lowerBound(B.badT, t1) - lowerBound(B.badT, t1 - WIN), art = n + bad ? bad / (n + bad) : 1;
+    if (n < 90) continue;
+    const x = B.V.slice(i0, i1), a1 = dfaAlpha1(x), hr = 60000 * n / x.reduce((a, b) => a + b, 0);
+    if (isFinite(a1)) pts.push({ t: t1 - WIN / 2, a1, hr, art, ok: art <= 0.05 });
+  }
+  const ok = pts.filter(p => p.ok), out = { pts, src: B.src, end, valid: false, vt1: NaN, vt2: NaN, fit: null, reason: '' };
+  out.artPct = pts.length ? 100 * pts.reduce((a, p) => a + p.art, 0) / pts.length : NaN;
+  if (ok.length < 12) { out.reason = pts.length < 12 ? 'short' : 'artifacts'; return out; }
+  const sm = ok.map((p, i) => median(ok.slice(Math.max(0, i - 2), i + 3).map(q => q.a1)));   // 5-window running median
+  out.startA1 = median(sm.slice(0, Math.min(6, sm.length))); out.minA1 = Math.min(...sm); out.maxHR = Math.max(...ok.map(p => p.hr));
+  // fit the falling part: from the highest (smoothed) alpha1 in the first 60 % of the test to the end
+  const firstPart = Math.max(1, Math.floor(0.6 * sm.length)); let top = 0;
+  for (let i = 1; i < firstPart; i++) if (sm[i] > sm[top]) top = i;
+  const use = ok.slice(top).filter(p => p.a1 >= 0.2 && p.a1 <= 1.5);
+  if (use.length < 8) { out.reason = 'flat'; return out; }
+  const mh = use.reduce((a, p) => a + p.hr, 0) / use.length, ma = use.reduce((a, p) => a + p.a1, 0) / use.length;
+  let sxy = 0, sxx = 0, syy = 0; for (const p of use) { sxy += (p.hr - mh) * (p.a1 - ma); sxx += (p.hr - mh) ** 2; syy += (p.a1 - ma) ** 2; }
+  const b = sxx ? sxy / sxx : 0, a = ma - b * mh, r2 = sxx && syy ? sxy * sxy / (sxx * syy) : 0;
+  out.fit = { a, b, r2, n: use.length, hrLo: Math.min(...use.map(p => p.hr)), hrHi: Math.max(...use.map(p => p.hr)) };
+  if (!(b < 0) || r2 < 0.3) { out.reason = 'flat'; return out; }
+  const at = v => (v - a) / b, inRange = h => h >= out.fit.hrLo - 5 && h <= out.fit.hrHi + 3;
+  if (out.startA1 < 0.75) out.reason = 'startLow';
+  else if (out.minA1 > 0.8) out.reason = 'notHard';
+  else { const v1 = at(0.75); if (inRange(v1)) { out.vt1 = v1; out.valid = true; } else out.reason = 'flat'; }
+  if (out.valid && out.minA1 <= 0.55) { const v2 = at(0.5); if (inRange(v2) && v2 > out.vt1) out.vt2 = v2; }
+  return out;
 }
 /* LTHR: mean heart rate over the last 20 minutes of a 30-minute time trial */
 function lthrTest(A, ER) {
@@ -1395,6 +1471,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     noisePct: 100 * noiseBeats / nb, noiseTimePct: 100 * noisyBlocks / noisyB.length,
     meanHR, meanNN, rmssd, sdnn, pnn50, pnn200, sd1, sd2,
     lnRmssd: Math.log(rmssd), fd: H.fd, hfPct: H.fd ? H.fd.hfPct : NaN, lfhf: H.fd ? H.fd.lfhf : NaN,
+    h10: useH10 ? h10Series : null,
     hrvSource: useH10 ? 'h10' : 'ecg', hrvCount: H.series.T.length, h10Artifacts: h10Series ? h10Series.artifacts : 0, h10Total: h10Series ? h10Series.total : 0,
     ecgRmssd: ecgHrv.rmssd, ecgSdnn: ecgHrv.sdnn,
     breath, breathShare, breathSlow, breathShareSlow, breathSource, stillPct, hasAcc: !!(opts.acc && opts.acc.data), exercise, hr10,
@@ -1454,7 +1531,7 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
   };
   // exercise kinds: 'training' (ramp to steady effort), 'intervals' (4x4 with active recovery, passive cool-down),
   // 'intervals-climb' (same, but the recording ends while still climbing), 'ramp' (3-min steps to failure), 'lthr' (30-min time trial)
-  const EX = ['training', 'intervals', 'intervals-climb', 'ramp', 'lthr', 'tempo'].includes(kind);
+  const EX = ['training', 'intervals', 'intervals-climb', 'ramp', 'lthr', 'tempo', 'dfa'].includes(kind);
   const brHz = kind === 'meditation' ? 0.1 : EX ? 0.4 : 0.23;
   const T = minutes * 60;
   // first-order heart-rate dynamics toward a target, for the newer exercise kinds
@@ -1469,6 +1546,7 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
     }
     if (kind === 'ramp') { if (tc < 1530) return [Math.min(178, 100 + 12 * Math.floor(tc / 180)), 30]; return [105, 50]; }
     if (kind === 'tempo') { if (tc < 420) return [100 + 30 * tc / 420, 40]; if (tc < 1920) return [148 + 9 * (tc - 420) / 1500, 45]; return [102, 55]; }   // 25-min tempo with slight drift
+    if (kind === 'dfa') { if (tc < 1800) return [100 + 8 * Math.floor(tc / 180), 30]; return [105, 50]; }   // 3-min steps of +8 bpm
     if (kind === 'lthr') { if (tc < 300) return [110, 40]; if (tc < 2100) return [157 + 4 * (tc - 300) / 1800, 40]; return [100, 50]; }
     return null;
   };
@@ -1485,10 +1563,15 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
   };
   const pvcAt = kind === 'rest' ? [8.1, 15.3, 32.25, 39.1].map(m => m * 60).filter(x => x < T - 10) : EX ? [T * 0.4] : [];
   const pauseAt = kind === 'rest' && T > 500 ? 480 : -1;
-  let tc = 0.8, nextPvc = 0, pausedone = false;
+  let tc = 0.8, nextPvc = 0, pausedone = false, ar = 0, pg = 0;
   while (tc < T - 1) {
     const hr = hrAt(tc), rsaAmp = kind === 'meditation' ? 0.09 : EX ? 0.006 : 0.03;
     let rr = 60 / hr * (1 + rsaAmp * Math.sin(2 * Math.PI * brHz * tc) + 0.025 * Math.sin(2 * Math.PI * tc / 11 + 0.7) * (EX ? 0.3 : 1) + 0.012 * gauss());
+    if (kind === 'dfa') {   // fractal (correlated) beat-to-beat variation at easy effort, turning uncorrelated as effort rises
+      const w = Math.min(0.9, Math.max(0.2, 0.3 + 0.0057 * (hr - 100))), e = gauss();
+      ar = 0.93 * ar + 0.37 * gauss(); const anti = e - 0.6 * pg; pg = e;
+      rr = 60 / hr * (1 + 0.012 * ((1 - w) * 1.3 * ar + w * anti));
+    }
     { const tg = target(tc); if (tg) hrState += (tg[0] - hrState) * (1 - Math.exp(-rr / tg[1])); }
     const resp = 1 + 0.07 * Math.sin(2 * Math.PI * brHz * tc + 1.2);
     if (nextPvc < pvcAt.length && tc > pvcAt[nextPvc]) {
@@ -1857,6 +1940,7 @@ function commentary(A, meta, R, B, X = null) {
   if (ctx === 'training' && X) {
     const E = X.ER, W = X.WM, L = HRR_LIMITS[X.rec];
     if (E) out.push(`Peak 20-second heart rate was ${f0(E.peak20)} bpm (${f0(100 * E.peak20 / W.v)} % of your working maximum of ${f0(W.v)} bpm${W.src === 'tanaka' ? ', estimated from age' : ''}).${B.peak ? ` Your usual training peak is ${f0(B.peak.m)} bpm.` : ''}`);
+    if (X.tt === 'dfa' && X.dfa) out.push(X.dfa.valid ? `DFA α1 fell from ${X.dfa.startA1.toFixed(2)} at easy effort to ${X.dfa.minA1.toFixed(2)}; it crossed 0.75 (aerobic threshold) at about ${f0(X.dfa.vt1)} bpm${isFinite(X.dfa.vt2) ? ` and 0.5 (anaerobic threshold) at about ${f0(X.dfa.vt2)} bpm` : ''}.` : 'The DFA α1 thresholds could not be determined from this recording (see the training pages).');
     if (X.tt === 'session' || X.tt === 'intervals' || X.tt === 'tempo') out.push('Training sessions, including intervals such as 4 × 4, rarely reach true maximum heart rate: peaks seen in them are a floor, not a ceiling. A ramp test gives a measured value.');
     if (X.tt === 'intervals' && X.iv && X.iv.bouts.length) { const b = X.iv.bouts, rec = b.filter(x => !x.last && isFinite(x.recDrop));
       out.push(`${b.length} hard ${b.length === 1 ? 'effort was' : 'efforts were'} detected, peaking at ${f0(Math.min(...b.map(x => x.peak)))}–${f0(Math.max(...b.map(x => x.peak)))} bpm${rec.length ? `, with heart rate falling ${f0(Math.min(...rec.map(x => x.recDrop)))}–${f0(Math.max(...rec.map(x => x.recDrop)))} bpm in the recoveries between them` : ''}.${isFinite(X.iv.fade) && X.iv.fade >= 5 ? ` Peak heart rate rose ${f0(X.iv.fade)} bpm from the first to the last effort, a common sign of accumulating fatigue (or of pushing harder on later repeats).` : ''}`); }
@@ -2020,6 +2104,9 @@ function gradeAll(A, meta, R, X = null) {
           text: !r.valid ? 'Fewer than three 3-minute steps were completed, so the test is not valid. Start easier and increase the load every 3 minutes until you cannot continue.'
             : r.plateau ? `Your heart rate levelled off at ${f(r.max)} bpm over the final steps, so this is your true maximum. It now sets your training zones.`
             : `Your heart rate was still rising when you stopped (${f(r.max)} bpm), so your true maximum is probably higher. This value is a floor, not a ceiling.` }); }
+      if (X.tt === 'dfa' && X.dfa) { const r = X.dfa;
+        add('dfa', { title: 'Aerobic threshold (DFA α1)', short: 'aerobic threshold', value: r.valid ? f(r.vt1) + ' bpm' : 'Not determined', g: 'na', what: 'The heart rate where easy effort turns moderate, found from how orderly your beat-to-beat variation is (DFA α1 falls to 0.75).',
+          text: r.valid ? `Your aerobic threshold is about ${f(r.vt1)} bpm${isFinite(r.vt2) ? `, and your anaerobic threshold about ${f(r.vt2)} bpm (α1 = 0.5)` : ''}. Easy, base-building training stays below the aerobic threshold.` : DFA_WHY[r.reason] || DFA_WHY.flat }); }
       if (X.tt === 'intervals' && X.iv) { const b = X.iv.bouts;
         add('intervals', { title: 'Interval efforts', short: 'interval efforts', value: b.length ? b.length + (b.length === 1 ? ' effort' : ' efforts') : 'None found', g: 'na', what: 'The hard efforts in this session, found automatically from your heart rate, and how far it fell between them.',
           text: b.length ? `Peaks ranged from ${f(Math.min(...b.map(x => x.peak)))} to ${f(Math.max(...b.map(x => x.peak)))} bpm. ${isFinite(X.iv.fade) && X.iv.fade >= 5 ? `Your peak rose ${f(X.iv.fade)} bpm over the session, a sign of building fatigue.` : 'Your peaks stayed consistent across the session.'} See the training pages for each effort.` : 'No distinct efforts stood out from the rest of the session. Efforts are detected when heart rate rises well above the session’s easy level for at least 20 seconds.' }); }
@@ -2086,7 +2173,14 @@ function overallVerdict(G) {
 const plain = t => `<div class="plain"><b>In plain terms</b> ${t}</div>`;
 
 /* ---------- training: working maximum heart rate, recovery, tests, zones ---------- */
-const TRAIN_TYPES = { session: 'Training session', intervals: 'Interval training', tempo: 'Tempo session', ramp: 'Max HR ramp test', lthr: 'LTHR 30-min test' };
+const DFA_WHY = {
+  short: 'Too little steady signal to analyse. The test needs at least 4 minutes of clean beat intervals; aim for 20–30 minutes in 3-minute steps.',
+  artifacts: 'Too many irregular or missed beats (over 5 % in most windows), so α1 could not be measured reliably. Moisten the electrodes, fit the strap snugly and keep the phone close.',
+  startLow: 'α1 was already below 0.75 at the start, so the threshold could not be found. Start the test at a truly easy effort (you could chat comfortably) for the first 6 minutes.',
+  notHard: 'α1 never dropped below 0.75, so the effort did not reach the aerobic threshold. Keep raising the effort at each step until breathing is clearly hard.',
+  flat: 'α1 did not fall steadily as the effort rose, so no threshold could be read from it. Keep the effort rising in even steps and the movement smooth (no stopping, coasting or talking).'
+};
+const TRAIN_TYPES = { session: 'Training session', intervals: 'Interval training', tempo: 'Tempo session', dfa: 'DFA-α1 threshold test', ramp: 'Max HR ramp test', lthr: 'LTHR 30-min test' };
 const REC_TYPES = { active: 'Active recovery (kept moving)', passive: 'Passive recovery (stood, sat or lay still)' };
 /* HRR at 1 min: active cool-down after Cole et al. 1999 (<= 12 bpm abnormal); passive recovery produces larger falls, so its limit is higher */
 const HRR_LIMITS = { active: { out: 12, bord: 17, fav: 30 }, passive: { out: 18, bord: 22, fav: 40 } };
@@ -2122,10 +2216,11 @@ function trainingContext(A, meta, hist, age, sex) {
   const ER = A.exercise || null, tt = meta.ctx === 'training' ? (TRAIN_TYPES[meta.trainType] ? meta.trainType : 'session') : null;
   const ramp = tt === 'ramp' ? rampTest(A, ER) : null, lt = tt === 'lthr' ? lthrTest(A, ER) : null;
   const iv = tt === 'intervals' ? intervalWork(A, ER) : null, tempo = tt === 'tempo' ? tempoWork(A, ER) : null;
+  const dfa = tt === 'dfa' || tt === 'ramp' ? dfaTest(A, ER) : null;
   const cur = { id: meta.id || ('file-' + meta.start), start: meta.start, ctx: meta.ctx, trainType: tt, peak20: ER ? ER.peak20 : NaN,
     rampMax: ramp ? ramp.max : NaN, rampPlateau: ramp ? ramp.plateau : false, lthr: lt ? lt.lthr : NaN, lthrValid: lt ? lt.valid : false };
   const WM = maxHrEstimate(hist, cur, age, sex), LR = latestLthr(hist, cur);
-  return { ER, tt, rec: meta.recovery === 'passive' ? 'passive' : 'active', ramp, lt, iv, tempo, WM, LR,
+  return { ER, tt, rec: meta.recovery === 'passive' ? 'passive' : 'active', ramp, lt, iv, tempo, dfa, WM, LR,
     zonesPct: zoneTime(A, WM.v, PCT_ZONES), zonesL: LR ? zoneTime(A, LR.lthr, LTHR_ZONES) : null };
 }
 const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.round(sec % 60)).padStart(2, '0');
@@ -2143,6 +2238,21 @@ function recoveryChart(A, ER, startMs) {
   g += mk(ER.end, ER.stop, 'Stop', true) + mk(ER.end + 60, ER.at60, '+1 min') + mk(ER.end + 120, ER.at120, '+2 min');
   if (isFinite(ER.floor) && ER.floorT > ER.end + 130 && ER.floorT <= t1) g += mk(ER.floorT, ER.floor, 'Floor');
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate around the end of exercise">${F.g}${g}</svg>`;
+}
+
+/* DFA alpha1 against heart rate: each 2-minute window as a dot, the fitted line, and the 0.75 / 0.5 thresholds */
+function dfaChart(r) {
+  const ok = r.pts.filter(p => p.ok); if (ok.length < 5) return '';
+  const W = 92, H = 64, hrs = ok.map(p => p.hr), x0 = Math.floor((Math.min(...hrs) - 3) / 10) * 10, x1 = Math.ceil((Math.max(...hrs) + 3) / 10) * 10;
+  const y1 = Math.max(1.5, Math.ceil(Math.max(...ok.map(p => p.a1)) * 4) / 4), F = frame({ W, H, padB: 8, x0, x1, y0: 0, y1, yTicks: niceTicks(0, y1, 5), yFmt: v => v.toFixed(2), xLabel: false });
+  let g = '';
+  for (const v of niceTicks(x0, x1, 5)) g += `<text x="${F.X(v).toFixed(2)}" y="${H - 8 + 3.2}" text-anchor="middle" font-size="2.3" fill="var(--p-muted)" font-family="var(--f-mono)">${v}</text>`;
+  g += `<text x="${(F.X((x0 + x1) / 2)).toFixed(2)}" y="${H - 0.8}" text-anchor="middle" font-size="2.3" fill="var(--p-muted)">heart rate (bpm)</text>`;
+  for (const [v, lab] of [[0.75, 'aerobic 0.75'], [0.5, 'anaerobic 0.5']]) g += `<line x1="${F.X(x0)}" x2="${F.X(x1)}" y1="${F.Y(v).toFixed(2)}" y2="${F.Y(v).toFixed(2)}" stroke="var(--p-teal)" stroke-width="0.35" stroke-dasharray="1.2 0.8"/><text x="${(F.X(x1) - 0.6).toFixed(2)}" y="${(F.Y(v) - 0.8).toFixed(2)}" text-anchor="end" font-size="2.1" fill="var(--p-teal)">${lab}</text>`;
+  for (const p of ok) g += `<circle cx="${F.X(p.hr).toFixed(2)}" cy="${F.Y(Math.min(y1, p.a1)).toFixed(2)}" r="0.55" fill="var(--p-accent)" opacity=".55"/>`;
+  if (r.fit && r.fit.b < 0) { const a = r.fit.a, b = r.fit.b, h0 = Math.max(x0, r.fit.hrLo), h1 = Math.min(x1, r.fit.hrHi); g += `<line x1="${F.X(h0).toFixed(2)}" y1="${F.Y(a + b * h0).toFixed(2)}" x2="${F.X(h1).toFixed(2)}" y2="${F.Y(a + b * h1).toFixed(2)}" stroke="var(--p-ink)" stroke-width="0.45"/>`; }
+  for (const [v, y, lab] of [[r.vt1, 0.75, 'HRVT1'], [r.vt2, 0.5, 'HRVT2']]) if (isFinite(v)) g += `<line x1="${F.X(v).toFixed(2)}" x2="${F.X(v).toFixed(2)}" y1="${F.Y(y).toFixed(2)}" y2="${F.padT + F.ih}" stroke="var(--p-ink)" stroke-width="0.3" stroke-dasharray="0.8 0.6"/><circle cx="${F.X(v).toFixed(2)}" cy="${F.Y(y).toFixed(2)}" r="1" fill="var(--p-ink)"/><text x="${(F.X(v) + 1.4).toFixed(2)}" y="${(F.Y(y) + 3.6).toFixed(2)}" font-size="2.3" font-weight="600" fill="var(--p-ink)" stroke="var(--p-bg)" stroke-width="0.9" paint-order="stroke" stroke-linejoin="round">${lab} ${fmt(v)}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="DFA alpha1 against heart rate">${F.g}${g}</svg>`;
 }
 
 /* ---------- page assembly ---------- */
@@ -2223,6 +2333,7 @@ function renderReport(A, meta0, st, hist = []) {
     const maxTile = kpi('Working max HR', fmt(W.v), 'bpm', W.highMax ? chip('info', 'High-max individual') : chip('info', W.src === 'tanaka' ? 'Age estimate' : W.src === 'ramp' ? 'Ramp test' : 'Your data + 2 %'), `age formulas ${fmt(W.AF.lo)}–${fmt(W.AF.hi)}`);
     const peakTile = kpi('Peak heart rate', fmt(E.peak20), 'bpm', chip('info', fmt(100 * E.peak20 / W.v) + ' % of max'), '20-s mean at ' + clock(E.peak20T || 0));
     const first = X.tt === 'ramp' && X.ramp ? kpi('Measured max HR', X.ramp.valid ? fmt(X.ramp.max) : '—', X.ramp.valid ? 'bpm' : '', X.ramp.valid ? chip(X.ramp.plateau ? 'in' : 'info', X.ramp.plateau ? 'Plateau: true max' : 'No plateau: a floor') : chip('info', 'Test incomplete'), `${X.ramp.completed} steps of 3 min`)
+      : X.tt === 'dfa' && X.dfa ? kpi('Aerobic threshold', X.dfa.valid ? fmt(X.dfa.vt1) : '—', X.dfa.valid ? 'bpm' : '', X.dfa.valid ? chip('info', 'DFA α1 = 0.75') : chip('info', 'Not determined'), isFinite(X.dfa.vt2) ? `anaerobic (α1 0.5) ${fmt(X.dfa.vt2)} bpm` : 'HRVT1 from beat-to-beat variation')
       : X.tt === 'lthr' && X.lt ? kpi('Threshold HR (LTHR)', X.lt.valid ? fmt(X.lt.lthr) : '—', X.lt.valid ? 'bpm' : '', X.lt.valid ? chip('info', 'Last 20 min of 30') : chip('info', 'Test too short'), `effort ${fmt(X.lt.effortMin)} min`)
       : kpi('Time ≥ 80 % max', durShort(hi80).split(' ')[0], durShort(hi80).split(' ').slice(1).join(' '), chip('info', 'Anaerobic + maximum'), '≥ ' + A.zones[3].bpmLo + ' bpm');
     tiles = [first, peakTile, recTile, maxTile, kpi('QTc', fmt(G.qtc && G.qtc.frid ? A.qtcF : A.qtc), 'ms', gc('qtc'), (G.qtc && G.qtc.frid ? 'Fridericia' : 'Bazett') + ' · ref ' + R.qtc[0] + '–' + R.qtc[1]), rhythmTile];
@@ -2260,7 +2371,7 @@ function renderReport(A, meta0, st, hist = []) {
       ${C.paras.map(p => `<p>${p}</p>`).join('')}${baseCharts}</div>`);
 
   /* ---- plain-language page(s) ---- */
-  const order = ['hr', 'rmssd', 'sdnn', 'br', 'coupling', 'ramp', 'lthr', 'intervals', 'tempo', 'peak', 'maxhr', 'hrr', 'ect', 'pause', 'qtc', 'qrs', 't', 'j', 'quality'].filter(k => G[k]);
+  const order = ['hr', 'rmssd', 'sdnn', 'br', 'coupling', 'dfa', 'ramp', 'lthr', 'intervals', 'tempo', 'peak', 'maxhr', 'hrr', 'ect', 'pause', 'qtc', 'qrs', 't', 'j', 'quality'].filter(k => G[k]);
   const card = k => { const x = G[k]; return `<div class="pl-card g-${x.g}"><div class="pl-top"><b>${x.title}</b><span class="pl-val">${x.value}</span></div>${gchip(x.g)}<p class="pl-what">${x.what}</p><p>${x.text}</p></div>`; };
   const legend = `<div class="pl-legend">${['fav', 'norm', 'bord', 'out', 'na'].map(g => gchip(g)).join('')}</div>`;
   const help = `<div class="pl-help"><b>When to seek medical help.</b> Whatever this report shows, seek urgent care for chest pain or pressure, fainting, severe shortness of breath, or a racing or very irregular heartbeat with dizziness. This report is for general wellness and education only: it cannot diagnose or rule out any condition. For any health concern, see a doctor rather than relying on this report. The pages that follow give the detailed measurements.</div>`;
@@ -2302,6 +2413,13 @@ function renderReport(A, meta0, st, hist = []) {
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
         <div class="panel"><h3>Result</h3>${kvT('Threshold heart rate (LTHR)', r.valid ? fmt(r.lthr) + ' bpm' : '—', 'mean heart rate over the last 20 minutes of the effort')}${kvT('Window used', clock(r.from) + ' – ' + clock(r.end), r.cover < 0.995 ? `signal for ${fmt(20 * r.cover)} of the 20 minutes; gaps are left out` : '')}${kvT('Effort duration', fmt(r.effortMin) + ' min', r.short ? 'shorter than the 25 minutes needed' : r.onset > 30 ? `from ${clock(r.onset)}, when heart rate first reached effort level` : '')}
         <p class="note-p" style="margin:0">${r.valid ? 'This threshold now sets your LTHR zones in later training reports.' : 'Not valid: warm up first, press Start as the 30-minute effort begins, hold the hardest pace you can for the full 30 minutes, and tap Start recovery when you finish.'}</p></div>`; }
+    let dfaAfter = '';
+    if (X.dfa && (X.tt === 'dfa' ? X.dfa.pts.length >= 12 : X.dfa.valid)) { const r = X.dfa;   // a ramp test shows DFA thresholds only when they were found
+      const dfaSec = `<div class="sec-h"><h2>DFA α1 thresholds</h2><span>2-minute windows every 10 s · ${r.src === 'strap' ? 'strap beat intervals' : 'ECG beats'}</span></div>
+        <div class="cols2"><div>${dfaChart(r)}</div>
+        <div class="panel"><h3>Result</h3>${kvT('Aerobic threshold (HRVT1)', r.valid ? fmt(r.vt1) + ' bpm' : '—', 'heart rate where α1 = 0.75')}${kvT('Anaerobic threshold (HRVT2)', isFinite(r.vt2) ? fmt(r.vt2) + ' bpm' : '—', isFinite(r.vt2) ? 'heart rate where α1 = 0.5' : 'α1 did not reach 0.5')}${kvT('α1 at easy effort', isFinite(r.startA1) ? r.startA1.toFixed(2) : '—', 'about 1.0 or higher is expected')}${kvT('Lowest α1', isFinite(r.minA1) ? r.minA1.toFixed(2) : '—')}${r.fit ? kvT('Fit', 'r² ' + r.fit.r2.toFixed(2), r.fit.n + ' windows on the falling part') : ''}${kvT('Artifacts', fmt(r.artPct, 1) + ' %', 'windows over 5 % are left out')}
+        <p class="note-p" style="margin:0">${r.valid ? (X.tt === 'ramp' ? 'Estimated from the ramp test. A dedicated DFA-α1 test, stopped once α1 is below 0.5, gives the same result without going to exhaustion.' : 'Thresholds from α1 agree with laboratory gas-exchange thresholds within a few beats per minute in most studies, best in cycling with smooth effort. Repeat the test every 6–8 weeks.') : DFA_WHY[r.reason] || DFA_WHY.flat}</p></div></div>`;
+      if (X.tt === 'dfa') tests = dfaSec; else dfaAfter = dfaSec; }
     if (X.tt === 'intervals' && X.iv) { const v = X.iv;
       tests = `<div class="sec-h"><h2>Interval efforts</h2><span>detected from 10-s heart rate</span></div>
         ${v.bouts.length ? `<table class="ev"><thead><tr><th>#</th><th>Start</th><th>Effort</th><th>Peak</th><th>Average</th><th>Recovery</th><th>HR fall</th></tr></thead><tbody>${thin(v.bouts, 14).map(b => `<tr><td class="m">${b.n}</td><td class="m">${clock(b.t0)}</td><td class="m">${mmss(b.dur)}</td><td class="m">${fmt(b.peak)} bpm</td><td class="m">${fmt(b.mean)} bpm</td><td class="m">${b.last ? 'end of session' : mmss(b.recSec)}</td><td class="m">${b.last ? 'see below' : isFinite(b.recDrop) ? fmt(b.recDrop) + ' bpm' : '—'}</td></tr>`).join('')}</tbody></table>
@@ -2329,6 +2447,7 @@ function renderReport(A, meta0, st, hist = []) {
           ${G.hrr ? `<div>${gchip(G.hrr.g)}</div>` : ''}</div>
       </div>
       <div class="fig">${recoveryChart(A, E, startMs)}<div class="cap">Heart rate (10-s means) from two minutes before the end of exercise; shaded area = recovery.</div></div>`}`);
+    if (dfaAfter) page(dfaAfter);
 
     const zRows = (zs, base, unit) => zs.map(z => `<tr><td>${esc(z.name)}</td><td class="m">${Math.round(z.lo * 100)}${z.hi > 5 ? '+' : '–' + Math.round(z.hi * 100)} %</td><td class="m">${z.hi > 5 ? '≥ ' + z.bpmLo : z.bpmLo + '–' + z.bpmHi} bpm</td><td class="m">${durShort(z.sec)}</td></tr>`).join('');
     page(`
@@ -2462,13 +2581,13 @@ function renderReport(A, meta0, st, hist = []) {
       <p><b>Breathing.</b> Measured from the strap’s accelerometer (chest wall movement, 12.5 Hz after averaging): spectral peak of the three axes in 60-s windows, 3–42 breaths/min; windows with body movement or no clear rhythm are rejected. If fewer than 40 % of windows are usable, breathing is estimated instead from R-wave amplitude modulation and respiratory sinus arrhythmia (6–42/min at rest). Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.</p>
       <p><b>Waveform.</b> Beats averaged in 5-minute blocks and upsampled; QRS onset by slope threshold, QRS end by following each QRS wave until its slope levels off (either polarity; not measured if no clear end), T end by the tangent method. QTc is the median of per-beat values.</p>
       <p><b>Grading.</b> HRV norms are approximate, based on Nunan et al. 2010 (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) adjusted for age, sex and position after Voss et al. 2015: below the 5th percentile = outside normal range, 5th–15th = borderline, above the 75th = favourable. QTc limits follow Goldenberg et al. 2006 (men ≤ 430 ms normal, 431–450 borderline; women ≤ 450, 451–470). Heart-rate recovery: 12 bpm or less at 1 minute is outside the normal range (Cole et al. 1999).</p>
-      <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. LTHR is the mean heart rate of the last 20 min of a 30-min time trial (gaps excluded; at least 80 % coverage); the effort is timed from when heart rate first reaches 90 % of that value. Threshold zones follow Friel. Session maximum and minimum heart rate are taken from a 5-beat running median of normal beats, so a single stray interval cannot set them.</p>
+      <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. DFA α1 (detrended fluctuation analysis, box sizes 4–16 beats) is computed in 2-min windows every 10 s from the strap's beat intervals (artifacts removed; windows with over 5 % artifacts excluded); a line fitted to α1 against heart rate on its falling part gives HRVT1 at α1 = 0.75 and HRVT2 at 0.5 (Rogers et al. 2021). LTHR is the mean heart rate of the last 20 min of a 30-min time trial (gaps excluded; at least 80 % coverage); the effort is timed from when heart rate first reaches 90 % of that value. Threshold zones follow Friel. Session maximum and minimum heart rate are taken from a 5-beat running median of normal beats, so a single stray interval cannot set them.</p>
       <p><b>Personal baseline.</b> Readings with the same context and position from the previous 30 days (minimum 5). Usual range: mean ± 1 SD of ln RMSSD; heart rate mean ± 1 SD. Exercise recovery is the fall from the 10-s peak heart rate at 60 and 120 s.</p>
     </div>
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.5.1 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.6.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* ---------- Android app (Capacitor) ----------
@@ -2479,7 +2598,14 @@ const NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform =
 const nativeCall = (plugin, method, opts) => window.Capacitor.nativePromise(plugin, method, opts || {});
 const nativeOn = (plugin, event, cb) => window.Capacitor.addListener(plugin, event, cb);
 const LeadOneNative = NATIVE ? {
-  saveFile: (name, text, mime) => nativeCall('LeadOne', 'saveFile', { name, text, mime: mime || 'application/json' }),
+  async saveFile(name, text, mime) {   // pick the place first (name only), then write in 256 KB pieces
+    const r = await nativeCall('LeadOne', 'pickSaveLocation', { name, mime: mime || 'application/json' });
+    if (!r || !r.uri) return { saved: false };
+    const N = 256 * 1024;
+    for (let i = 0; i === 0 || i < text.length; i += N)
+      await nativeCall('LeadOne', 'writeChunk', { uri: r.uri, text: text.slice(i, i + N), first: i === 0, last: i + N >= text.length });
+    return { saved: true };
+  },
   print: name => nativeCall('LeadOne', 'print', { name }),
   keepScreenOn: on => nativeCall('LeadOne', 'keepScreenOn', { on: !!on }).catch(() => {}),
   vibrate: pattern => nativeCall('LeadOne', 'vibrate', { pattern }).catch(() => {}),
@@ -2487,6 +2613,7 @@ const LeadOneNative = NATIVE ? {
 } : null;
 
 if (NATIVE) (() => {
+  document.documentElement.classList.add('native');   // hides browser-only guidance (see style.css)
   // Web Bluetooth subset used by app.js, implemented on @capacitor-community/bluetooth-le
   const BLE = 'BluetoothLe';
   const STD = { heart_rate: 0x180d, battery_service: 0x180f, device_information: 0x180a,
@@ -2660,7 +2787,7 @@ function cleanMeta(m) {
     trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark)
   };
 }
-const HNUM = ['start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr'];
+const HNUM = ['start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
 function cleanHistory(x) {
   if (!x || typeof x !== 'object' || num(x.start) == null) return null;
   const o = { id: str(x.id, 80), ctx: own(CTX, x.ctx), pos: own(POS, x.pos), src: x.src === 'h10' ? 'h10' : 'ecg', notes: str(x.notes, 200),
@@ -2695,11 +2822,12 @@ const chipVal = el => { const b = el.querySelector('[aria-checked="true"]'); ret
 const CTX_CHIPS = Object.entries(CTX).map(([k, v]) => [k, v.short, v.sub]);
 const POS_CHIPS = Object.entries(POS).map(([k, v]) => [k, v.short]);
 
-const TT_CHIPS = [['session', 'Session', 'steady or mixed'], ['intervals', 'Intervals', 'repeated hard efforts'], ['tempo', 'Tempo', 'sustained, comfortably hard'], ['ramp', 'Max HR ramp test', '3-min steps to failure'], ['lthr', 'LTHR test', '30-min time trial']];
+const TT_CHIPS = [['session', 'Session', 'steady or mixed'], ['intervals', 'Intervals', 'repeated hard efforts'], ['tempo', 'Tempo', 'sustained, comfortably hard'], ['dfa', 'DFA-α1 test', 'aerobic threshold, 3-min steps'], ['ramp', 'Max HR ramp test', '3-min steps to failure'], ['lthr', 'LTHR test', '30-min time trial']];
 const REC_CHIPS = [['active', 'Active', 'keep moving'], ['passive', 'Passive', 'stand or sit still']];
 const TT_HINTS = { session: 'When you finish, tap Start recovery and keep recording for at least 2 minutes.',
   intervals: 'Each hard effort is detected automatically, with your recovery between efforts. After the last one, tap Start recovery and keep recording for 2 minutes.',
   tempo: 'Warm up, then hold a steady, comfortably hard effort for at least 10 minutes. The report shows how steady you held it and how much your heart rate drifted. Tap Start recovery when you finish.',
+  dfa: 'Finds your aerobic threshold from beat-to-beat variation. Best on a bike or treadmill. Start very easy for the first 6 minutes, then raise the effort a little at each beep (every 3 minutes). Keep pedalling or running smoothly; avoid talking, stopping or coasting. The live α1 falls as you work harder: keep going until it is below 0.5 or you are near your limit, then tap Start recovery.',
   ramp: 'Start easy. The app beeps and vibrates every 3 minutes: increase the load each time, until you cannot continue. Tap Start recovery the moment you stop.',
   lthr: 'Warm up first, without recording. Press Start at the moment you begin the 30-minute effort, and go as hard as you can sustain. The app tells you when 30 minutes are up; tap Start recovery then and keep recording for 2 minutes.' };
 function stickyChips(el, defs, get, set) { buildChips(el, defs, get(), v => { if (v) set(v); else buildChips(el, defs, get(), x => x && set(x)); stickyChips(el, defs, get, set); }); }
@@ -2826,7 +2954,7 @@ async function backupNote(h) {
   if (!backupDue(h, s)) { b.hidden = true; return; }
   const n = h.filter(x => (num(x.start) || 0) > (num(s.lastBackup) || 0)).length;
   $('#backupText').textContent = (s.lastBackup ? `Last backup ${agoText(s.lastBackup)}. ` : 'Your history has never been backed up. ')
-    + `${n} reading${n === 1 ? '' : 's'} exist only in this browser; clearing Chrome's data or changing phones would lose them.`;
+    + `${n} reading${n === 1 ? '' : 's'} ${NATIVE ? 'exist only in this app; uninstalling it, clearing its storage or changing phones would lose them.' : "exist only in this browser; clearing Chrome's data or changing phones would lose them."}`;
   b.hidden = false;
 }
 /* gentle donation request: at 20, 50 and 100 readings, never during a recording, never again after Ko-fi is tapped */
@@ -2911,7 +3039,7 @@ async function connectFlow() {
     setDev('on', S.device.name || 'Polar H10', devMetaText());
   } catch (e) {
     S.connected = false;
-    const msg = e && e.name === 'NotFoundError' ? 'No strap was selected.' : e && e.name === 'SecurityError' ? 'Bluetooth is blocked here. Open the app from its own web address in Chrome.' : 'Connection failed: ' + (e && e.message ? e.message : e);
+    const msg = e && e.name === 'NotFoundError' ? 'No strap was selected.' : e && e.name === 'SecurityError' ? (NATIVE ? 'Bluetooth permission was refused. Allow “Nearby devices” for Lead One ECG in Android settings.' : 'Bluetooth is blocked here. Open the app from its own web address in Chrome.') : 'Connection failed: ' + (e && e.message ? e.message : e);
     setDev('off', 'Polar H10 not connected', msg);
   }
 }
@@ -3058,7 +3186,8 @@ async function startRecording() {
   $('#recBatt').textContent = S.battery != null ? S.battery + '%' : '--';
   $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
   $('#btnRecov').hidden = S.ctx !== 'training'; $('#btnRecov').disabled = false; $('#btnRecov').textContent = 'Start recovery';
-  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr'); $('#stepPanel').classList.remove('go');
+  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa'); $('#stepPanel').classList.remove('go');
+  $('#a1Live').hidden = S.trainType !== 'dfa'; S.a1 = null; S.a1At = 0; $('#a1Val').textContent = '—'; $('#a1Msg').textContent = 'α1 appears after 2 minutes';
   if (S.trainType) $('#recCtx').textContent += ' · ' + TRAIN_TYPES[S.trainType] + ' · ' + (S.recovery === 'passive' ? 'passive' : 'active') + ' recovery';
   setPausedUI(false); show('scrRec'); tickRec(); requestAnimationFrame(drawLive);
 }
@@ -3113,11 +3242,23 @@ function cueBus(a) {
 }
 function beep(freq = 2400, ms = 220, at = 0) { try { const a = S.audio; if (!a) return; if (a.state === 'suspended') a.resume(); const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = freq; o.connect(g); g.connect(cueBus(a)); const t = a.currentTime + at; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.008); g.gain.setValueAtTime(0.9, t + ms / 1000 - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000); o.start(t); o.stop(t + ms / 1000 + 0.02); } catch (e) {} }
 function cue(strong) { const vib = strong ? [400, 120, 400, 120, 400] : [200, 100, 200]; if (NATIVE) LeadOneNative.vibrate(vib); else try { navigator.vibrate && navigator.vibrate(vib); } catch (e) {} if (strong) { beep(2400, 220, 0); beep(2400, 220, 0.3); beep(3000, 450, 0.6); } else { beep(2000, 160, 0); beep(2000, 160, 0.25); } }
+/* live DFA-alpha1 from the strap's beat intervals: last 2 minutes, recomputed every 10 s */
+function liveAlpha1(el) {
+  if (el - (S.a1At || 0) < 10 && S.a1At) return; S.a1At = el;
+  const W = S.rr.filter(p => p[1] > 0 && p[0] > el - 120), v = W.map(p => p[1]); let bad = 0; const x = [];
+  for (let i = 0; i < v.length; i++) { const nb = v.slice(Math.max(0, i - 5), i + 6); const m = median(nb); if (v[i] < 250 || v[i] > 2500 || Math.abs(v[i] - m) > 0.2 * m) bad++; else x.push(v[i]); }
+  const val = $('#a1Val'), msg = $('#a1Msg');
+  if (el < 115 || x.length < 90) { val.textContent = '—'; msg.textContent = 'α1 appears after 2 minutes'; return; }
+  if (bad > 0.05 * v.length) { val.textContent = '—'; msg.textContent = 'beat signal unsteady: moisten the strap'; return; }
+  const a = dfaAlpha1(x); if (!isFinite(a)) return; S.a1 = a; val.textContent = a.toFixed(2);
+  msg.textContent = a > 0.75 ? 'below aerobic threshold (above 0.75)' : a > 0.5 ? 'between the thresholds (0.75 to 0.5)' : 'past the anaerobic threshold: you can stop when ready';
+}
 function tickTraining() {
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = S.total / FS, P = $('#stepPanel');
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
-  if (S.trainType === 'ramp') {
+  if (S.trainType === 'dfa') liveAlpha1(el);
+  if (S.trainType === 'ramp' || S.trainType === 'dfa') {
     const step = Math.floor(el / 180) + 1, left = 180 - (el % 180);
     if (step > S.lastStep) { S.lastStep = step; cue(true); S.goUntil = Date.now() + 5000; }
     if (left <= 10.5 && left > 9.9 && S.warned !== step) { S.warned = step; cue(false); }
@@ -3204,7 +3345,8 @@ function historyEntry(A, meta) {
     peak: A.exercise ? A.exercise.peak20 : null, peak20: A.exercise ? A.exercise.peak20 : null, hrr60: A.exercise && A.exercise.end != null ? A.exercise.hrr60 : null,
     ect: A.ectopicBeats, beats: A.beats, src: A.hrvSource, trainType: meta.ctx === 'training' ? (meta.trainType || 'session') : '', recovery: meta.recovery || '',
     ...(meta.ctx === 'training' && meta.trainType === 'ramp' ? (r => ({ rampMax: r.max, rampPlateau: r.plateau && r.valid }))(rampTest(A, A.exercise)) : {}),
-    ...(meta.ctx === 'training' && meta.trainType === 'lthr' ? (r => ({ lthr: r.lthr, lthrValid: r.valid }))(lthrTest(A, A.exercise)) : {})
+    ...(meta.ctx === 'training' && meta.trainType === 'lthr' ? (r => ({ lthr: r.lthr, lthrValid: r.valid }))(lthrTest(A, A.exercise)) : {}),
+    ...(meta.ctx === 'training' && (meta.trainType === 'dfa' || meta.trainType === 'ramp') ? (r => r.valid ? { hrvt1: r.vt1, hrvt2: isFinite(r.vt2) ? r.vt2 : null } : {})(dfaTest(A, A.exercise)) : {})
   };
 }
 async function runReport(raw, meta) {
@@ -3373,7 +3515,7 @@ $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = '';
 for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runSample(b.dataset.demo);
 function runSample(kind) {
   const d = new Date(); d.setDate(d.getDate() - 1);
-  const cfg = { rest: [5, 30, 2, 46, 'morning', 'lying', 'rest'], training: [17, 10, 0, 35, 'training', 'walking', 'intervals', 'intervals', 'passive'], tempo: [7, 0, 0, 36, 'training', 'walking', 'tempo', 'tempo', 'active'], ramp: [17, 40, 0, 31, 'training', 'walking', 'ramp', 'ramp', 'passive', 1530],
+  const cfg = { rest: [5, 30, 2, 46, 'morning', 'lying', 'rest'], training: [17, 10, 0, 35, 'training', 'walking', 'intervals', 'intervals', 'passive'], tempo: [7, 0, 0, 36, 'training', 'walking', 'tempo', 'tempo', 'active'], ramp: [17, 40, 0, 31, 'training', 'walking', 'ramp', 'ramp', 'passive', 1530], dfa: [9, 0, 0, 33, 'training', 'walking', 'dfa', 'dfa', 'active', 1800],
     meditation: [20, 15, 0, 10, 'meditation', 'seated', 'meditation'] }[kind];
   d.setHours(cfg[0], cfg[1], cfg[2], 0);
   const demo = makeDemo(cfg[3], 7, cfg[6]);
@@ -3400,6 +3542,7 @@ if (location.hash === '#sample') runSample('rest');
 else if (location.hash === '#training') runSample('training');
 else if (location.hash === '#ramp') runSample('ramp');
 else if (location.hash === '#tempo') runSample('tempo');
+else if (location.hash === '#dfa') runSample('dfa');
 else if (location.hash === '#meditation') runSample('meditation');
 
 </script>
