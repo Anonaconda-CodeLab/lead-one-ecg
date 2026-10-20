@@ -333,6 +333,8 @@ function commentary(A, meta, R, B, X = null) {
     if (E) out.push(`Peak 20-second heart rate was ${f0(E.peak20)} bpm (${f0(100 * E.peak20 / W.v)} % of your working maximum of ${f0(W.v)} bpm${W.src === 'tanaka' ? ', estimated from age' : ''}).${B.peak ? ` Your usual training peak is ${f0(B.peak.m)} bpm.` : ''}`);
     if (X.tt === 'dfa' && X.dfa) out.push(X.dfa.valid ? `DFA α1 fell from ${X.dfa.startA1.toFixed(2)} at easy effort to ${X.dfa.minA1.toFixed(2)}; it crossed 0.75 (aerobic threshold) at about ${f0(X.dfa.vt1)} bpm${isFinite(X.dfa.vt2) ? ` and 0.5 (anaerobic threshold) at about ${f0(X.dfa.vt2)} bpm` : ''}.` : 'The DFA α1 thresholds could not be determined from this recording (see the training pages).');
     if (X.tt === 'session' || X.tt === 'intervals' || X.tt === 'tempo') out.push('Training sessions, including intervals such as 4 × 4, rarely reach true maximum heart rate: peaks seen in them are a floor, not a ceiling. A ramp test gives a measured value.');
+    if (X.tt === 'intervals' && X.plan && X.plan.rounds.length) { const P = X.plan;
+      out.push(`${P.rounds.length} rounds of ${mmss(P.w)} work${P.r ? ` / ${mmss(P.r)} rest` : ''} (your interval plan, lined up with ${P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise'}): average heart rate rose from ${f0(P.first)} bpm in round 1 to ${f0(P.last)} bpm in the last round, peaking at ${f0(P.peak)} bpm.${P.r && P.r <= 15 ? ' Rests this short barely let heart rate fall, so it climbs from round to round; that is expected.' : ''}`); }
     if (X.tt === 'intervals' && X.iv && X.iv.bouts.length) { const b = X.iv.bouts, rec = b.filter(x => !x.last && isFinite(x.recDrop));
       out.push(`${b.length} hard ${b.length === 1 ? 'effort was' : 'efforts were'} detected, peaking at ${f0(Math.min(...b.map(x => x.peak)))}–${f0(Math.max(...b.map(x => x.peak)))} bpm${rec.length ? `, with heart rate falling ${f0(Math.min(...rec.map(x => x.recDrop)))}–${f0(Math.max(...rec.map(x => x.recDrop)))} bpm in the recoveries between them` : ''}.${isFinite(X.iv.fade) && X.iv.fade >= 5 ? ` Peak heart rate rose ${f0(X.iv.fade)} bpm from the first to the last effort, a common sign of accumulating fatigue (or of pushing harder on later repeats).` : ''}`); }
     if (X.tt === 'tempo' && X.tempo && X.tempo.valid) { const T = X.tempo;
@@ -498,6 +500,9 @@ function gradeAll(A, meta, R, X = null) {
       if (X.tt === 'dfa' && X.dfa) { const r = X.dfa;
         add('dfa', { title: 'Aerobic threshold (DFA α1)', short: 'aerobic threshold', value: r.valid ? f(r.vt1) + ' bpm' : 'Not determined', g: 'na', what: 'The heart rate where easy effort turns moderate, found from how orderly your beat-to-beat variation is (DFA α1 falls to 0.75).',
           text: r.valid ? `Your aerobic threshold is about ${f(r.vt1)} bpm${isFinite(r.vt2) ? `, and your anaerobic threshold about ${f(r.vt2)} bpm (α1 = 0.5)` : ''}. Easy, base-building training stays below the aerobic threshold.` : DFA_WHY[r.reason] || DFA_WHY.flat }); }
+      if (X.tt === 'intervals' && X.plan) { const P = X.plan;
+        add('intervals', { title: 'Interval rounds', short: 'interval rounds', value: P.rounds.length + ' rounds', g: 'na', what: 'Your heart rate in each round of your interval plan.',
+          text: `Average heart rate went from ${f(P.first)} bpm in round 1 to ${f(P.last)} bpm in round ${P.rounds.length} (peak ${f(P.peak)} bpm). See the training pages for every round.` }); }
       if (X.tt === 'intervals' && X.iv) { const b = X.iv.bouts;
         add('intervals', { title: 'Interval efforts', short: 'interval efforts', value: b.length ? b.length + (b.length === 1 ? ' effort' : ' efforts') : 'None found', g: 'na', what: 'The hard efforts in this session, found automatically from your heart rate, and how far it fell between them.',
           text: b.length ? `Peaks ranged from ${f(Math.min(...b.map(x => x.peak)))} to ${f(Math.max(...b.map(x => x.peak)))} bpm. ${isFinite(X.iv.fade) && X.iv.fade >= 5 ? `Your peak rose ${f(X.iv.fade)} bpm over the session, a sign of building fatigue.` : 'Your peaks stayed consistent across the session.'} See the training pages for each effort.` : 'No distinct efforts stood out from the rest of the session. Efforts are detected when heart rate rises well above the session’s easy level for at least 20 seconds.' }); }
@@ -606,12 +611,13 @@ function latestLthr(hist, cur) {
 function trainingContext(A, meta, hist, age, sex) {
   const ER = A.exercise || null, tt = meta.ctx === 'training' ? (TRAIN_TYPES[meta.trainType] ? meta.trainType : 'session') : null;
   const ramp = tt === 'ramp' ? rampTest(A, ER) : null, lt = tt === 'lthr' ? lthrTest(A, ER) : null;
-  const iv = tt === 'intervals' ? intervalWork(A, ER) : null, tempo = tt === 'tempo' ? tempoWork(A, ER) : null;
+  const plan = tt === 'intervals' && meta.plan ? planWork(A, ER, meta.plan, meta.recMark) : null;
+  const iv = tt === 'intervals' && !plan ? intervalWork(A, ER) : null, tempo = tt === 'tempo' ? tempoWork(A, ER) : null;
   const dfa = tt === 'dfa' || tt === 'ramp' ? dfaTest(A, ER) : null;
   const cur = { id: meta.id || ('file-' + meta.start), start: meta.start, ctx: meta.ctx, trainType: tt, peak20: ER ? ER.peak20 : NaN,
     rampMax: ramp ? ramp.max : NaN, rampPlateau: ramp ? ramp.plateau : false, lthr: lt ? lt.lthr : NaN, lthrValid: lt ? lt.valid : false };
   const WM = maxHrEstimate(hist, cur, age, sex), LR = latestLthr(hist, cur);
-  return { ER, tt, rec: meta.recovery === 'passive' ? 'passive' : 'active', ramp, lt, iv, tempo, dfa, WM, LR,
+  return { ER, tt, rec: meta.recovery === 'passive' ? 'passive' : 'active', ramp, lt, iv, plan, tempo, dfa, WM, LR,
     zonesPct: zoneTime(A, WM.v, PCT_ZONES), zonesL: LR ? zoneTime(A, LR.lthr, LTHR_ZONES) : null };
 }
 const mmss = sec => Math.floor(sec / 60) + ':' + String(Math.round(sec % 60)).padStart(2, '0');
@@ -631,6 +637,17 @@ function recoveryChart(A, ER, startMs) {
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate around the end of exercise">${F.g}${g}</svg>`;
 }
 
+/* interval plan: heart rate with the work rounds shaded */
+function planChart(A, P, startMs) {
+  const t0 = Math.max(0, P.t0 - 60), t1 = Math.min(A.dur, P.end + 120), s = rollingHR(A, 5, 2).filter(p => p.t >= t0 && p.t <= t1);
+  if (s.length < 5) return '';
+  const W = 186, H = 46, lo = Math.floor((Math.min(...s.map(p => p.v)) - 6) / 10) * 10, hi = Math.ceil((Math.max(...s.map(p => p.v)) + 6) / 10) * 10;
+  const F = frame({ W, H, x0: t0, x1: t1, y0: lo, y1: hi, yTicks: niceTicks(lo, hi, 4), startMs });
+  let g = '';
+  for (const r of P.rounds) { const a = Math.max(t0, r.t0), b = Math.min(t1, r.t1); if (b > a) g += `<rect x="${F.X(a).toFixed(2)}" y="${F.padT}" width="${(F.X(b) - F.X(a)).toFixed(2)}" height="${F.ih}" fill="var(--p-accent-soft)" opacity=".8"/>`; }
+  g += `<path d="${s.map((p, i) => (i ? 'L' : 'M') + F.X(p.t).toFixed(2) + ' ' + F.Y(p.v).toFixed(2)).join('')}" fill="none" stroke="var(--p-accent)" stroke-width="0.55"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate during the interval rounds">${F.g}${g}</svg>`;
+}
 /* DFA alpha1 against heart rate: each 2-minute window as a dot, the fitted line, and the 0.75 / 0.5 thresholds */
 function dfaChart(r) {
   const ok = r.pts.filter(p => p.ok); if (ok.length < 5) return '';
@@ -811,6 +828,11 @@ function renderReport(A, meta0, st, hist = []) {
         <div class="panel"><h3>Result</h3>${kvT('Aerobic threshold (HRVT1)', r.valid ? fmt(r.vt1) + ' bpm' : '—', 'heart rate where α1 = 0.75')}${kvT('Anaerobic threshold (HRVT2)', isFinite(r.vt2) ? fmt(r.vt2) + ' bpm' : '—', isFinite(r.vt2) ? 'heart rate where α1 = 0.5' : 'α1 did not reach 0.5')}${kvT('α1 at easy effort', isFinite(r.startA1) ? r.startA1.toFixed(2) : '—', 'about 1.0 or higher is expected')}${kvT('Lowest α1', isFinite(r.minA1) ? r.minA1.toFixed(2) : '—')}${r.fit ? kvT('Fit', 'r² ' + r.fit.r2.toFixed(2), r.fit.n + ' windows on the falling part') : ''}${kvT('Artifacts', fmt(r.artPct, 1) + ' %', 'windows over 5 % are left out')}
         <p class="note-p" style="margin:0">${r.valid ? (X.tt === 'ramp' ? 'Estimated from the ramp test. A dedicated DFA-α1 test, stopped once α1 is below 0.5, gives the same result without going to exhaustion.' : 'Thresholds from α1 agree with laboratory gas-exchange thresholds within a few beats per minute in most studies, best in cycling with smooth effort. Repeat the test every 6–8 weeks.') : DFA_WHY[r.reason] || DFA_WHY.flat}</p></div></div>`;
       if (X.tt === 'dfa') tests = dfaSec; else dfaAfter = dfaSec; }
+    if (X.tt === 'intervals' && X.plan) { const P = X.plan;
+      tests = `<div class="sec-h"><h2>Interval rounds</h2><span>${P.n} × ${mmss(P.w)}${P.r ? ' / ' + mmss(P.r) : ''} · lined up with ${P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise'}</span></div>
+        <div class="fig">${planChart(A, P, startMs)}<div class="cap">Heart rate (5-s means); shaded bands = work rounds of your plan.</div></div>
+        <table class="ev"><thead><tr><th>Round</th><th>Start</th><th>Average</th><th>Peak</th><th>End of work</th>${P.r ? '<th>After rest</th>' : ''}</tr></thead><tbody>${thin(P.rounds, 16).map(x => `<tr><td class="m">${x.n}</td><td class="m">${clock(x.t0)}</td><td class="m">${fmt(x.avg)} bpm</td><td class="m">${fmt(x.peak)} bpm</td><td class="m">${fmt(x.endHR)} bpm</td>${P.r ? `<td class="m">${isFinite(x.afterRest) ? fmt(x.afterRest) + ' bpm' : '—'}</td>` : ''}</tr>`).join('')}</tbody></table>
+        <p class="note-p">${P.clipped ? 'The recording started after the plan would have begun, so the first rounds are missing. ' : ''}Rounds are placed so the last work round ends ${P.anchor === 'marked' ? 'when you tapped Start recovery' : 'at the detected end of exercise'}. ${P.r && P.r <= 15 ? 'With rests this short, heart rate cannot fall between rounds, so it climbs through the session; the round-by-round rise shows how hard the set was.' : 'The fall during each rest shows how quickly you recover between efforts.'}</p>`; }
     if (X.tt === 'intervals' && X.iv) { const v = X.iv;
       tests = `<div class="sec-h"><h2>Interval efforts</h2><span>detected from 10-s heart rate</span></div>
         ${v.bouts.length ? `<table class="ev"><thead><tr><th>#</th><th>Start</th><th>Effort</th><th>Peak</th><th>Average</th><th>Recovery</th><th>HR fall</th></tr></thead><tbody>${thin(v.bouts, 14).map(b => `<tr><td class="m">${b.n}</td><td class="m">${clock(b.t0)}</td><td class="m">${mmss(b.dur)}</td><td class="m">${fmt(b.peak)} bpm</td><td class="m">${fmt(b.mean)} bpm</td><td class="m">${b.last ? 'end of session' : mmss(b.recSec)}</td><td class="m">${b.last ? 'see below' : isFinite(b.recDrop) ? fmt(b.recDrop) + ' bpm' : '—'}</td></tr>`).join('')}</tbody></table>

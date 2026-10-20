@@ -536,6 +536,25 @@ function lthrTest(A, ER) {
 /* interval training: the hard efforts and the recoveries between them, from 10-s heart rate up to the end of exercise.
    An effort is a stretch above 60 % of the way from the session's low (10th percentile) to its high (98th percentile),
    lasting at least 20 s; dips shorter than 20 s are bridged. */
+/* interval plan (for example Tabata 20/10 x 8): rounds are lined up so the last work round ends when Start recovery
+   was tapped (or at the detected end of exercise). Short rests leave no trace in heart rate, so they cannot be detected. */
+function planWork(A, ER, plan, recMark) {
+  const w = Math.max(5, plan.w | 0), r = Math.max(0, plan.r | 0), n = Math.max(1, plan.n | 0);
+  const B = cleanBeats(A), s5 = rollingHR(A, 5, 1, B);
+  const end = recMark != null ? recMark : ER && ER.end != null ? ER.end : A.dur, total = n * w + (n - 1) * r;
+  const t0 = Math.max(0, end - total), clipped = end - total < -2;
+  const peakIn = (a, b) => { let m = NaN; for (const q of s5) if (q.t >= a && q.t <= b && !(q.v <= m)) m = q.v; return m; };
+  const rounds = [];
+  for (let i = 0; i < n; i++) {
+    const ws = t0 + i * (w + r), we = ws + w; if (ws >= A.dur) break;
+    const re = i < n - 1 && r > 0 ? we + r : null, last5 = Math.min(5, w / 2);
+    const endHR = meanHRBetween(B, we - last5, we).v, afterRest = re != null ? meanHRBetween(B, re - Math.min(5, r / 2), re).v : NaN;
+    rounds.push({ n: i + 1, t0: ws, t1: we, avg: meanHRBetween(B, ws, we).v, peak: peakIn(ws, we + 2), endHR, afterRest, fall: endHR - afterRest });
+  }
+  const ok = rounds.filter(x => isFinite(x.avg));
+  return { w, r, n, t0, end, total, clipped, anchor: recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds,
+    first: ok.length ? ok[0].avg : NaN, last: ok.length ? ok[ok.length - 1].avg : NaN, peak: Math.max(...ok.map(x => x.peak).filter(isFinite), -Infinity) };
+}
 function intervalWork(A, ER) {
   const B = cleanBeats(A), s10 = rollingHR(A, 10, 2, B); if (s10.length < 30) return null;
   const end = ER && ER.end != null ? ER.end : s10[s10.length - 1].t, ex = s10.filter(p => p.t <= end);
@@ -835,7 +854,8 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     maxHR, minHR, hi1, lo1,
     bradyPct: 100 * brady / (rateBeats || 1), tachyPct: 100 * tachy / (rateBeats || 1),
     pnnEpisodes: H.pnnEpisodes, zones, hrMax, hrvWin: H.windows, hrvWinSec: H.winSec,
-    qrs: pick(morphWin.filter(m => m.qrsOk), m => m.qrs),   // windows whose QRS end could not be found are left out jAmp: pick(morphWin, m => m.jAmp), sysAmp: pick(morphWin, m => m.sysAmp),
+    qrs: pick(morphWin.filter(m => m.qrsOk), m => m.qrs),   // windows whose QRS end could not be found are left out
+    jAmp: pick(morphWin, m => m.jAmp), sysAmp: pick(morphWin, m => m.sysAmp),
     rAmp: pick(morphWin, m => m.rAmp), tAmp: pick(morphWin, m => m.tAmp),
     qtc: qtcVals.length ? median(qtcVals) : (morphWin.length ? median(morphWin.map(m => m.qt / Math.sqrt(m.rr / 1000))) : NaN),
     qtcF: qtcPts.length ? median(qtcPts.map(p => p.qtcF)) : NaN,

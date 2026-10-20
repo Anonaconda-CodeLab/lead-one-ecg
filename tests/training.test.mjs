@@ -157,3 +157,14 @@ test('DFA-alpha1 test: no threshold from a resting recording', async () => {
   const r = L.dfaTest(A, null);
   assert.ok(!r.valid && Number.isNaN(r.vt1));
 });
+
+test('interval plan: rounds end at Start recovery; heart rate per round', async () => {
+  const A = await run('intervals', 35);
+  const end = A.exercise.end, P = L.planWork(A, A.exercise, { w: 240, r: 420 - 240, n: 4 }, end);
+  assert.equal(P.rounds.length, 4);
+  near(P.rounds[3].t1, end, 0.01, 'last work round ends at the mark');
+  near(P.t0, end - (4 * 240 + 3 * 180), 0.01, 'start');
+  for (const r of P.rounds) assert.ok(r.avg > 140, 'work rounds are hard: ' + r.avg.toFixed(0));
+  const short = L.planWork(A, A.exercise, { w: 20, r: 10, n: 200 }, 60);
+  assert.ok(short.clipped && short.t0 === 0, 'a plan longer than the recording is clipped, not shifted');
+});

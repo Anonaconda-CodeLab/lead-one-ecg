@@ -347,3 +347,8 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 .share-bar span{flex:1;min-width:0;font-weight:600}
 .share-bar small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .share-x{border:none;background:none;font-size:24px;color:var(--muted);width:32px}
+
+/* interval plan */
+.plan-custom{display:flex;flex-wrap:wrap;gap:8px 14px;margin:8px 0 4px}
+.plan-custom label{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500}
+.plan-custom input{width:4.2em;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:7px 8px;font:inherit;text-align:center}

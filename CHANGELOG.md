@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.2
+- **Interval plans** for intervals sessions: Tabata, 30/30, 10 × 1 min, 4 × 4 min or your own work / rest / rounds,
+  chosen before recording or later under Details. The report shows a round-by-round table and a chart with the work
+  rounds shaded. Short rests leave no dip in heart rate, so without a plan Tabata looked like one long effort.
+- Fixed: J-point level and systolic amplitude were missing from reports since 1.4.0.
+
 ## 1.6.1
 - Works on iPhone and iPad in the Bluefy browser; the browser guidance now says so. On iPhone and iPad, Save recording and
   Export history use the share sheet (Save to Files); Save as PDF in Bluefy explains the Safari route.

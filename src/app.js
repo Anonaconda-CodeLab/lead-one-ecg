@@ -86,7 +86,7 @@ function cleanMeta(m) {
     pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && num(p.t1) != null && p.t1 >= p.t0).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
-    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark)
+    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), plan: cleanPlan(m.plan)
   };
 }
 const HNUM = ['start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
@@ -133,7 +133,25 @@ const TT_HINTS = { session: 'When you finish, tap Start recovery and keep record
   ramp: 'Start easy. The app beeps and vibrates every 3 minutes: increase the load each time, until you cannot continue. Tap Start recovery the moment you stop.',
   lthr: 'Warm up first, without recording. Press Start at the moment you begin the 30-minute effort, and go as hard as you can sustain. The app tells you when 30 minutes are up; tap Start recovery then and keep recording for 2 minutes.' };
 function stickyChips(el, defs, get, set) { buildChips(el, defs, get(), v => { if (v) set(v); else buildChips(el, defs, get(), x => x && set(x)); stickyChips(el, defs, get, set); }); }
-function showTrainOpts() { $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || ''; }
+/* interval plans: rounds the report lines up with Start recovery */
+const PLANS = { tabata: { w: 20, r: 10, n: 8 }, '3030': { w: 30, r: 30, n: 10 }, '10x1': { w: 60, r: 60, n: 10 }, '4x4': { w: 240, r: 180, n: 4 } };
+const PLAN_CHIPS = [['auto', 'From heart rate', 'long intervals'], ['tabata', 'Tabata', '20 s / 10 s × 8'], ['3030', '30 / 30', '× 10'], ['10x1', '10 × 1 min', '1 min rest'], ['4x4', '4 × 4 min', '3 min rest'], ['custom', 'Custom', 'your own']];
+const planKey = p => !p ? 'auto' : Object.keys(PLANS).find(k => PLANS[k].w === p.w && PLANS[k].r === p.r && PLANS[k].n === p.n) || 'custom';
+function cleanPlan(p) { if (!p || typeof p !== 'object') return null; const w = Math.round(+p.w), r = Math.round(+p.r), n = Math.round(+p.n); return w >= 5 && w <= 3600 && r >= 0 && r <= 3600 && n >= 1 && n <= 99 ? { w, r, n } : null; }
+function planUI(x, plan, onChange) {   // x = '' (recording setup) or '2' (report details)
+  const custom = plan && planKey(plan) === 'custom' ? plan : { w: 40, r: 20, n: 8 };
+  $('#pW' + x).value = custom.w; $('#pR' + x).value = custom.r; $('#pN' + x).value = custom.n;
+  const sel = { k: planKey(plan) };
+  const draw = () => { stickyChips($('#planChips' + x), PLAN_CHIPS, () => sel.k, v => { sel.k = v; $('#planCustom' + x).hidden = v !== 'custom'; onChange && onChange(); }); $('#planCustom' + x).hidden = sel.k !== 'custom'; };
+  draw();
+  for (const id of ['pW', 'pR', 'pN']) $('#' + id + x).oninput = () => onChange && onChange();
+  return () => sel.k === 'auto' ? null : sel.k === 'custom' ? cleanPlan({ w: $('#pW' + x).value, r: $('#pR' + x).value, n: $('#pN' + x).value }) : PLANS[sel.k];
+}
+let getPlanSetup = () => null;
+function showTrainOpts() {
+  $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || '';
+  $('#planField').hidden = S.ttSel !== 'intervals';
+}
 function initHomeSetup() {
   const st = getSettings();
   S.ctx = st.lastCtx || ''; S.pos = st.lastPos || '';
@@ -141,6 +159,7 @@ function initHomeSetup() {
   S.ttSel = TRAIN_TYPES[st.lastTT] ? st.lastTT : 'session'; S.recSel = st.lastRec === 'passive' ? 'passive' : 'active';
   stickyChips($('#ttChips'), TT_CHIPS, () => S.ttSel, v => { S.ttSel = v; patchSettings({ lastTT: v }); showTrainOpts(); });
   stickyChips($('#recChips'), REC_CHIPS, () => S.recSel, v => { S.recSel = v; patchSettings({ lastRec: v }); });
+  getPlanSetup = planUI('', cleanPlan(st.lastPlan), () => patchSettings({ lastPlan: getPlanSetup() }));
   showTrainOpts();
   buildChips($('#posChips'), POS_CHIPS, S.pos, v => { S.pos = v; patchSettings({ lastPos: v }); });
   $('#autoOn').checked = !!st.autoOn; S.autoMinSel = AUTO_STEPS.includes(+st.autoMin) ? +st.autoMin : 5; updateAuto();
@@ -473,7 +492,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: S.pos, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', recMark: S.recMark, device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: S.pos, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -486,7 +505,7 @@ async function startRecording() {
   Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
   S.autoMin = $('#autoOn').checked ? S.autoMinSel : 0;
   S.notes = str($('#notesIn').value.trim(), 200);
-  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
+  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
   S.live.fill(0); S.livePos = 0; S.liveHP = makeStreamFilter(design('hp', 0.5)); S.liveLP = makeStreamFilter(design('lp', 35));
   S.sessionId = 'rec-' + Date.now(); S.startMs = Date.now(); S.devName = S.device && S.device.name || 'Polar H10';
@@ -698,16 +717,17 @@ $('#btnDetails').onclick = () => {
   buildChips($('#posChips2'), POS_CHIPS, S.meta.pos || '', () => {});
   $('#notesIn2').value = S.meta.notes || ''; upNotes2();
   S.dTT = TRAIN_TYPES[S.meta.trainType] ? S.meta.trainType : 'session'; S.dRec = S.meta.recovery === 'passive' ? 'passive' : 'active';
-  stickyChips($('#ttChips2'), TT_CHIPS, () => S.dTT, v => { S.dTT = v; }); stickyChips($('#recChips2'), REC_CHIPS, () => S.dRec, v => { S.dRec = v; });
+  stickyChips($('#ttChips2'), TT_CHIPS, () => S.dTT, v => { S.dTT = v; $('#planField2').hidden = v !== 'intervals'; }); stickyChips($('#recChips2'), REC_CHIPS, () => S.dRec, v => { S.dRec = v; });
+  S.getPlan2 = planUI('2', cleanPlan(S.meta.plan)); $('#planField2').hidden = S.dTT !== 'intervals';
   $('#trainOpts2').hidden = chipVal($('#ctxChips2')) !== 'training';
   $('#ctxChips2').onclick = () => setTimeout(() => { $('#trainOpts2').hidden = chipVal($('#ctxChips2')) !== 'training'; });
 };
 $('#btnDetailsCancel').onclick = () => { $('#detailsPanel').hidden = true; };
 $('#btnDetailsSave').onclick = async () => {
   S.meta.ctx = chipVal($('#ctxChips2')); S.meta.pos = chipVal($('#posChips2')); S.meta.notes = str($('#notesIn2').value.trim(), 200);
-  if (S.meta.ctx === 'training') { S.meta.trainType = S.dTT; S.meta.recovery = S.dRec; } else { S.meta.trainType = ''; S.meta.recovery = ''; }
+  if (S.meta.ctx === 'training') { S.meta.trainType = S.dTT; S.meta.recovery = S.dRec; S.meta.plan = S.dTT === 'intervals' ? S.getPlan2() : null; } else { S.meta.trainType = ''; S.meta.recovery = ''; S.meta.plan = null; }
   if (!S.meta.sample) {
-    if (S.meta.id) { const s = await getSession(S.meta.id); if (s) { s.ctx = S.meta.ctx; s.pos = S.meta.pos; s.notes = S.meta.notes; s.trainType = S.meta.trainType; s.recovery = S.meta.recovery; await putSession(s); } }
+    if (S.meta.id) { const s = await getSession(S.meta.id); if (s) { s.ctx = S.meta.ctx; s.pos = S.meta.pos; s.notes = S.meta.notes; s.trainType = S.meta.trainType; s.recovery = S.meta.recovery; s.plan = S.meta.plan; await putSession(s); } }
     if (S.analysis.dur - S.analysis.gapSec >= 55) await putHistory(historyEntry(S.analysis, S.meta));
   }
   $('#detailsPanel').hidden = true; await renderInto(); toast('Report updated.');
@@ -741,7 +761,7 @@ function saveRecordingFile() {
   downloadFile('{{FILE_PREFIX}}-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()) + '.json',
     JSON.stringify({ format: 'lead-one-ecg', version: 3, fs: FS, id: m.id, start: m.start, ctx: m.ctx, pos: m.pos, notes: m.notes || '', device: m.device, fw: m.fw, battery: m.battery,
       gap: m.gap, paused: m.paused, pauses: m.pauses, rr: m.rr, gapMarker: GAP, samples: btoa(bin),
-      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark,
+      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, plan: m.plan || null,
       accFs: m._acc ? m._acc.fs : 0, accT0: m._acc ? m._acc.t0 : 0, acc: m._acc ? b64(new Uint8Array(m._acc.data.buffer, m._acc.data.byteOffset, m._acc.data.byteLength)) : '' }));
 }
 async function openFile(file) {

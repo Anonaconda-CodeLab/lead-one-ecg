@@ -50,3 +50,9 @@ test('ectopic detection: real early beats are still caught; ordinary beats at hi
   const b = await analyze(ramp.raw, { age: 45, rr: ramp.rr, acc: ramp.acc });
   assert.ok(b.events.every(e => /Premature/.test(e.kind)), 'no shape-only flags on on-time beats: ' + b.events.map(e => e.kind).join(', '));
 });
+
+test('J-point and systolic amplitude are reported (regression: they were once lost in a comment)', async () => {
+  const { analyze, makeDemo } = load();
+  const d = makeDemo(5, 3, 'rest'), a = await analyze(d.raw, { age: 45, rr: d.rr });
+  assert.ok(Number.isFinite(a.jAmp), 'jAmp'); assert.ok(Number.isFinite(a.sysAmp), 'sysAmp');
+});

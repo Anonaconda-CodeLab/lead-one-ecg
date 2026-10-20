@@ -94,6 +94,10 @@ Choose the **Training** context to measure your exercise heart rate, recovery an
 - **Session**: any steady or mixed workout (runs, rides, gym).
 - **Intervals**: repeated hard efforts with easier recoveries between them (for example 4 × 4 minutes). The report finds
   each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one.
+  With short rests (Tabata, 30/30) heart rate has no time to fall, so the efforts run together. Pick an **Interval plan**
+  (Tabata 20/10 × 8, 30/30, 10 × 1 min, 4 × 4 min, or your own work, rest and rounds) before you start, or later under
+  **Details**. The report then lines the rounds up so the last one ends when you tapped **Start recovery**, and shows
+  every round's average, peak and end-of-work heart rate. Tap **Start recovery** right as your last round ends.
 - **Tempo**: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and
   your cardiac drift: how much your heart rate crept up in the second half at the same effort.
 - **DFA-α1 test**: finds your **aerobic threshold** (the top of truly easy training) without a lab, from how orderly your

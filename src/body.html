@@ -94,6 +94,9 @@
         <div class="chips" id="posChips" role="radiogroup" aria-label="Body position"></div></div>
       <div id="trainOpts" class="train-opts" hidden>
         <div class="field"><label>Training type</label><div class="chips" id="ttChips" role="radiogroup" aria-label="Training type"></div></div>
+<div class="field" id="planField" hidden><label>Interval plan</label><div class="chips" id="planChips" role="radiogroup" aria-label="Interval plan"></div>
+          <div class="plan-custom" id="planCustom" hidden><label>Work <input id="pW" inputmode="numeric" maxlength="4"> s</label><label>Rest <input id="pR" inputmode="numeric" maxlength="4"> s</label><label>Rounds <input id="pN" inputmode="numeric" maxlength="2"></label></div>
+          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. Tap <b>Start recovery</b> as the last work round ends: the rounds are lined up to that moment.</small></div>
         <div class="field"><label>Recovery after exercise</label><div class="chips" id="recChips" role="radiogroup" aria-label="Recovery type"></div></div>
         <p class="dev-meta" id="ttHint" style="margin:0"></p>
       </div>
@@ -197,6 +200,9 @@
       <div class="field"><label>Recording context</label><div class="chips" id="ctxChips2"></div></div>
       <div class="field"><label>Body position</label><div class="chips" id="posChips2"></div></div>
       <div id="trainOpts2" hidden><div class="field"><label>Training type</label><div class="chips" id="ttChips2"></div></div>
+<div class="field" id="planField2" hidden><label>Interval plan</label><div class="chips" id="planChips2" role="radiogroup" aria-label="Interval plan"></div>
+          <div class="plan-custom" id="planCustom2" hidden><label>Work <input id="pW2" inputmode="numeric" maxlength="4"> s</label><label>Rest <input id="pR2" inputmode="numeric" maxlength="4"> s</label><label>Rounds <input id="pN2" inputmode="numeric" maxlength="2"></label></div>
+          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. Tap <b>Start recovery</b> as the last work round ends: the rounds are lined up to that moment.</small></div>
         <div class="field"><label>Recovery after exercise</label><div class="chips" id="recChips2"></div></div></div>
       <div class="field"><label for="notesIn2">Session notes</label><textarea id="notesIn2" maxlength="200" rows="2"></textarea><small class="count" id="notesCount2">0 / 200</small></div>
       <div class="acts-row"><button id="btnDetailsSave" class="btn primary">Update report</button><button id="btnDetailsCancel" class="btn">Cancel</button></div>
