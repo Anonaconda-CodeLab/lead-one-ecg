@@ -1,7 +1,8 @@
 # Changelog
 
 ## 1.6.1
-- Works on iPhone and iPad in the Bluefy browser; the browser guidance now says so.
+- Works on iPhone and iPad in the Bluefy browser; the browser guidance now says so. On iPhone and iPad, Save recording and
+  Export history use the share sheet (Save to Files); Save as PDF in Bluefy explains the Safari route.
 - Date of birth is entered as day, month and year. The phone's own date picker could show another calendar (for example
   Thai Buddhist years, 2511 instead of 1968). Dates in the recordings list no longer follow the phone's calendar either.
 

@@ -43,14 +43,33 @@ function hms(sec) { sec = Math.max(0, Math.floor(sec)); return pad2(Math.floor(s
 function ms2(sec) { sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 60) + ':' + pad2(sec % 60); }
 function durText(sec) { const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); if (h) return `${h} h ${m} min`; if (sec < 60) return Math.round(sec) + ' s'; if (sec < 600) { const r = Math.round(sec), ss = r % 60; return Math.floor(r / 60) + ' min' + (ss ? ' ' + ss + ' s' : ''); } return `${Math.round(sec / 60)} min`; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// iPhone and iPad: browsers there (Bluefy included) handle downloads poorly, so files go through the iOS share sheet
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+const IOS_BLE = IOS && 'bluetooth' in navigator;   // a Web Bluetooth browser such as Bluefy: no print screen
+async function shareFile(name, text) {
+  const file = new File([text], name, { type: 'application/json' });
+  if (!(navigator.canShare && navigator.canShare({ files: [file] }))) return false;
+  try { await navigator.share({ files: [file], title: name }); toast('Saved.'); }
+  catch (e) { if (e && e.name !== 'AbortError') toast('Could not share the file: ' + (e.message || e), 6000); }
+  return true;
+}
 function downloadFile(name, text) {
   if (NATIVE) {   // Android app: Android's own "save as" screen
     LeadOneNative.saveFile(name, text).then(r => { if (r && r.saved) toast('Saved.'); }).catch(e => toast('Could not save the file: ' + (e.message || e), 6000));
     return;
   }
   if (FRAMED) { toast('Saving files works when the app is opened from its own web address in Chrome.', 6000); return; }
+  if (IOS) {   // the share sheet only opens from a fresh tap, so offer a button
+    const bar = $('#shareBar'); $('#shareName').textContent = name; bar.hidden = false;
+    $('#btnShareNow').onclick = () => { bar.hidden = true; shareFile(name, text).then(done => { if (!done) plainDownload(name, text); }); };
+    $('#btnShareX').onclick = () => { bar.hidden = true; };
+    return;
+  }
+  plainDownload(name, text);
+}
+function plainDownload(name, text) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name;
-  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 60000);   // a long recording can take a while to start saving
 }
 
 /* ---------- validation of anything read from files or imports ---------- */
@@ -696,6 +715,10 @@ $('#btnDetailsSave').onclick = async () => {
 
 function savePdf() {
   if (FRAMED) { toast('Saving as PDF works when the app is opened from its own web address in Chrome.', 6000); return; }
+  if (IOS_BLE && !NATIVE) {   // Bluefy has no print screen; Safari does, and can open a saved recording
+    toast('Bluefy can’t make PDFs. Tap Save recording and keep the file in Files. Then open {{APP_HOST}} in Safari, choose Open a recording file, and use Save as PDF there.', 15000);
+    return;
+  }
   const old = document.title, d = new Date(S.meta.start);
   document.title = 'ECG ' + d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + pad2(d.getMinutes());
   const z = [...document.querySelectorAll('.zoomer')].map(p => p.style.zoom);

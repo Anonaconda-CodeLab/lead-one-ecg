@@ -356,6 +356,12 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 /* date of birth: day, month, year */
 .dob{display:grid;grid-template-columns:4.5em 1fr 5.5em;gap:8px}
 .dob select,.dob input{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:10px 8px;width:100%;font:inherit;min-width:0}
+
+/* iPhone/iPad: file ready to save through the share sheet */
+.share-bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:10px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:16px;padding:12px 12px 12px 16px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.share-bar span{flex:1;min-width:0;font-weight:600}
+.share-bar small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.share-x{border:none;background:none;font-size:24px;color:var(--muted);width:32px}
 </style>
 </head><body>
 <main id="app">
@@ -465,7 +471,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 <p>One borderline value does not make the whole report borderline; the overall verdict looks at all results together.</p>
 <p><b>About chest-strap ECGs.</b> The H10 records one view of the heart (one &quot;lead&quot;), while a hospital ECG uses twelve. Waveform measurements such as QTc can read differently from a clinical ECG, and many conditions cannot be seen at all. A single unusual result is most often caused by strap position, movement or a dry electrode, so repeat the reading. The grades are for wellness tracking only and are not a diagnosis; see <i>Wellness use only</i> above.</p>
 <h3>Saving and changing a report</h3>
-<ul><li><b>Save as PDF</b> opens the print screen. Choose <b>Save as PDF</b> as the printer.</li><li><b>Save recording</b> keeps the raw ECG file, so the report can be regenerated later or opened on another device with <b>Open a recording file</b>.</li><li><b>Details</b> lets you correct the context, position, training type, recovery type or notes afterwards. Tap <b>Update report</b> to redo the analysis.</li></ul>
+<ul><li><b>Save as PDF</b> opens the print screen. Choose <b>Save as PDF</b> as the printer.</li><li><b>On iPhone and iPad:</b> Save recording and Export history open the share sheet; choose <b>Save to Files</b>. Bluefy has no print screen, so for a PDF: save the recording, open the app's address in <b>Safari</b>, tap <b>Open a recording file</b>, choose the saved file, and use <b>Save as PDF</b> there (Safari can open recordings; it just can't connect to the strap).</li><li><b>Save recording</b> keeps the raw ECG file, so the report can be regenerated later or opened on another device with <b>Open a recording file</b>.</li><li><b>Details</b> lets you correct the context, position, training type, recovery type or notes afterwards. Tap <b>Update report</b> to redo the analysis.</li></ul>
 <h2>Your personal baseline</h2>
 <p>After a few readings, the report compares each new reading with <b>your own usual values</b>, not just population averages. This is often more useful: a drop in your heart rate variability compared with your usual range says more than how you compare with other people.</p>
 <ul><li>A reading is compared with readings of the <b>same context and position</b> from the <b>previous 30 days</b>. Comparisons start once there are <b>5</b> of them.</li><li>Training sessions are compared by <b>training type and recovery type</b> instead of position.</li><li><b>Tag your readings consistently.</b> A morning reading tagged &quot;Morning baseline · Lying&quot; is only compared with other &quot;Morning baseline · Lying&quot; readings. If you forget a tag, fix it with <b>Details</b> on the report.</li></ul>
@@ -643,6 +649,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 </main>
 
 <div id="dim" hidden><div class="t" id="dimT">00:00:00</div><div>Recording · tap to wake</div></div>
+<div id="shareBar" class="share-bar" hidden role="dialog" aria-label="Save file"><span>Your file is ready<small id="shareName"></small></span><button id="btnShareNow" class="btn primary">Save to Files</button><button id="btnShareX" class="share-x" aria-label="Close">×</button></div>
 <div id="toast" role="status" hidden></div>
 
 <script>
@@ -2765,14 +2772,33 @@ function hms(sec) { sec = Math.max(0, Math.floor(sec)); return pad2(Math.floor(s
 function ms2(sec) { sec = Math.max(0, Math.ceil(sec)); return Math.floor(sec / 60) + ':' + pad2(sec % 60); }
 function durText(sec) { const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); if (h) return `${h} h ${m} min`; if (sec < 60) return Math.round(sec) + ' s'; if (sec < 600) { const r = Math.round(sec), ss = r % 60; return Math.floor(r / 60) + ' min' + (ss ? ' ' + ss + ' s' : ''); } return `${Math.round(sec / 60)} min`; }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// iPhone and iPad: browsers there (Bluefy included) handle downloads poorly, so files go through the iOS share sheet
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1;
+const IOS_BLE = IOS && 'bluetooth' in navigator;   // a Web Bluetooth browser such as Bluefy: no print screen
+async function shareFile(name, text) {
+  const file = new File([text], name, { type: 'application/json' });
+  if (!(navigator.canShare && navigator.canShare({ files: [file] }))) return false;
+  try { await navigator.share({ files: [file], title: name }); toast('Saved.'); }
+  catch (e) { if (e && e.name !== 'AbortError') toast('Could not share the file: ' + (e.message || e), 6000); }
+  return true;
+}
 function downloadFile(name, text) {
   if (NATIVE) {   // Android app: Android's own "save as" screen
     LeadOneNative.saveFile(name, text).then(r => { if (r && r.saved) toast('Saved.'); }).catch(e => toast('Could not save the file: ' + (e.message || e), 6000));
     return;
   }
   if (FRAMED) { toast('Saving files works when the app is opened from its own web address in Chrome.', 6000); return; }
+  if (IOS) {   // the share sheet only opens from a fresh tap, so offer a button
+    const bar = $('#shareBar'); $('#shareName').textContent = name; bar.hidden = false;
+    $('#btnShareNow').onclick = () => { bar.hidden = true; shareFile(name, text).then(done => { if (!done) plainDownload(name, text); }); };
+    $('#btnShareX').onclick = () => { bar.hidden = true; };
+    return;
+  }
+  plainDownload(name, text);
+}
+function plainDownload(name, text) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = name;
-  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 60000);   // a long recording can take a while to start saving
 }
 
 /* ---------- validation of anything read from files or imports ---------- */
@@ -3418,6 +3444,10 @@ $('#btnDetailsSave').onclick = async () => {
 
 function savePdf() {
   if (FRAMED) { toast('Saving as PDF works when the app is opened from its own web address in Chrome.', 6000); return; }
+  if (IOS_BLE && !NATIVE) {   // Bluefy has no print screen; Safari does, and can open a saved recording
+    toast('Bluefy can’t make PDFs. Tap Save recording and keep the file in Files. Then open leadone.anonacondacodelab.com in Safari, choose Open a recording file, and use Save as PDF there.', 15000);
+    return;
+  }
   const old = document.title, d = new Date(S.meta.start);
   document.title = 'ECG ' + d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + pad2(d.getMinutes());
   const z = [...document.querySelectorAll('.zoomer')].map(p => p.style.zoom);

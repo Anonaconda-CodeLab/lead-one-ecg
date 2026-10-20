@@ -152,6 +152,9 @@ grades are for wellness tracking only and are not a diagnosis; see *Wellness use
 
 ### Saving and changing a report
 - **Save as PDF** opens the print screen. Choose **Save as PDF** as the printer.
+- **On iPhone and iPad:** Save recording and Export history open the share sheet; choose **Save to Files**. Bluefy has no
+  print screen, so for a PDF: save the recording, open the app's address in **Safari**, tap **Open a recording file**, choose
+  the saved file, and use **Save as PDF** there (Safari can open recordings; it just can't connect to the strap).
 - **Save recording** keeps the raw ECG file, so the report can be regenerated later or opened on another device with
   **Open a recording file**.
 - **Details** lets you correct the context, position, training type, recovery type or notes afterwards. Tap
