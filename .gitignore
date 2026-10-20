@@ -8,6 +8,7 @@
 *.csv
 *.txt
 !src/fonts/*.txt
+!dist/robots.txt
 LeadOne-ECG-*
 H10-ECG-*
 ECG-*
