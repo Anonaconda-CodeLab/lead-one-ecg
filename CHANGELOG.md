@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.1
+- Works on iPhone and iPad in the Bluefy browser; the browser guidance now says so.
+- Date of birth is entered as day, month and year. The phone's own date picker could show another calendar (for example
+  Thai Buddhist years, 2511 instead of 1968). Dates in the recordings list no longer follow the phone's calendar either.
+
 ## 1.6.0
 - New training type: **DFA-α1 test**. 3-minute steps with the usual beeps, a live DFA α1 readout on the recording screen,
   and a report page plotting α1 against heart rate with the aerobic (α1 = 0.75) and anaerobic (α1 = 0.5) thresholds.

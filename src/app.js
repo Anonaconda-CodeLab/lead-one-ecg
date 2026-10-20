@@ -141,19 +141,32 @@ $('#autoPlus').onclick = () => stepAuto(1);
 const bindCount = (inp, out) => { const u = () => { $(out).textContent = $(inp).value.length + ' / 200'; }; $(inp).addEventListener('input', u); return u; };
 const upNotes = bindCount('#notesIn', '#notesCount'), upNotes2 = bindCount('#notesIn2', '#notesCount2');
 
+/* date of birth as three plain fields: a phone's date picker can show another calendar (for example Thai Buddhist years) */
+function setDob(v) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '');
+  $('#dobY').value = m ? m[1] : ''; $('#dobM').value = m ? String(+m[2]) : ''; $('#dobD').value = m ? String(+m[3]) : '';
+}
+function getDob() {   // '' when left empty, null when incomplete or impossible
+  const y = $('#dobY').value.trim(), mo = +$('#dobM').value, d = +$('#dobD').value;
+  if (!y && !mo && !d) return '';
+  if (!/^\d{4}$/.test(y) || !mo || !d) return null;
+  const dt = new Date(Date.UTC(+y, mo - 1, d));
+  if (dt.getUTCMonth() !== mo - 1 || +y < 1900) return null;
+  return `${y}-${pad2(mo)}-${pad2(d)}`;
+}
 function openSettings(firstRun) {
   const s = getSettings();
   $('#setupIntro').hidden = !firstRun; $('#btnSetupLater').hidden = !firstRun; $('#btnCloseSettings').hidden = !!firstRun;
   $('#historyCard').hidden = !!firstRun; $('#aboutCard').hidden = !!firstRun;
-  $('#setDob').value = s.dob || ''; $('#setName').value = s.name || '';
+  setDob(s.dob); $('#setName').value = s.name || '';
   for (const b of $('#setSex').children) b.setAttribute('aria-checked', b.dataset.v === s.sex ? 'true' : 'false');
   refreshHistCount();
   show('scrSettings');
 }
 for (const b of $('#setSex').children) b.onclick = () => { for (const x of $('#setSex').children) x.setAttribute('aria-checked', 'false'); b.setAttribute('aria-checked', 'true'); };
 $('#btnSaveSettings').onclick = () => {
-  const dob = $('#setDob').value, sex = chipVal($('#setSex'));
-  if (dob && (Date.parse(dob) > Date.now() || ageAt(dob, Date.now()) > 110)) { toast('Check the date of birth.'); return; }
+  const dob = getDob(), sex = chipVal($('#setSex'));
+  if (dob === null || dob && (Date.parse(dob) > Date.now() || ageAt(dob, Date.now()) > 110)) { toast('Check the date of birth: day, month and a 4-digit year such as 1968.', 6000); return; }
   patchSettings({ dob, sex, name: $('#setName').value.trim(), setupDone: true });
   toast('Profile saved.'); profileNote(); show('scrHome');
 };
@@ -298,7 +311,8 @@ function btProblem() {
   if ('bluetooth' in navigator) return '';
   if (brave) return `<b>Brave has Bluetooth for websites switched off.</b> Open ${flag('brave-web-bluetooth-api')}, set it to Enabled${linux ? `, also enable ${flag('enable-experimental-web-platform-features')}` : ''}, then relaunch Brave.`;
   if (linux) return `<b>Chromium on Linux keeps Bluetooth for websites behind a setting.</b> Open ${flag('enable-experimental-web-platform-features')}, set it to Enabled, then relaunch. If you installed Chromium as a snap, also run <code>sudo snap connect chromium:bluez</code> once.`;
-  if (/Firefox|SamsungBrowser/.test(ua) || /iPhone|iPad|Macintosh/.test(ua) && !/Chrome/.test(ua)) return '<b>This browser can’t use Bluetooth from websites.</b> On a phone, use Google Chrome or Chromium on Android; on a computer, use Chrome or Edge.';
+  if (/iPhone|iPad/.test(ua) || /Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return '<b>Safari and the other iPhone and iPad browsers can’t use Bluetooth from websites.</b> Install the free <b>Bluefy</b> browser from the App Store and open {{APP_URL}} in it.';
+  if (/Firefox|SamsungBrowser/.test(ua) || /Macintosh/.test(ua) && !/Chrome/.test(ua)) return '<b>This browser can’t use Bluetooth from websites.</b> On a phone, use Google Chrome or Chromium on Android, or Bluefy on iPhone and iPad; on a computer, use Chrome or Edge.';
   return `<b>Bluetooth for websites is switched off in this browser.</b> Try enabling ${flag('enable-experimental-web-platform-features')}, then relaunch.`;
 }
 function envCheck() { const note = $('#envNote'), msg = btProblem(); note.innerHTML = msg; note.hidden = !msg; return !msg || FRAMED; }
@@ -506,7 +520,7 @@ async function stopRecording(why) {
   S.meta._acc = accData && accData.length >= 3 * 30 * AC.fs ? { fs: AC.fs, t0: AC.t0, data: accData } : null;
   $('#doneWhy').textContent = why === 'limit' ? 'Stopped automatically at the 8-hour limit.' : why === 'auto' ? `Stopped automatically after ${minTxt(S.autoMin)}.` : 'Stopped manually.';
   $('#doneDur').textContent = hms((S.total - S.pausedSamples - S.gapSamples) / FS);
-  $('#doneStart').textContent = new Date(S.startMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  $('#doneStart').textContent = new Date(S.startMs).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   $('#doneGap').textContent = (S.pausedSamples || S.gapSamples) ? durText(S.pausedSamples / FS) + ' / ' + durText(S.gapSamples / FS) : 'None';
   show('scrDone'); refreshPast();
   setDev(S.connected ? 'on' : 'off', S.connected ? (S.device.name || 'Polar H10') : 'Polar H10 disconnected', S.connected ? devMetaText() : 'Tap Connect to reconnect.');
@@ -746,7 +760,7 @@ async function refreshPast() {
   const interrupted = list.find(s => s.status === 'recording' && s.id !== (S.recording ? S.sessionId : null) && s.samples > FS * 30);
   if (interrupted) {
     $('#recoverBanner').hidden = false;
-    $('#recoverText').textContent = new Date(interrupted.start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) + ' · stopped after ' + durText(interrupted.samples / FS);
+    $('#recoverText').textContent = new Date(interrupted.start).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) + ' · stopped after ' + durText(interrupted.samples / FS);
     $('#btnRecoverView').onclick = async () => { const raw = await loadChunks(interrupted.id); interrupted.status = 'complete'; interrupted.samples = raw.length; await putSession(interrupted); interrupted._acc = await loadAccFor(interrupted); refreshPast(); runReport(raw, interrupted); };
     $('#btnRecoverDiscard').onclick = async () => { await deleteSession(interrupted.id); refreshPast(); };
   } else $('#recoverBanner').hidden = true;
@@ -756,7 +770,7 @@ async function refreshPast() {
   for (const s of done.slice(0, 25)) {
     const li = document.createElement('li'), act = (s.samples - (s.paused || 0) - (s.gap || 0)) / FS;
     const tags = [s.ctx && CTX[s.ctx] && CTX[s.ctx].short, s.pos && POS[s.pos] && POS[s.pos].short].filter(Boolean).join(' · ');
-    li.innerHTML = `<div class="meta"><b>${new Date(s.start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</b><span>${durText(act)}${tags ? ' · ' + esc(tags) : ''}</span>${s.notes ? `<i>“${esc(s.notes)}”</i>` : ''}</div>`;
+    li.innerHTML = `<div class="meta"><b>${new Date(s.start).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</b><span>${durText(act)}${tags ? ' · ' + esc(tags) : ''}</span>${s.notes ? `<i>“${esc(s.notes)}”</i>` : ''}</div>`;
     const v = document.createElement('button'); v.className = 'btn'; v.textContent = 'Report';
     v.onclick = async () => { const raw = await loadChunks(s.id); if (raw && raw.length) runReport(raw, Object.assign({}, s, { _acc: await loadAccFor(s) })); else toast('The data for this recording is missing.'); };
     const d = document.createElement('button'); d.className = 'btn'; d.textContent = 'Delete';

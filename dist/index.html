@@ -352,6 +352,10 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 .a1-live b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500;font-size:34px;line-height:1;min-width:3.2ch}
 .a1-live small{display:block;color:var(--muted);font-size:12.5px;letter-spacing:.02em}
 .a1-live span{font-size:14px}
+
+/* date of birth: day, month, year */
+.dob{display:grid;grid-template-columns:4.5em 1fr 5.5em;gap:8px}
+.dob select,.dob input{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:10px 8px;width:100%;font:inherit;min-width:0}
 </style>
 </head><body>
 <main id="app">
@@ -392,7 +396,8 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
       <p class="dev-meta" style="margin-top:8px">Moving from another phone? <button class="linkbtn" id="btnImportSetup">Import your history file</button> and your profile and readings come with it.</p>
     </div>
     <div class="card">
-      <div class="field"><label for="setDob">Date of birth</label><input id="setDob" type="date" max="2026-12-31"></div>
+      <div class="field"><label for="dobD">Date of birth</label>
+        <div class="dob"><select id="dobD" aria-label="Day of birth"><option value="">Day</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option><option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option><option value="29">29</option><option value="30">30</option><option value="31">31</option></select><select id="dobM" aria-label="Month of birth"><option value="">Month</option><option value="1">January</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option></select><input id="dobY" inputmode="numeric" maxlength="4" placeholder="Year" aria-label="Year of birth (for example 1968)" autocomplete="bday-year"></div></div>
       <div class="field"><label>Sex</label>
         <div class="seg" id="setSex" role="radiogroup" aria-label="Sex">
           <button type="button" role="radio" data-v="M">Male</button><button type="button" role="radio" data-v="F">Female</button>
@@ -411,7 +416,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.6.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.6.1 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
@@ -431,7 +436,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 <p>Words such as &quot;normal range&quot;, &quot;borderline&quot; or &quot;outside normal range&quot; in the app describe how a measurement compares with published values for healthy adults. They are <b>not</b> medical findings. For any health concern, see a doctor, and do not rely on this app.</p>
 <p>The first time you open the app, it asks you to confirm that you have read and understood this.</p>
 <h2>What you need</h2>
-<ul><li>A <b>Polar H10</b> chest strap.</li><li>A browser that supports Bluetooth for web apps (called &quot;Web Bluetooth&quot;):<ul><li><b>On a phone, use Google Chrome or Chromium on Android.</b> This is the browser the app is built and tested for. Other phone browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.</li><li><b>On a computer</b> (Windows, macOS or ChromeOS), use <b>Chrome or Microsoft Edge</b>. Other Chromium-based browsers such as Opera usually work too. Brave and Linux need a setting switched on first (see <i>Troubleshooting</i>), and recording on Linux can be unreliable.</li><li><b>iPhone and iPad are not supported.</b> Browsers on iPhone and iPad, Chrome included, do not offer Web Bluetooth, so none of them can connect to the strap. <b>Firefox and Safari</b> do not support it on any device.</li></ul></li><li>The app's web address: <b><a href="https://leadone.anonacondacodelab.com" target="_blank" rel="noopener noreferrer">leadone.anonacondacodelab.com</a></b></li></ul>
+<ul><li>A <b>Polar H10</b> chest strap.</li><li>A browser that supports Bluetooth for web apps (called &quot;Web Bluetooth&quot;):<ul><li><b>On a phone, use Google Chrome or Chromium on Android.</b> This is the browser the app is built and tested for. Other phone browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.</li><li><b>On a computer</b> (Windows, macOS or ChromeOS), use <b>Chrome or Microsoft Edge</b>. Other Chromium-based browsers such as Opera usually work too. Brave and Linux need a setting switched on first (see <i>Troubleshooting</i>), and recording on Linux can be unreliable.</li><li><b>On iPhone and iPad, use the free Bluefy browser</b> (from the App Store). Safari, Chrome and the other iPhone and iPad browsers do not offer Web Bluetooth and cannot connect to the strap. <b>Firefox and Safari</b> do not support it on any device.</li></ul></li><li>The app's web address: <b><a href="https://leadone.anonacondacodelab.com" target="_blank" rel="noopener noreferrer">leadone.anonacondacodelab.com</a></b></li></ul>
 <p>There is nothing to install from an app store. To open the app from an icon like a normal app, tap <b>Add to home screen</b> under <b>More</b> on the home screen and confirm. If Chrome doesn't offer it there, tap Chrome's <b>⋮</b> menu and choose <b>Add to Home screen</b> (or <b>Install app</b>). The icon opens the same web address, so your recordings and history are all there. It opens full screen, without the address bar.</p>
 <h2>First-time setup</h2>
 <p>The first time you open the app it shows a short <b>Before you start</b> notice about wellness use. Tick the box to confirm you understand it, then tap <b>Continue</b>.</p>
@@ -473,7 +478,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 <ul><li><b>Settings → Export history</b> saves a backup file of your reading history. Keep it somewhere safe, such as Google Drive.</li><li><b>Settings → Import history</b> restores it, on the same phone or a new one. Readings already present are not duplicated.</li><li><b>Moving to a new phone:</b> send yourself the backup file (e-mail, Google Drive or a chat app), and <b>save it to the new phone first</b> (Download, or Save to Files). Then open the app; on the setup screen tap <b>Import your history file</b>, or later use <b>Settings → Import history</b>. Your profile comes across too.</li><li>To keep a particular recording in full, use <b>Save recording</b> or <b>Save as PDF</b> on its report. Imported history brings back your baseline and trends, but not the raw recordings.</li></ul>
 <h2>Troubleshooting</h2>
 <h3>&quot;Bluetooth isn't available&quot;</h3>
-<p>On a phone, open the app in <b>Google Chrome or Chromium on Android</b>, from its https address. On a computer, use Chrome or Edge. iPhone, iPad, Safari and Firefox are not supported. On Linux, enable <code>chrome://flags/#enable-experimental-web-platform-features</code>; in Brave, enable <code>brave://flags/#brave-web-bluetooth-api</code>.</p>
+<p>On a phone, open the app in <b>Google Chrome or Chromium on Android</b>, from its https address. On a computer, use Chrome or Edge. On iPhone and iPad, use the <b>Bluefy</b> browser. Safari and Firefox are not supported. On Linux, enable <code>chrome://flags/#enable-experimental-web-platform-features</code>; in Brave, enable <code>brave://flags/#brave-web-bluetooth-api</code>.</p>
 <h3>The strap connects, but the timer stays at 00:00:00 or &quot;No ECG from the strap&quot; appears</h3>
 <p>Another app is holding the strap's ECG stream. Force-close other heart-rate apps, unclip the sensor from the strap for 30 seconds, clip it back on, switch the phone's Bluetooth off and on, then reload the app and connect again.</p>
 <h3>The strap is not in the list or will not connect</h3>
@@ -512,7 +517,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
         <div id="devMeta" class="dev-meta">Moisten the electrodes, fit the strap, then connect.</div></div>
       </div>
       <button id="btnConnect" class="btn primary">Connect H10</button>
-      <p class="dev-meta browser-req" style="margin:0"><b>On a phone, use Google Chrome or Chromium on Android.</b> On a computer, use Chrome or Edge. iPhone, iPad, Safari and Firefox can’t connect to the strap.</p>
+      <p class="dev-meta browser-req" style="margin:0"><b>On a phone, use Google Chrome or Chromium on Android.</b> On a computer, use Chrome or Edge. On iPhone or iPad, use the free <b>Bluefy</b> browser from the App Store. Safari and Firefox can’t connect to the strap.</p>
     </div>
     <div id="envNote" class="note" hidden></div>
 
@@ -2587,7 +2592,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.6.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.6.1 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* ---------- Android app (Capacitor) ----------
@@ -2858,19 +2863,32 @@ $('#autoPlus').onclick = () => stepAuto(1);
 const bindCount = (inp, out) => { const u = () => { $(out).textContent = $(inp).value.length + ' / 200'; }; $(inp).addEventListener('input', u); return u; };
 const upNotes = bindCount('#notesIn', '#notesCount'), upNotes2 = bindCount('#notesIn2', '#notesCount2');
 
+/* date of birth as three plain fields: a phone's date picker can show another calendar (for example Thai Buddhist years) */
+function setDob(v) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || '');
+  $('#dobY').value = m ? m[1] : ''; $('#dobM').value = m ? String(+m[2]) : ''; $('#dobD').value = m ? String(+m[3]) : '';
+}
+function getDob() {   // '' when left empty, null when incomplete or impossible
+  const y = $('#dobY').value.trim(), mo = +$('#dobM').value, d = +$('#dobD').value;
+  if (!y && !mo && !d) return '';
+  if (!/^\d{4}$/.test(y) || !mo || !d) return null;
+  const dt = new Date(Date.UTC(+y, mo - 1, d));
+  if (dt.getUTCMonth() !== mo - 1 || +y < 1900) return null;
+  return `${y}-${pad2(mo)}-${pad2(d)}`;
+}
 function openSettings(firstRun) {
   const s = getSettings();
   $('#setupIntro').hidden = !firstRun; $('#btnSetupLater').hidden = !firstRun; $('#btnCloseSettings').hidden = !!firstRun;
   $('#historyCard').hidden = !!firstRun; $('#aboutCard').hidden = !!firstRun;
-  $('#setDob').value = s.dob || ''; $('#setName').value = s.name || '';
+  setDob(s.dob); $('#setName').value = s.name || '';
   for (const b of $('#setSex').children) b.setAttribute('aria-checked', b.dataset.v === s.sex ? 'true' : 'false');
   refreshHistCount();
   show('scrSettings');
 }
 for (const b of $('#setSex').children) b.onclick = () => { for (const x of $('#setSex').children) x.setAttribute('aria-checked', 'false'); b.setAttribute('aria-checked', 'true'); };
 $('#btnSaveSettings').onclick = () => {
-  const dob = $('#setDob').value, sex = chipVal($('#setSex'));
-  if (dob && (Date.parse(dob) > Date.now() || ageAt(dob, Date.now()) > 110)) { toast('Check the date of birth.'); return; }
+  const dob = getDob(), sex = chipVal($('#setSex'));
+  if (dob === null || dob && (Date.parse(dob) > Date.now() || ageAt(dob, Date.now()) > 110)) { toast('Check the date of birth: day, month and a 4-digit year such as 1968.', 6000); return; }
   patchSettings({ dob, sex, name: $('#setName').value.trim(), setupDone: true });
   toast('Profile saved.'); profileNote(); show('scrHome');
 };
@@ -3015,7 +3033,8 @@ function btProblem() {
   if ('bluetooth' in navigator) return '';
   if (brave) return `<b>Brave has Bluetooth for websites switched off.</b> Open ${flag('brave-web-bluetooth-api')}, set it to Enabled${linux ? `, also enable ${flag('enable-experimental-web-platform-features')}` : ''}, then relaunch Brave.`;
   if (linux) return `<b>Chromium on Linux keeps Bluetooth for websites behind a setting.</b> Open ${flag('enable-experimental-web-platform-features')}, set it to Enabled, then relaunch. If you installed Chromium as a snap, also run <code>sudo snap connect chromium:bluez</code> once.`;
-  if (/Firefox|SamsungBrowser/.test(ua) || /iPhone|iPad|Macintosh/.test(ua) && !/Chrome/.test(ua)) return '<b>This browser can’t use Bluetooth from websites.</b> On a phone, use Google Chrome or Chromium on Android; on a computer, use Chrome or Edge.';
+  if (/iPhone|iPad/.test(ua) || /Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return '<b>Safari and the other iPhone and iPad browsers can’t use Bluetooth from websites.</b> Install the free <b>Bluefy</b> browser from the App Store and open https://leadone.anonacondacodelab.com in it.';
+  if (/Firefox|SamsungBrowser/.test(ua) || /Macintosh/.test(ua) && !/Chrome/.test(ua)) return '<b>This browser can’t use Bluetooth from websites.</b> On a phone, use Google Chrome or Chromium on Android, or Bluefy on iPhone and iPad; on a computer, use Chrome or Edge.';
   return `<b>Bluetooth for websites is switched off in this browser.</b> Try enabling ${flag('enable-experimental-web-platform-features')}, then relaunch.`;
 }
 function envCheck() { const note = $('#envNote'), msg = btProblem(); note.innerHTML = msg; note.hidden = !msg; return !msg || FRAMED; }
@@ -3223,7 +3242,7 @@ async function stopRecording(why) {
   S.meta._acc = accData && accData.length >= 3 * 30 * AC.fs ? { fs: AC.fs, t0: AC.t0, data: accData } : null;
   $('#doneWhy').textContent = why === 'limit' ? 'Stopped automatically at the 8-hour limit.' : why === 'auto' ? `Stopped automatically after ${minTxt(S.autoMin)}.` : 'Stopped manually.';
   $('#doneDur').textContent = hms((S.total - S.pausedSamples - S.gapSamples) / FS);
-  $('#doneStart').textContent = new Date(S.startMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  $('#doneStart').textContent = new Date(S.startMs).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   $('#doneGap').textContent = (S.pausedSamples || S.gapSamples) ? durText(S.pausedSamples / FS) + ' / ' + durText(S.gapSamples / FS) : 'None';
   show('scrDone'); refreshPast();
   setDev(S.connected ? 'on' : 'off', S.connected ? (S.device.name || 'Polar H10') : 'Polar H10 disconnected', S.connected ? devMetaText() : 'Tap Connect to reconnect.');
@@ -3463,7 +3482,7 @@ async function refreshPast() {
   const interrupted = list.find(s => s.status === 'recording' && s.id !== (S.recording ? S.sessionId : null) && s.samples > FS * 30);
   if (interrupted) {
     $('#recoverBanner').hidden = false;
-    $('#recoverText').textContent = new Date(interrupted.start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) + ' · stopped after ' + durText(interrupted.samples / FS);
+    $('#recoverText').textContent = new Date(interrupted.start).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) + ' · stopped after ' + durText(interrupted.samples / FS);
     $('#btnRecoverView').onclick = async () => { const raw = await loadChunks(interrupted.id); interrupted.status = 'complete'; interrupted.samples = raw.length; await putSession(interrupted); interrupted._acc = await loadAccFor(interrupted); refreshPast(); runReport(raw, interrupted); };
     $('#btnRecoverDiscard').onclick = async () => { await deleteSession(interrupted.id); refreshPast(); };
   } else $('#recoverBanner').hidden = true;
@@ -3473,7 +3492,7 @@ async function refreshPast() {
   for (const s of done.slice(0, 25)) {
     const li = document.createElement('li'), act = (s.samples - (s.paused || 0) - (s.gap || 0)) / FS;
     const tags = [s.ctx && CTX[s.ctx] && CTX[s.ctx].short, s.pos && POS[s.pos] && POS[s.pos].short].filter(Boolean).join(' · ');
-    li.innerHTML = `<div class="meta"><b>${new Date(s.start).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</b><span>${durText(act)}${tags ? ' · ' + esc(tags) : ''}</span>${s.notes ? `<i>“${esc(s.notes)}”</i>` : ''}</div>`;
+    li.innerHTML = `<div class="meta"><b>${new Date(s.start).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</b><span>${durText(act)}${tags ? ' · ' + esc(tags) : ''}</span>${s.notes ? `<i>“${esc(s.notes)}”</i>` : ''}</div>`;
     const v = document.createElement('button'); v.className = 'btn'; v.textContent = 'Report';
     v.onclick = async () => { const raw = await loadChunks(s.id); if (raw && raw.length) runReport(raw, Object.assign({}, s, { _acc: await loadAccFor(s) })); else toast('The data for this recording is missing.'); };
     const d = document.createElement('button'); d.className = 'btn'; d.textContent = 'Delete';

@@ -337,3 +337,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 .a1-live b{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:500;font-size:34px;line-height:1;min-width:3.2ch}
 .a1-live small{display:block;color:var(--muted);font-size:12.5px;letter-spacing:.02em}
 .a1-live span{font-size:14px}
+
+/* date of birth: day, month, year */
+.dob{display:grid;grid-template-columns:4.5em 1fr 5.5em;gap:8px}
+.dob select,.dob input{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:10px;padding:10px 8px;width:100%;font:inherit;min-width:0}

@@ -41,7 +41,7 @@ The full **[user manual](docs/MANUAL.md)** is also built into the app (home scre
 
 1. Open **[leadone.anonacondacodelab.com](https://leadone.anonacondacodelab.com)**. **On a phone, use Google Chrome or Chromium on
    Android.** On a computer, use Chrome or Edge (Windows, macOS, ChromeOS) or another Chromium-based browser with Web
-   Bluetooth. iPhone and iPad are not supported. The app must be served over **https**.
+   Bluetooth. On iPhone and iPad, use the Bluefy browser. The app must be served over **https**.
 2. On first launch, enter your date of birth and sex (used only for reference ranges, stored only on your device).
 3. Moisten the strap electrodes, put the strap on, close other apps connected to it (the H10 streams ECG to one app at a
    time), then **Connect H10 → Start**.

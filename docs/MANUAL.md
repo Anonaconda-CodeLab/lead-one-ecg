@@ -41,8 +41,9 @@ The first time you open the app, it asks you to confirm that you have read and u
   - **On a computer** (Windows, macOS or ChromeOS), use **Chrome or Microsoft Edge**. Other Chromium-based browsers such
     as Opera usually work too. Brave and Linux need a setting switched on first (see *Troubleshooting*), and recording
     on Linux can be unreliable.
-  - **iPhone and iPad are not supported.** Browsers on iPhone and iPad, Chrome included, do not offer Web Bluetooth, so
-    none of them can connect to the strap. **Firefox and Safari** do not support it on any device.
+  - **On iPhone and iPad, use the free Bluefy browser** (from the App Store). Safari, Chrome and the other iPhone and iPad
+    browsers do not offer Web Bluetooth and cannot connect to the strap. **Firefox and Safari** do not support it on any
+    device.
 - The app's web address: **https://leadone.anonacondacodelab.com**
 
 There is nothing to install from an app store. To open the app from an icon like a normal app, tap **Add to home screen**
@@ -194,7 +195,7 @@ replacing your phone, or using an Incognito tab would lose them. The app shows a
 
 ### "Bluetooth isn't available"
 On a phone, open the app in **Google Chrome or Chromium on Android**, from its https address. On a computer, use Chrome or Edge.
-iPhone, iPad, Safari and Firefox are not supported. On Linux,
+On iPhone and iPad, use the **Bluefy** browser. Safari and Firefox are not supported. On Linux,
 enable `chrome://flags/#enable-experimental-web-platform-features`; in Brave, enable `brave://flags/#brave-web-bluetooth-api`.
 
 ### The strap connects, but the timer stays at 00:00:00 or "No ECG from the strap" appears
