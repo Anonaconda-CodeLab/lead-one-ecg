@@ -76,6 +76,23 @@ const css = `<style>${fonts}\n${src('style.css')}</style>`;
 const js = `<script>\n${fill(src('core.js'))}\n${fill(src('report.js'))}\n${fill(src('native.js'))}\n${fill(src('app.js'))}\n</script>`;
 const body = fill(src('body.html'));
 const title = `<title>${APP.APP_NAME}</title>`;
+// link previews and search: canonical address, Open Graph / Twitter card (image hosted on the studio site), robots and sitemap
+const DESC = 'Record, analyse and report single-lead ECG and HRV from a Polar H10 chest strap. Free, open source, and your data never leaves your device.';
+const OG_IMAGE = 'https://anonacondacodelab.com/social/og-lead-one.jpg';
+const seo = appUrl ? `<link rel="canonical" href="${appUrl}/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Anonaconda Code Lab">
+<meta property="og:title" content="${APP.APP_NAME}">
+<meta property="og:description" content="${DESC}">
+<meta property="og:url" content="${appUrl}/">
+<meta property="og:image" content="${OG_IMAGE}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${APP.APP_NAME}: the recording screen with a live ECG trace, and a sample ECG report">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${APP.APP_NAME}">
+<meta name="twitter:description" content="${DESC}">
+<meta name="twitter:image" content="${OG_IMAGE}">` : '';
 
 const CSP = ["default-src 'none'", "script-src 'unsafe-inline'", "style-src 'unsafe-inline'", 'font-src data:', "img-src 'self' data: blob:",
   "connect-src 'none'", "media-src 'none'", "object-src 'none'", "frame-src 'none'", "worker-src 'none'", "manifest-src 'self'",
@@ -90,8 +107,9 @@ const page = `<!doctype html>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<meta name="description" content="${APP.APP_NAME}: record, analyse and report single-lead ECG and HRV from a chest-strap heart-rate monitor. Runs entirely in your browser.">
+<meta name="description" content="${DESC}">
 ${title}
+${seo}
 <style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
 ${css}
 </head><body>
@@ -120,12 +138,21 @@ if (!fragment) {
       { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
     ]
   }, null, 2) + '\n');
+  if (appUrl) {
+    writeFileSync(join(root, 'dist', 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${appUrl}/sitemap.xml\n`);
+    writeFileSync(join(root, 'dist', 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${appUrl}/</loc><lastmod>${new Date().toISOString().slice(0, 10)}</lastmod></url>
+</urlset>
+`);
+  }
 }
 
 // sanity checks: script parses, no remote resources
 new Function(js.slice(8, -9));
 const stripped = out.replace(/<code>[^<]*<\/code>/g, '');
 // anything the page would load by itself (scripts, styles, images, frames) must be local; plain <a href> links are allowed
-const remote = stripped.match(/\bsrc\s*=\s*["']https?:|<link\b[^>]*href\s*=\s*["']https?:|url\(\s*["']?https?:/gi);
+// (rel="canonical" only names the page's own address; browsers never load it)
+const remote = stripped.match(/\bsrc\s*=\s*["']https?:|<link\b(?![^>]*rel="canonical")[^>]*href\s*=\s*["']https?:|url\(\s*["']?https?:/gi);
 if (remote) { console.error('Remote resource reference found:', remote); process.exit(1); }
 console.log(`${APP.APP_NAME} ${APP.VERSION} -> ${file} (${(out.length / 1024).toFixed(0)} KB)`);

@@ -6,7 +6,7 @@ test('built page is self-contained and locked down', () => {
   const h = distHtml();
   assert.match(h, /Content-Security-Policy" content="default-src 'none';[^"]*connect-src 'none'/);
   assert.match(h, /<meta name="referrer" content="no-referrer">/);
-  assert.ok(!/\bsrc\s*=\s*["']https?:|<link\b[^>]*href\s*=\s*["']https?:|url\(\s*["']?https?:/i.test(h), 'no remote resources');
+  assert.ok(!/\bsrc\s*=\s*["']https?:|<link\b(?![^>]*rel="canonical")[^>]*href\s*=\s*["']https?:|url\(\s*["']?https?:/i.test(h), 'no remote resources (canonical only names the address)');
   for (const m of h.matchAll(/<a\b[^>]*href="https?:[^"]*"[^>]*>/g)) assert.match(m[0], /rel="noopener noreferrer"/, 'external links are isolated');
   assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|sendBeacon/.test(h), 'no network APIs');
   assert.ok(!/\{\{[A-Z_]+\}\}/.test(h), 'all placeholders filled');
@@ -76,4 +76,14 @@ test('Android app: no internet permission, native layer inactive in browsers', a
   assert.ok(!/<uses-permission android:name="android\.permission\.INTERNET" \/>/.test(m));
   const h = distHtml();
   assert.match(h, /const NATIVE = !!\(window\.Capacitor && typeof window\.Capacitor\.isNativePlatform === 'function'/);
+});
+
+test('link previews: canonical, Open Graph image, robots.txt and sitemap.xml', async () => {
+  const { readFileSync } = await import('node:fs');
+  const html = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');
+  assert.match(html, /<link rel="canonical" href="https:\/\/leadone\.anonacondacodelab\.com\/">/);
+  assert.match(html, /<meta property="og:image" content="https:\/\/anonacondacodelab\.com\/social\/og-lead-one\.jpg">/);
+  assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
+  assert.match(readFileSync(new URL('../dist/robots.txt', import.meta.url), 'utf8'), /Sitemap: https:\/\/leadone\.anonacondacodelab\.com\/sitemap\.xml/);
+  assert.match(readFileSync(new URL('../dist/sitemap.xml', import.meta.url), 'utf8'), /<loc>https:\/\/leadone\.anonacondacodelab\.com\/<\/loc>/);
 });
