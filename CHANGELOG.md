@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.3
+- A short thank-you note with a Ko-fi link at the foot of the home screen.
+
 ## 1.6.2
 - **Interval plans** for intervals sessions: Tabata, 30/30, 10 × 1 min, 4 × 4 min or your own work / rest / rounds,
   chosen before recording or later under Details. The report shows a round-by-round table and a chart with the work
