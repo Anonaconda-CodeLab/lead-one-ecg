@@ -4,7 +4,7 @@
 // with a strict Content Security Policy that blocks every network request.
 //   node build.mjs              -> dist/index.html
 //   node build.mjs --fragment   -> dist/fragment.html (page body only, for embedding/preview hosts)
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -122,6 +122,7 @@ mkdirSync(join(root, 'dist'), { recursive: true });
 const fragment = process.argv.includes('--fragment');
 const out = fragment ? `${title}\n<meta name="claude:viewport-fit-sides" content="cover">\n${css}\n${body}\n${js}\n` : page;
 const file = join(root, 'dist', fragment ? 'fragment.html' : 'index.html');
+const prevPage = existsSync(file) ? readFileSync(file, 'utf8') : '';
 writeFileSync(file, out);
 
 // home-screen install: a web manifest and local icons (no service worker; the page itself never touches the network)
@@ -140,9 +141,12 @@ if (!fragment) {
   }, null, 2) + '\n');
   if (appUrl) {
     writeFileSync(join(root, 'dist', 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${appUrl}/sitemap.xml\n`);
-    writeFileSync(join(root, 'dist', 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
+    // lastmod changes only when the page itself changes, so a rebuild on another day doesn't alter dist/ (and trigger a deploy)
+    const smFile = join(root, 'dist', 'sitemap.xml'), prev = existsSync(smFile) ? readFileSync(smFile, 'utf8') : '';
+    const keep = prevPage === out && /<loc>([^<]+)<\/loc>/.exec(prev)?.[1] === appUrl + '/' && /<lastmod>([\d-]+)<\/lastmod>/.exec(prev);
+    writeFileSync(smFile, `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>${appUrl}/</loc><lastmod>${new Date().toISOString().slice(0, 10)}</lastmod></url>
+  <url><loc>${appUrl}/</loc><lastmod>${keep ? keep[1] : new Date().toISOString().slice(0, 10)}</lastmod></url>
 </urlset>
 `);
   }
