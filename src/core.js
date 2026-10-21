@@ -534,7 +534,7 @@ function rmssdBetween(A, t0, t1) {
   return n >= 20 ? Math.sqrt(s / n) : NaN;
 }
 /* Orthostatic test: lie still, then stand up and stand still. standMark = the stand cue (s); without it the stand is
-   found as the largest sustained rise in heart rate. Lying = the last 2 min before standing; the peak = highest 5-s heart
+   found as the largest sustained rise in heart rate. Lying = 2 min ending 15 s before standing (before the warning beep); the peak = highest 5-s heart
    rate in the first 45 s after standing; standing = the last minute of up to 3 min standing; 30:15 ratio = longest beat
    interval around beat 30 after standing / shortest around beat 15 (Ewing et al. 1978). */
 function orthoTest(A, standMark) {
@@ -547,15 +547,16 @@ function orthoTest(A, standMark) {
     if (!(best >= 8)) { out.reason = 'nostand'; return out; }
   }
   out.st = st;
-  const lie = meanHRBetween(B, Math.max(0, st - 120), st - 5);
+  // lying: the 2 minutes before the "get ready" beep (10 s before standing), so anticipation is not counted as lying
+  const lie0 = Math.max(0, st - 135), lie1 = st - 15, lie = meanHRBetween(B, lie0, lie1);
   const sEnd = Math.min(A.dur, st + 180), stand = meanHRBetween(B, Math.max(st + 60, sEnd - 60), sEnd);
   let s5 = rollingHR(A, 5, 1, B), pk = s5.filter(p => p.t >= st && p.t <= st + 45).reduce((a, p) => p.v > a.v ? p : a, { v: -Infinity, t: NaN }); if (!isFinite(pk.v)) pk.v = NaN;
-  Object.assign(out, { lieHR: lie.v, lieCover: lie.cover, lieSec: Math.min(120, st - 5), standHR: stand.v, standSec: sEnd - st, peakHR: pk.v, peakT: pk.t,
-    rise: pk.v - lie.v, sustained: stand.v - lie.v, rmssdLie: rmssdBetween(A, Math.max(0, st - 120), st - 5), rmssdStand: rmssdBetween(A, Math.max(st + 60, sEnd - 120), sEnd) });
+  Object.assign(out, { lieHR: lie.v, lieCover: lie.cover, lie0, lie1, lieSec: lie1 - lie0, standHR: stand.v, standSec: sEnd - st, peakHR: pk.v, peakT: pk.t,
+    rise: pk.v - lie.v, sustained: stand.v - lie.v, rmssdLie: rmssdBetween(A, lie0, lie1), rmssdStand: rmssdBetween(A, Math.max(st + 60, sEnd - 120), sEnd) });
   const k0 = lowerBound(A.t, st), rrAt = (a, b) => { const v = []; for (let k = k0 + a; k <= k0 + b && k < A.beats; k++) if (A.rrOk[k] && !A.ect[k]) v.push(A.rr[k]); return v; };
   const r30 = rrAt(20, 40), r15 = rrAt(5, 25);
   out.r3015 = r30.length >= 10 && r15.length >= 10 ? Math.max(...r30) / Math.min(...r15) : NaN;
-  if (st < 90) out.reason = 'shortLie'; else if (out.standSec < 120) out.reason = 'shortStand'; else if (!(lie.cover > 0.7) || !isFinite(stand.v) || !isFinite(pk.v)) out.reason = 'signal';
+  if (st < 105) out.reason = 'shortLie'; else if (out.standSec < 120) out.reason = 'shortStand'; else if (!(lie.cover > 0.7) || !isFinite(stand.v) || !isFinite(pk.v)) out.reason = 'signal';
   else out.valid = true;
   return out;
 }

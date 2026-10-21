@@ -127,8 +127,8 @@ The RMSSD and SDNN norms are approximations intended to orient users, not valida
 that replace them with better-sourced, age- and sex-stratified values are welcome.
 
 ## Orthostatic test
-Lie still for 3 minutes, then stand at the cue and stand still for 3 minutes. Lying heart rate and RMSSD use the last
-2 minutes before standing; the peak is the highest 5-s mean heart rate in the first 45 s after standing; standing heart
+Lie still for 3 minutes, then stand at the cue and stand still for 3 minutes. Lying heart rate and RMSSD use the 2
+minutes ending 15 s before the stand cue, so the anticipation that follows the 10-s warning beep is not counted as lying; the peak is the highest 5-s mean heart rate in the first 45 s after standing; standing heart
 rate is the mean of the last minute (RMSSD over the last 2 minutes). The sustained rise is standing minus lying heart rate.
 The 30:15 ratio is the longest beat interval among beats 20–40 after standing divided by the shortest among beats 5–25
 (ref. 15). If no stand cue was recorded, the stand is taken as the largest rise in 20-s mean heart rate over the previous

@@ -31,6 +31,19 @@ if (NATIVE) (() => {
   const hexToView = h => { const m = String(h || '').replace(/[^0-9a-f]/gi, '').match(/../g) || []; return new DataView(Uint8Array.from(m, x => parseInt(x, 16)).buffer); };
   const toHex = v => { const u = v instanceof DataView ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength) : v instanceof ArrayBuffer ? new Uint8Array(v) : new Uint8Array(v.buffer, v.byteOffset || 0, v.byteLength); return Array.from(u, x => x.toString(16).padStart(2, '0')).join(''); };
   const domErr = (name, message) => { const e = new Error(message); e.name = name; return e; };
+  /* Android handles one Bluetooth request at a time and refuses a second one while the first is running ("status code
+     201": request busy). Chrome queues them for us; here every request waits its turn, and a busy refusal is retried. */
+  let gattQ = Promise.resolve();
+  const BUSY = /status code 20\d|busy|in progress/i;
+  const gattCall = (method, opts) => {
+    const run = async () => {
+      for (let i = 0; ; i++) {
+        try { return await nativeCall(BLE, method, opts); }
+        catch (e) { if (i >= 5 || !BUSY.test(String(e && e.message || e))) throw e; await new Promise(r => setTimeout(r, 150 * (i + 1))); }
+      }
+    };
+    const p = gattQ.then(run, run); gattQ = p.catch(() => {}); return p;
+  };
   let ready = null;
   const init = () => ready = ready || (async () => {
     await nativeCall(BLE, 'initialize', { androidNeverForLocation: true });
@@ -51,14 +64,14 @@ if (NATIVE) (() => {
         this.value = hexToView(ev && ev.value); this._emit('characteristicvaluechanged', { target: this });
       });
       this.dev._subs.push(sub);
-      await nativeCall(BLE, 'startNotifications', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
+      await gattCall('startNotifications', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
       return this;
     }
     async readValue() {
-      const r = await nativeCall(BLE, 'read', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
+      const r = await gattCall('read', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
       return this.value = hexToView(r && r.value);
     }
-    async writeValueWithResponse(v) { await nativeCall(BLE, 'write', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid, value: toHex(v) }); }
+    async writeValueWithResponse(v) { await gattCall('write', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid, value: toHex(v) }); }
     writeValue(v) { return this.writeValueWithResponse(v); }
   }
   class Service {
@@ -80,8 +93,8 @@ if (NATIVE) (() => {
           if (!dev._discSub) dev._discSub = nativeOn(BLE, `disconnected|${dev.id}`, () => {
             dev.gatt.connected = false; dev._drop(); dev._emit('gattserverdisconnected', { target: dev });
           });
-          await nativeCall(BLE, 'connect', { deviceId: dev.id, timeout: 15000 });
-          const r = await nativeCall(BLE, 'getServices', { deviceId: dev.id });
+          await gattCall('connect', { deviceId: dev.id, timeout: 15000 });
+          const r = await gattCall('getServices', { deviceId: dev.id });
           dev._services = (r && r.services) || []; dev.gatt.connected = true;
           return dev.gatt;
         },

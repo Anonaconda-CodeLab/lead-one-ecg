@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.1
+- Android app: Bluetooth requests to the strap now wait their turn and are retried if the strap is still busy. This
+  fixes "Writing characteristic failed with status code 201" when starting a recording soon after connecting; if it
+  still happens, the message now says what to do.
+- Orthostatic test: lying values use the 2 minutes ending before the get-ready beep, so the heart-rate rise when you
+  prepare to stand is not counted as lying. The report notes when standing HRV comes out higher than lying (deep breaths
+  or movement while standing).
+
 ## 1.7.0
 - New context: **Orthostatic test**. Lie still for 3 minutes, stand at the beep, stand still for 3 minutes; the app guides
   you and stops by itself. The report shows lying heart rate, the peak on standing, the sustained rise, lying and standing

@@ -378,6 +378,7 @@ function commentary(A, meta, R, B, X = null) {
     const O = X && X.ortho;
     if (!O || !O.valid) { out.push(ORTHO_WHY[O ? O.reason : 'short'] || ORTHO_WHY.short); return { verdict: ['info', 'Test incomplete'], paras: out }; }
     out.push(`Lying, your heart rate averaged ${f0(O.lieHR)} bpm (RMSSD ${fmt(O.rmssdLie, 0)} ms). On standing${O.src === 'detected' ? ` (found from the rise in heart rate, at ${meta._clock(O.st)})` : ''} it peaked at ${f0(O.peakHR)} bpm after ${f0(O.peakT - O.st)} seconds, then settled at ${f0(O.standHR)} bpm, ${f0(O.sustained)} bpm above lying (RMSSD ${fmt(O.rmssdStand, 0)} ms).${isFinite(O.r3015) ? ` The 30:15 ratio was ${O.r3015.toFixed(2)}.` : ''}`);
+    if (O.rmssdStand > O.rmssdLie * 1.15) out.push('HRV was higher standing than lying, the reverse of the usual pattern. This almost always comes from deep breaths, sighs or shifting your weight while standing; next time, stand still and breathe normally. The lying values and the heart-rate response are unaffected.');
     if (B.oLie && B.oRise) {
       const dLie = O.lieHR - B.oLie.m, dRise = O.sustained - B.oRise.m, rel = B.oRmssd && isFinite(O.rmssdLie) ? O.rmssdLie / B.oRmssd.m : NaN;
       const hiLie = dLie > Math.max(4, 1.5 * B.oLie.sd), hiRise = dRise > Math.max(5, 1.5 * B.oRise.sd), loHrv = rel < 0.8, n = hiLie + hiRise + loHrv;
@@ -706,7 +707,7 @@ function orthoChart(A, o, startMs) {
   const W = 186, H = 50, lo = Math.floor((Math.min(...s.map(p => p.v)) - 6) / 10) * 10, hi = Math.ceil((Math.max(...s.map(p => p.v)) + 6) / 10) * 10;
   const F = frame({ W, H, x0: t0, x1: t1, y0: lo, y1: hi, yTicks: niceTicks(lo, hi, 4), startMs });
   let g = '';
-  for (const [a, b] of [[Math.max(t0, o.st - 120), o.st - 5], [Math.max(o.st + 60, o.st + o.standSec - 60), o.st + o.standSec]]) if (b > a) g += `<rect x="${F.X(a).toFixed(2)}" y="${F.padT}" width="${(F.X(b) - F.X(a)).toFixed(2)}" height="${F.ih}" fill="var(--p-teal-soft)" opacity=".7"/>`;
+  for (const [a, b] of [[Math.max(t0, o.lie0), o.lie1], [Math.max(o.st + 60, o.st + o.standSec - 60), o.st + o.standSec]]) if (b > a) g += `<rect x="${F.X(a).toFixed(2)}" y="${F.padT}" width="${(F.X(b) - F.X(a)).toFixed(2)}" height="${F.ih}" fill="var(--p-teal-soft)" opacity=".7"/>`;
   g += `<line x1="${F.X(o.st).toFixed(2)}" x2="${F.X(o.st).toFixed(2)}" y1="${F.padT}" y2="${F.padT + F.ih}" stroke="var(--p-ink)" stroke-width="0.35" stroke-dasharray="1 0.7"/><text x="${(F.X(o.st) + 1).toFixed(2)}" y="${F.padT + 3}" font-size="2.4" fill="var(--p-ink)">Stand</text>`;
   g += `<path d="${s.map((p, i) => (i ? 'L' : 'M') + F.X(p.t).toFixed(2) + ' ' + F.Y(p.v).toFixed(2)).join('')}" fill="none" stroke="var(--p-accent)" stroke-width="0.55"/>`;
   if (isFinite(o.peakT)) g += `<circle cx="${F.X(o.peakT).toFixed(2)}" cy="${F.Y(o.peakHR).toFixed(2)}" r="1" fill="var(--p-ink)"/><text x="${(F.X(o.peakT) + 1.6).toFixed(2)}" y="${(F.Y(o.peakHR) + 0.8).toFixed(2)}" font-size="2.4" fill="var(--p-ink)" stroke="var(--p-bg)" stroke-width="0.8" paint-order="stroke">Peak ${fmt(o.peakHR)}</text>`;
@@ -815,7 +816,7 @@ function renderReport(A, meta0, st, hist = []) {
   } else if (meta.ctx === 'ortho') {
     const usual = (k, d = 0) => B[k] ? 'usual ' + fmt(B[k].m, d) : '';
     tiles = O ? [
-      kpi('Lying heart rate', fmt(O.lieHR), 'bpm', chip('info', 'Last 2 min lying'), usual('oLie') || 'before standing'),
+      kpi('Lying heart rate', fmt(O.lieHR), 'bpm', chip('info', '2 min before the beep'), usual('oLie') || 'before standing'),
       kpi('Peak on standing', fmt(O.peakHR), 'bpm', chip('info', fmt(O.peakT - O.st) + ' s after standing'), '+' + fmt(O.rise) + ' bpm from lying'),
       kpi('Rise when standing', '+' + fmt(O.sustained), 'bpm', gc('ortho'), (usual('oRise') ? usual('oRise') + ' · ' : '') + 'settled at ' + fmt(O.standHR) + ' bpm'),
       kpi('RMSSD lying', fmt(O.rmssdLie, 1), 'ms', chip('info', 'standing ' + fmt(O.rmssdStand, 1) + ' ms'), usual('oRmssd') || 'beat-to-beat variation'),
@@ -954,7 +955,7 @@ function renderReport(A, meta0, st, hist = []) {
   if (meta.ctx === 'ortho' && X.ortho) { const o = X.ortho, kvT = (l, v, sub) => `<div class="kv"><span>${l}${sub ? `<small>${sub}</small>` : ''}</span><b>${v}</b></div>`;
     page(`<div class="sec-h"><h2>Orthostatic test</h2><span>Lie still 3 min, then stand still 3 min${o.src === 'detected' ? ' · stand found from heart rate' : ''}</span></div>
       ${o.valid ? `<div class="fig">${orthoChart(A, o, startMs)}<div class="cap">Heart rate (5-s means). Shaded: the 2 minutes lying and the last minute standing that the results use; dashed line: standing up.</div></div>
-      <div class="cols2"><div class="panel"><h3>Result</h3>${kvT('Lying heart rate', fmt(o.lieHR) + ' bpm', 'last 2 minutes before standing')}${kvT('Peak on standing', fmt(o.peakHR) + ' bpm', fmt(o.peakT - o.st) + ' s after standing (5-s mean)')}${kvT('Standing heart rate', fmt(o.standHR) + ' bpm', 'last minute of standing')}${kvT('Rise when standing', '+' + fmt(o.sustained) + ' bpm', 'standing minus lying')}${kvT('RMSSD lying / standing', fmt(o.rmssdLie, 1) + ' / ' + fmt(o.rmssdStand, 1) + ' ms', 'beat-to-beat variation')}${kvT('30:15 ratio', isFinite(o.r3015) ? o.r3015.toFixed(2) : '—', 'longest interval near beat 30 ÷ shortest near beat 15')}</div>
+      <div class="cols2"><div class="panel"><h3>Result</h3>${kvT('Lying heart rate', fmt(o.lieHR) + ' bpm', '2 minutes, ending before the get-ready beep')}${kvT('Peak on standing', fmt(o.peakHR) + ' bpm', fmt(o.peakT - o.st) + ' s after standing (5-s mean)')}${kvT('Standing heart rate', fmt(o.standHR) + ' bpm', 'last minute of standing')}${kvT('Rise when standing', '+' + fmt(o.sustained) + ' bpm', 'standing minus lying')}${kvT('RMSSD lying / standing', fmt(o.rmssdLie, 1) + ' / ' + fmt(o.rmssdStand, 1) + ' ms', 'beat-to-beat variation')}${kvT('30:15 ratio', isFinite(o.r3015) ? o.r3015.toFixed(2) : '—', 'longest interval near beat 30 ÷ shortest near beat 15')}</div>
       <div class="panel"><h3>How to read it</h3><p class="note-p" style="margin:0">Standing up pools blood in the legs. Your heart rate jumps within about 10–20 seconds, then settles, usually 10–20 bpm above lying. Athletes use this test on waking to check recovery: compared with your own usual values, a higher lying heart rate, a larger rise or lower lying HRV can mean you have not recovered from training, illness, poor sleep or stress. The 30:15 ratio reflects how briskly heart rate rebounds after the first jump; values of about 1.04 or more are usual in healthy adults, and it falls with age. A rise of 30 bpm or more that lasts while standing, especially with dizziness, is worth mentioning to a doctor.</p></div></div>`
       : `<div class="panel"><h3>Test incomplete</h3><p class="note-p" style="margin:0">${ORTHO_WHY[o.reason] || ORTHO_WHY.short}</p></div>`}`); }
 

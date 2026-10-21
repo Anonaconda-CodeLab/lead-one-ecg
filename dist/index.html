@@ -462,7 +462,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.7.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.7.1 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
@@ -1237,7 +1237,7 @@ function rmssdBetween(A, t0, t1) {
   return n >= 20 ? Math.sqrt(s / n) : NaN;
 }
 /* Orthostatic test: lie still, then stand up and stand still. standMark = the stand cue (s); without it the stand is
-   found as the largest sustained rise in heart rate. Lying = the last 2 min before standing; the peak = highest 5-s heart
+   found as the largest sustained rise in heart rate. Lying = 2 min ending 15 s before standing (before the warning beep); the peak = highest 5-s heart
    rate in the first 45 s after standing; standing = the last minute of up to 3 min standing; 30:15 ratio = longest beat
    interval around beat 30 after standing / shortest around beat 15 (Ewing et al. 1978). */
 function orthoTest(A, standMark) {
@@ -1250,15 +1250,16 @@ function orthoTest(A, standMark) {
     if (!(best >= 8)) { out.reason = 'nostand'; return out; }
   }
   out.st = st;
-  const lie = meanHRBetween(B, Math.max(0, st - 120), st - 5);
+  // lying: the 2 minutes before the "get ready" beep (10 s before standing), so anticipation is not counted as lying
+  const lie0 = Math.max(0, st - 135), lie1 = st - 15, lie = meanHRBetween(B, lie0, lie1);
   const sEnd = Math.min(A.dur, st + 180), stand = meanHRBetween(B, Math.max(st + 60, sEnd - 60), sEnd);
   let s5 = rollingHR(A, 5, 1, B), pk = s5.filter(p => p.t >= st && p.t <= st + 45).reduce((a, p) => p.v > a.v ? p : a, { v: -Infinity, t: NaN }); if (!isFinite(pk.v)) pk.v = NaN;
-  Object.assign(out, { lieHR: lie.v, lieCover: lie.cover, lieSec: Math.min(120, st - 5), standHR: stand.v, standSec: sEnd - st, peakHR: pk.v, peakT: pk.t,
-    rise: pk.v - lie.v, sustained: stand.v - lie.v, rmssdLie: rmssdBetween(A, Math.max(0, st - 120), st - 5), rmssdStand: rmssdBetween(A, Math.max(st + 60, sEnd - 120), sEnd) });
+  Object.assign(out, { lieHR: lie.v, lieCover: lie.cover, lie0, lie1, lieSec: lie1 - lie0, standHR: stand.v, standSec: sEnd - st, peakHR: pk.v, peakT: pk.t,
+    rise: pk.v - lie.v, sustained: stand.v - lie.v, rmssdLie: rmssdBetween(A, lie0, lie1), rmssdStand: rmssdBetween(A, Math.max(st + 60, sEnd - 120), sEnd) });
   const k0 = lowerBound(A.t, st), rrAt = (a, b) => { const v = []; for (let k = k0 + a; k <= k0 + b && k < A.beats; k++) if (A.rrOk[k] && !A.ect[k]) v.push(A.rr[k]); return v; };
   const r30 = rrAt(20, 40), r15 = rrAt(5, 25);
   out.r3015 = r30.length >= 10 && r15.length >= 10 ? Math.max(...r30) / Math.min(...r15) : NaN;
-  if (st < 90) out.reason = 'shortLie'; else if (out.standSec < 120) out.reason = 'shortStand'; else if (!(lie.cover > 0.7) || !isFinite(stand.v) || !isFinite(pk.v)) out.reason = 'signal';
+  if (st < 105) out.reason = 'shortLie'; else if (out.standSec < 120) out.reason = 'shortStand'; else if (!(lie.cover > 0.7) || !isFinite(stand.v) || !isFinite(pk.v)) out.reason = 'signal';
   else out.valid = true;
   return out;
 }
@@ -2103,6 +2104,7 @@ function commentary(A, meta, R, B, X = null) {
     const O = X && X.ortho;
     if (!O || !O.valid) { out.push(ORTHO_WHY[O ? O.reason : 'short'] || ORTHO_WHY.short); return { verdict: ['info', 'Test incomplete'], paras: out }; }
     out.push(`Lying, your heart rate averaged ${f0(O.lieHR)} bpm (RMSSD ${fmt(O.rmssdLie, 0)} ms). On standing${O.src === 'detected' ? ` (found from the rise in heart rate, at ${meta._clock(O.st)})` : ''} it peaked at ${f0(O.peakHR)} bpm after ${f0(O.peakT - O.st)} seconds, then settled at ${f0(O.standHR)} bpm, ${f0(O.sustained)} bpm above lying (RMSSD ${fmt(O.rmssdStand, 0)} ms).${isFinite(O.r3015) ? ` The 30:15 ratio was ${O.r3015.toFixed(2)}.` : ''}`);
+    if (O.rmssdStand > O.rmssdLie * 1.15) out.push('HRV was higher standing than lying, the reverse of the usual pattern. This almost always comes from deep breaths, sighs or shifting your weight while standing; next time, stand still and breathe normally. The lying values and the heart-rate response are unaffected.');
     if (B.oLie && B.oRise) {
       const dLie = O.lieHR - B.oLie.m, dRise = O.sustained - B.oRise.m, rel = B.oRmssd && isFinite(O.rmssdLie) ? O.rmssdLie / B.oRmssd.m : NaN;
       const hiLie = dLie > Math.max(4, 1.5 * B.oLie.sd), hiRise = dRise > Math.max(5, 1.5 * B.oRise.sd), loHrv = rel < 0.8, n = hiLie + hiRise + loHrv;
@@ -2431,7 +2433,7 @@ function orthoChart(A, o, startMs) {
   const W = 186, H = 50, lo = Math.floor((Math.min(...s.map(p => p.v)) - 6) / 10) * 10, hi = Math.ceil((Math.max(...s.map(p => p.v)) + 6) / 10) * 10;
   const F = frame({ W, H, x0: t0, x1: t1, y0: lo, y1: hi, yTicks: niceTicks(lo, hi, 4), startMs });
   let g = '';
-  for (const [a, b] of [[Math.max(t0, o.st - 120), o.st - 5], [Math.max(o.st + 60, o.st + o.standSec - 60), o.st + o.standSec]]) if (b > a) g += `<rect x="${F.X(a).toFixed(2)}" y="${F.padT}" width="${(F.X(b) - F.X(a)).toFixed(2)}" height="${F.ih}" fill="var(--p-teal-soft)" opacity=".7"/>`;
+  for (const [a, b] of [[Math.max(t0, o.lie0), o.lie1], [Math.max(o.st + 60, o.st + o.standSec - 60), o.st + o.standSec]]) if (b > a) g += `<rect x="${F.X(a).toFixed(2)}" y="${F.padT}" width="${(F.X(b) - F.X(a)).toFixed(2)}" height="${F.ih}" fill="var(--p-teal-soft)" opacity=".7"/>`;
   g += `<line x1="${F.X(o.st).toFixed(2)}" x2="${F.X(o.st).toFixed(2)}" y1="${F.padT}" y2="${F.padT + F.ih}" stroke="var(--p-ink)" stroke-width="0.35" stroke-dasharray="1 0.7"/><text x="${(F.X(o.st) + 1).toFixed(2)}" y="${F.padT + 3}" font-size="2.4" fill="var(--p-ink)">Stand</text>`;
   g += `<path d="${s.map((p, i) => (i ? 'L' : 'M') + F.X(p.t).toFixed(2) + ' ' + F.Y(p.v).toFixed(2)).join('')}" fill="none" stroke="var(--p-accent)" stroke-width="0.55"/>`;
   if (isFinite(o.peakT)) g += `<circle cx="${F.X(o.peakT).toFixed(2)}" cy="${F.Y(o.peakHR).toFixed(2)}" r="1" fill="var(--p-ink)"/><text x="${(F.X(o.peakT) + 1.6).toFixed(2)}" y="${(F.Y(o.peakHR) + 0.8).toFixed(2)}" font-size="2.4" fill="var(--p-ink)" stroke="var(--p-bg)" stroke-width="0.8" paint-order="stroke">Peak ${fmt(o.peakHR)}</text>`;
@@ -2540,7 +2542,7 @@ function renderReport(A, meta0, st, hist = []) {
   } else if (meta.ctx === 'ortho') {
     const usual = (k, d = 0) => B[k] ? 'usual ' + fmt(B[k].m, d) : '';
     tiles = O ? [
-      kpi('Lying heart rate', fmt(O.lieHR), 'bpm', chip('info', 'Last 2 min lying'), usual('oLie') || 'before standing'),
+      kpi('Lying heart rate', fmt(O.lieHR), 'bpm', chip('info', '2 min before the beep'), usual('oLie') || 'before standing'),
       kpi('Peak on standing', fmt(O.peakHR), 'bpm', chip('info', fmt(O.peakT - O.st) + ' s after standing'), '+' + fmt(O.rise) + ' bpm from lying'),
       kpi('Rise when standing', '+' + fmt(O.sustained), 'bpm', gc('ortho'), (usual('oRise') ? usual('oRise') + ' · ' : '') + 'settled at ' + fmt(O.standHR) + ' bpm'),
       kpi('RMSSD lying', fmt(O.rmssdLie, 1), 'ms', chip('info', 'standing ' + fmt(O.rmssdStand, 1) + ' ms'), usual('oRmssd') || 'beat-to-beat variation'),
@@ -2679,7 +2681,7 @@ function renderReport(A, meta0, st, hist = []) {
   if (meta.ctx === 'ortho' && X.ortho) { const o = X.ortho, kvT = (l, v, sub) => `<div class="kv"><span>${l}${sub ? `<small>${sub}</small>` : ''}</span><b>${v}</b></div>`;
     page(`<div class="sec-h"><h2>Orthostatic test</h2><span>Lie still 3 min, then stand still 3 min${o.src === 'detected' ? ' · stand found from heart rate' : ''}</span></div>
       ${o.valid ? `<div class="fig">${orthoChart(A, o, startMs)}<div class="cap">Heart rate (5-s means). Shaded: the 2 minutes lying and the last minute standing that the results use; dashed line: standing up.</div></div>
-      <div class="cols2"><div class="panel"><h3>Result</h3>${kvT('Lying heart rate', fmt(o.lieHR) + ' bpm', 'last 2 minutes before standing')}${kvT('Peak on standing', fmt(o.peakHR) + ' bpm', fmt(o.peakT - o.st) + ' s after standing (5-s mean)')}${kvT('Standing heart rate', fmt(o.standHR) + ' bpm', 'last minute of standing')}${kvT('Rise when standing', '+' + fmt(o.sustained) + ' bpm', 'standing minus lying')}${kvT('RMSSD lying / standing', fmt(o.rmssdLie, 1) + ' / ' + fmt(o.rmssdStand, 1) + ' ms', 'beat-to-beat variation')}${kvT('30:15 ratio', isFinite(o.r3015) ? o.r3015.toFixed(2) : '—', 'longest interval near beat 30 ÷ shortest near beat 15')}</div>
+      <div class="cols2"><div class="panel"><h3>Result</h3>${kvT('Lying heart rate', fmt(o.lieHR) + ' bpm', '2 minutes, ending before the get-ready beep')}${kvT('Peak on standing', fmt(o.peakHR) + ' bpm', fmt(o.peakT - o.st) + ' s after standing (5-s mean)')}${kvT('Standing heart rate', fmt(o.standHR) + ' bpm', 'last minute of standing')}${kvT('Rise when standing', '+' + fmt(o.sustained) + ' bpm', 'standing minus lying')}${kvT('RMSSD lying / standing', fmt(o.rmssdLie, 1) + ' / ' + fmt(o.rmssdStand, 1) + ' ms', 'beat-to-beat variation')}${kvT('30:15 ratio', isFinite(o.r3015) ? o.r3015.toFixed(2) : '—', 'longest interval near beat 30 ÷ shortest near beat 15')}</div>
       <div class="panel"><h3>How to read it</h3><p class="note-p" style="margin:0">Standing up pools blood in the legs. Your heart rate jumps within about 10–20 seconds, then settles, usually 10–20 bpm above lying. Athletes use this test on waking to check recovery: compared with your own usual values, a higher lying heart rate, a larger rise or lower lying HRV can mean you have not recovered from training, illness, poor sleep or stress. The 30:15 ratio reflects how briskly heart rate rebounds after the first jump; values of about 1.04 or more are usual in healthy adults, and it falls with age. A rise of 30 bpm or more that lasts while standing, especially with dizziness, is worth mentioning to a doctor.</p></div></div>`
       : `<div class="panel"><h3>Test incomplete</h3><p class="note-p" style="margin:0">${ORTHO_WHY[o.reason] || ORTHO_WHY.short}</p></div>`}`); }
 
@@ -2812,7 +2814,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.7.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.7.1 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* ---------- Android app (Capacitor) ----------
@@ -2848,6 +2850,19 @@ if (NATIVE) (() => {
   const hexToView = h => { const m = String(h || '').replace(/[^0-9a-f]/gi, '').match(/../g) || []; return new DataView(Uint8Array.from(m, x => parseInt(x, 16)).buffer); };
   const toHex = v => { const u = v instanceof DataView ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength) : v instanceof ArrayBuffer ? new Uint8Array(v) : new Uint8Array(v.buffer, v.byteOffset || 0, v.byteLength); return Array.from(u, x => x.toString(16).padStart(2, '0')).join(''); };
   const domErr = (name, message) => { const e = new Error(message); e.name = name; return e; };
+  /* Android handles one Bluetooth request at a time and refuses a second one while the first is running ("status code
+     201": request busy). Chrome queues them for us; here every request waits its turn, and a busy refusal is retried. */
+  let gattQ = Promise.resolve();
+  const BUSY = /status code 20\d|busy|in progress/i;
+  const gattCall = (method, opts) => {
+    const run = async () => {
+      for (let i = 0; ; i++) {
+        try { return await nativeCall(BLE, method, opts); }
+        catch (e) { if (i >= 5 || !BUSY.test(String(e && e.message || e))) throw e; await new Promise(r => setTimeout(r, 150 * (i + 1))); }
+      }
+    };
+    const p = gattQ.then(run, run); gattQ = p.catch(() => {}); return p;
+  };
   let ready = null;
   const init = () => ready = ready || (async () => {
     await nativeCall(BLE, 'initialize', { androidNeverForLocation: true });
@@ -2868,14 +2883,14 @@ if (NATIVE) (() => {
         this.value = hexToView(ev && ev.value); this._emit('characteristicvaluechanged', { target: this });
       });
       this.dev._subs.push(sub);
-      await nativeCall(BLE, 'startNotifications', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
+      await gattCall('startNotifications', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
       return this;
     }
     async readValue() {
-      const r = await nativeCall(BLE, 'read', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
+      const r = await gattCall('read', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid });
       return this.value = hexToView(r && r.value);
     }
-    async writeValueWithResponse(v) { await nativeCall(BLE, 'write', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid, value: toHex(v) }); }
+    async writeValueWithResponse(v) { await gattCall('write', { deviceId: this.dev.id, service: this.service, characteristic: this.uuid, value: toHex(v) }); }
     writeValue(v) { return this.writeValueWithResponse(v); }
   }
   class Service {
@@ -2897,8 +2912,8 @@ if (NATIVE) (() => {
           if (!dev._discSub) dev._discSub = nativeOn(BLE, `disconnected|${dev.id}`, () => {
             dev.gatt.connected = false; dev._drop(); dev._emit('gattserverdisconnected', { target: dev });
           });
-          await nativeCall(BLE, 'connect', { deviceId: dev.id, timeout: 15000 });
-          const r = await nativeCall(BLE, 'getServices', { deviceId: dev.id });
+          await gattCall('connect', { deviceId: dev.id, timeout: 15000 });
+          const r = await gattCall('getServices', { deviceId: dev.id });
           dev._services = (r && r.services) || []; dev.gatt.connected = true;
           return dev.gatt;
         },
@@ -3463,7 +3478,10 @@ async function startRecording() {
   Object.assign(S.acc, { on: false, hz: 0, dec: 1, fs: 0, t0: 0, chunks: [], cur: null, curLen: 0, total: 0, sum: [0, 0, 0], k: 0, ringPos: 0, ringN: 0, liveBr: null, lastBrCalc: 0 });
   S.lastEcg = Date.now(); S.kicks = 0; S.kicking = false;
   try { await cpWrite(ECG_STOP, 1500); await cpWrite(ACC_STOP, 1500); await sleep(200); } catch (e) {}   // clear streams left running by an earlier session
-  try { await startEcg(); } catch (e) { S.recording = false; toast('Could not start: ' + e.message); return; }
+  try { await startEcg(); } catch (e) {
+    S.recording = false; const m = String(e && e.message || e);
+    toast(/status code 20\d|busy|in progress/i.test(m) ? 'The strap was still busy and could not start. Wait a few seconds and tap Start again; if it keeps happening, disconnect and reconnect the strap. (' + m + ')' : 'Could not start: ' + m, 12000);
+    return; }
   if (!(await startAcc())) toast('The motion sensor could not be started; breathing will be estimated from the ECG.', 5000);
   putSession(sessionMeta('recording')); keepAwake(); persistStorage();
   if (NATIVE) LeadOneNative.recording(true, 'Recording ECG. It continues with the screen off.');   // foreground service: keeps recording with the screen off

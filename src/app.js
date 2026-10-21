@@ -521,7 +521,10 @@ async function startRecording() {
   Object.assign(S.acc, { on: false, hz: 0, dec: 1, fs: 0, t0: 0, chunks: [], cur: null, curLen: 0, total: 0, sum: [0, 0, 0], k: 0, ringPos: 0, ringN: 0, liveBr: null, lastBrCalc: 0 });
   S.lastEcg = Date.now(); S.kicks = 0; S.kicking = false;
   try { await cpWrite(ECG_STOP, 1500); await cpWrite(ACC_STOP, 1500); await sleep(200); } catch (e) {}   // clear streams left running by an earlier session
-  try { await startEcg(); } catch (e) { S.recording = false; toast('Could not start: ' + e.message); return; }
+  try { await startEcg(); } catch (e) {
+    S.recording = false; const m = String(e && e.message || e);
+    toast(/status code 20\d|busy|in progress/i.test(m) ? 'The strap was still busy and could not start. Wait a few seconds and tap Start again; if it keeps happening, disconnect and reconnect the strap. (' + m + ')' : 'Could not start: ' + m, 12000);
+    return; }
   if (!(await startAcc())) toast('The motion sensor could not be started; breathing will be estimated from the ECG.', 5000);
   putSession(sessionMeta('recording')); keepAwake(); persistStorage();
   if (NATIVE) LeadOneNative.recording(true, 'Recording ECG. It continues with the screen off.');   // foreground service: keeps recording with the screen off
