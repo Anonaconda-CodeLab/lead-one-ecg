@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.5
+- Recording screen fits the visible screen: Pause, Dim screen and Hold to stop no longer sit under the phone's
+  navigation buttons in the Android app. The live ECG trace shrinks to make room for the training panels.
+
 ## 1.6.4
 - DFA-α1 test: when α1 falls steeply and the two thresholds land within 8 bpm of each other, the report says so and
   points to the aerobic threshold as the more reliable one, with a tip to use smaller steps around that heart rate.

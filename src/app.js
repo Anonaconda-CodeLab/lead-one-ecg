@@ -646,7 +646,7 @@ async function readBattery() { try { const b = await S.device.gatt.getPrimarySer
 function drawLive() {
   if (!S.recording) return;
   const cv = $('#liveCanvas'), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
-  if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
   const cs = getComputedStyle(document.documentElement);
   g.fillStyle = cs.getPropertyValue('--surface'); g.fillRect(0, 0, w, h);

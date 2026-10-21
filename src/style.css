@@ -356,3 +356,18 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 /* thank-you note at the foot of the home screen */
 .thanks{color:var(--muted);font-size:14px;line-height:1.5;margin:4px 4px 6px;text-align:center}
 .thanks a{color:var(--fg);font-weight:500;text-underline-offset:3px}
+/* recording screen fits the visible screen, so Pause, Dim and Hold to stop stay clear of the phone's navigation bar
+   (edge-to-edge Android draws the page behind it); the live trace takes whatever height is left */
+body[data-screen="scrRec"] #app{display:flex;flex-direction:column;min-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));padding-bottom:14px}
+body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
+#scrRec #liveCanvas{flex:1 1 0;min-height:72px;height:auto;max-height:240px}
+#scrRec{gap:10px}
+#scrRec .timer{font-size:clamp(40px,12.5vw,68px);margin-top:2px}
+#scrRec .vitals{grid-template-columns:repeat(4,1fr);gap:6px}
+#scrRec .vitals>div{padding:7px 8px}
+#scrRec .vitals span{font-size:clamp(17px,5.2vw,24px)}
+#scrRec .vitals label{font-size:10px;letter-spacing:.04em}
+#scrRec .a1-live{margin-top:0;padding:8px 14px}
+#scrRec .step-panel{padding:9px 14px}
+#scrRec .btn-stop{min-height:72px}
+#scrRec .btn-recov{min-height:54px}
