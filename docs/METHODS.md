@@ -126,10 +126,24 @@ assessed* where a population comparison would be misleading, e.g. HRV during exe
 The RMSSD and SDNN norms are approximations intended to orient users, not validated diagnostic thresholds. Contributions
 that replace them with better-sourced, age- and sex-stratified values are welcome.
 
+## Orthostatic test
+Lie still for 3 minutes, then stand at the cue and stand still for 3 minutes. Lying heart rate and RMSSD use the last
+2 minutes before standing; the peak is the highest 5-s mean heart rate in the first 45 s after standing; standing heart
+rate is the mean of the last minute (RMSSD over the last 2 minutes). The sustained rise is standing minus lying heart rate.
+The 30:15 ratio is the longest beat interval among beats 20–40 after standing divided by the shortest among beats 5–25
+(ref. 15). If no stand cue was recorded, the stand is taken as the largest rise in 20-s mean heart rate over the previous
+40 s (at least 8 bpm). A sustained rise of 30 bpm or more is flagged as borderline; otherwise the test is compared with the
+user's own earlier tests (lying heart rate, rise, lying RMSSD; mean of the previous 30 days once three exist), in the way
+athletes use the test to monitor recovery (ref. 16).
+
+## Spot check
+Graded as a resting reading in the chosen position, and compared with General rest readings in that position. The report
+adds a prominent emergency notice and states that it cannot explain symptoms or rule out any condition.
+
 ## Personal baseline
 Readings with the same context and body position from the previous 30 days are compared once at least five exist.
 Training readings are matched by training type (session, ramp test, LTHR test) and recovery type (active, passive)
-instead of body position. The
+instead of body position; orthostatic tests are matched with each other regardless of position. The
 usual RMSSD range is mean ± 1 SD of ln(RMSSD); heart rate uses mean ± 1 SD. Consecutive readings below range and the
 7-reading trend relative to the 30-day mean are reported.
 
@@ -161,3 +175,7 @@ usual RMSSD range is mean ± 1 SD of ln(RMSSD); heart rate uses mean ± 1 SD. Co
     a new method using correlation properties of heart rate variability. *J Funct Morphol Kinesiol.* 2021;6(2):38.
 14. Peng CK, Havlin S, Stanley HE, Goldberger AL. Quantification of scaling exponents and crossover phenomena in
     nonstationary heartbeat time series. *Chaos.* 1995;5(1):82–87.
+15. Ewing DJ, Campbell IW, Murray A, Neilson JM, Clarke BF. Immediate heart-rate response to standing: simple test for
+    autonomic neuropathy in diabetes. *Br Med J.* 1978;1(6106):145–147.
+16. Schmitt L, Regnard J, Desmarets M, et al. Fatigue shifts and scatters heart rate variability in elite endurance
+    athletes. *PLoS One.* 2013;8(8):e71588.

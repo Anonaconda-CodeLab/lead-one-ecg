@@ -371,3 +371,5 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 #scrRec .step-panel{padding:9px 14px}
 #scrRec .btn-stop{min-height:72px}
 #scrRec .btn-recov{min-height:54px}
+.ctx-hint{margin:8px 0 0}
+.summary.spot-box{background:var(--p-warn-soft);border-left:1.2mm solid var(--p-warn)}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.0
+- New context: **Orthostatic test**. Lie still for 3 minutes, stand at the beep, stand still for 3 minutes; the app guides
+  you and stops by itself. The report shows lying heart rate, the peak on standing, the sustained rise, lying and standing
+  HRV and the 30:15 ratio, with a chart, and compares each test with your usual values after three tests. New sample report.
+- New context: **Spot check** (something felt off). Reports extra beats and pauses, compares with your General rest
+  readings, and shows a prominent notice on when to seek emergency care instead.
+
 ## 1.6.5
 - Recording screen fits the visible screen: Pause, Dim screen and Hold to stop no longer sit under the phone's
   navigation buttons in the Android app. The live ECG trace shrinks to make room for the training panels.

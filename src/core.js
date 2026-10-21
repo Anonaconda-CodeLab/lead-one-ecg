@@ -526,6 +526,39 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
   out.steep = out.valid && isFinite(out.vt2) && out.vt2 - out.vt1 < 8;
   return out;
 }
+/* RMSSD between t0 and t1 s from clean, consecutive normal beats */
+function rmssdBetween(A, t0, t1) {
+  let s = 0, n = 0;
+  for (let k = Math.max(2, lowerBound(A.t, t0)); k < A.beats && A.t[k] <= t1; k++)
+    if (A.rrOk[k] && A.rrOk[k - 1] && !A.ect[k] && !A.ect[k - 1] && !A.ect[k - 2]) { const d = A.rr[k] - A.rr[k - 1]; s += d * d; n++; }
+  return n >= 20 ? Math.sqrt(s / n) : NaN;
+}
+/* Orthostatic test: lie still, then stand up and stand still. standMark = the stand cue (s); without it the stand is
+   found as the largest sustained rise in heart rate. Lying = the last 2 min before standing; the peak = highest 5-s heart
+   rate in the first 45 s after standing; standing = the last minute of up to 3 min standing; 30:15 ratio = longest beat
+   interval around beat 30 after standing / shortest around beat 15 (Ewing et al. 1978). */
+function orthoTest(A, standMark) {
+  const B = cleanBeats(A), out = { valid: false, reason: '' };
+  if (B.T.length < 120 || A.dur < 180) { out.reason = 'short'; return out; }
+  let st = isFinite(standMark) && standMark >= 60 && standMark <= A.dur - 60 ? standMark : NaN; out.src = 'cue';
+  if (!isFinite(st)) {
+    out.src = 'detected'; let best = -Infinity;
+    for (let t = 60; t <= A.dur - 60; t += 2) { const d = meanHRBetween(B, t, t + 20).v - meanHRBetween(B, t - 40, t).v; if (d > best) { best = d; st = t; } }
+    if (!(best >= 8)) { out.reason = 'nostand'; return out; }
+  }
+  out.st = st;
+  const lie = meanHRBetween(B, Math.max(0, st - 120), st - 5);
+  const sEnd = Math.min(A.dur, st + 180), stand = meanHRBetween(B, Math.max(st + 60, sEnd - 60), sEnd);
+  let s5 = rollingHR(A, 5, 1, B), pk = s5.filter(p => p.t >= st && p.t <= st + 45).reduce((a, p) => p.v > a.v ? p : a, { v: -Infinity, t: NaN }); if (!isFinite(pk.v)) pk.v = NaN;
+  Object.assign(out, { lieHR: lie.v, lieCover: lie.cover, lieSec: Math.min(120, st - 5), standHR: stand.v, standSec: sEnd - st, peakHR: pk.v, peakT: pk.t,
+    rise: pk.v - lie.v, sustained: stand.v - lie.v, rmssdLie: rmssdBetween(A, Math.max(0, st - 120), st - 5), rmssdStand: rmssdBetween(A, Math.max(st + 60, sEnd - 120), sEnd) });
+  const k0 = lowerBound(A.t, st), rrAt = (a, b) => { const v = []; for (let k = k0 + a; k <= k0 + b && k < A.beats; k++) if (A.rrOk[k] && !A.ect[k]) v.push(A.rr[k]); return v; };
+  const r30 = rrAt(20, 40), r15 = rrAt(5, 25);
+  out.r3015 = r30.length >= 10 && r15.length >= 10 ? Math.max(...r30) / Math.min(...r15) : NaN;
+  if (st < 90) out.reason = 'shortLie'; else if (out.standSec < 120) out.reason = 'shortStand'; else if (!(lie.cover > 0.7) || !isFinite(stand.v) || !isFinite(pk.v)) out.reason = 'signal';
+  else out.valid = true;
+  return out;
+}
 /* LTHR: mean heart rate over the last 20 minutes of a 30-minute time trial */
 function lthrTest(A, ER) {
   const B = cleanBeats(A), end = ER && ER.end != null ? ER.end : (B.T.length ? B.T[B.T.length - 1] : A.dur);
@@ -938,13 +971,14 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
       return 95 + 70 * Math.exp(-(tc - stop) / 70);
     }
     if (kind === 'meditation') return 68 - 4 * Math.min(1, tc / 300);
+    if (kind === 'ortho') { if (tc < 180) return 57; const d = tc - 180; return 70 + 22 * (1 - Math.exp(-d / 3)) * Math.exp(-d / 14) + 2 * Math.exp(-d / 60); }   // lie 3 min, then stand
     return 54 - 2 * Math.sin(2 * Math.PI * tc / 1700) + 2 * Math.max(0, (tc - 1800) / 1000) - 4 * Math.exp(-((tc - 500) ** 2) / (2 * 60 ** 2));
   };
   const pvcAt = kind === 'rest' ? [8.1, 15.3, 32.25, 39.1].map(m => m * 60).filter(x => x < T - 10) : EX ? [T * 0.4] : [];
   const pauseAt = kind === 'rest' && T > 500 ? 480 : -1;
   let tc = 0.8, nextPvc = 0, pausedone = false, ar = 0, pg = 0;
   while (tc < T - 1) {
-    const hr = hrAt(tc), rsaAmp = kind === 'meditation' ? 0.09 : EX ? 0.006 : 0.03;
+    const hr = hrAt(tc), rsaAmp = kind === 'meditation' ? 0.09 : EX ? 0.006 : kind === 'ortho' && tc > 180 ? 0.012 : 0.03;
     let rr = 60 / hr * (1 + rsaAmp * Math.sin(2 * Math.PI * brHz * tc) + 0.025 * Math.sin(2 * Math.PI * tc / 11 + 0.7) * (EX ? 0.3 : 1) + 0.012 * gauss());
     if (kind === 'dfa') {   // fractal (correlated) beat-to-beat variation at easy effort, turning uncorrelated as effort rises
       const w = Math.min(0.9, Math.max(0.2, 0.3 + 0.0057 * (hr - 100))), e = gauss();

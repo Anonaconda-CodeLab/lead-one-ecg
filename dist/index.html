@@ -400,6 +400,8 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 #scrRec .step-panel{padding:9px 14px}
 #scrRec .btn-stop{min-height:72px}
 #scrRec .btn-recov{min-height:54px}
+.ctx-hint{margin:8px 0 0}
+.summary.spot-box{background:var(--p-warn-soft);border-left:1.2mm solid var(--p-warn)}
 </style>
 </head><body>
 <main id="app">
@@ -460,7 +462,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.6.5 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.7.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
@@ -488,7 +490,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <h2>Putting on the strap</h2>
 <ol><li>Moisten the two electrode areas on the inside of the strap with water.</li><li>Clip the sensor on and fasten the strap snugly just below the chest muscles, with the Polar logo upright.</li><li><b>Close every other app that uses the strap</b> (Polar Beat, Polar Flow, Elite HRV, ECG Logger and so on). The H10 sends its ECG to only one app at a time.</li></ol>
 <h2>Making a recording</h2>
-<ol><li>Tap <b>Connect H10</b> and choose your strap from the list. The dot turns green when it is connected.</li><li>Optionally choose a <b>recording context</b> (Morning baseline, Training, Evening, Meditation, Sleep, General rest) and a <b>body position</b> (Lying, Seated, Standing, Walking / moving). These matter more than they look: see <i>Your personal baseline</i> below.</li><li>Optionally add <b>session notes</b> (up to 200 characters), such as &quot;after lunch&quot; or &quot;slept 5 hours&quot;.</li><li>Optionally turn on <b>Auto-stop</b> and choose a duration (1, 2 or 2.5 minutes, then in 5-minute steps). With Auto-stop off, the recording runs until you stop it, up to 8 hours.</li><li>Tap <b>Start</b>.</li></ol>
+<ol><li>Tap <b>Connect H10</b> and choose your strap from the list. The dot turns green when it is connected.</li><li>Optionally choose a <b>recording context</b> (Morning baseline, Orthostatic test, Training, Evening, Meditation, Sleep, General rest, Spot check) and a <b>body position</b> (Lying, Seated, Standing, Walking / moving). These matter more than they look: see <i>Your personal baseline</i> below.<ul><li><b>Orthostatic test</b>: a 6-minute recovery check, best on waking. Lie on your back and keep still. After 3 minutes the app beeps and vibrates: stand up straight away and stand still, without leaning, until it stops by itself at 6 minutes. The report shows your lying heart rate, the peak on standing, how far heart rate stays raised, and lying and standing HRV. After 3 tests it compares each one with your usual values: a higher lying heart rate, a larger rise or lower lying HRV than usual can mean you haven't recovered from training, illness, poor sleep or stress.</li><li><b>Spot check</b>: for when something felt off, such as a flutter or a skipped beat. Record for at least 2 minutes, ideally while you still feel it, and describe what you felt in the notes. The report lists any extra beats and pauses and compares the reading with your General rest readings. It cannot tell what caused how you felt and cannot rule anything out. <b>If you have chest pain or pressure, fainting, severe shortness of breath, or a racing heartbeat that won't settle, call emergency services instead of recording.</b></li></ul></li><li>Optionally add <b>session notes</b> (up to 200 characters), such as &quot;after lunch&quot; or &quot;slept 5 hours&quot;.</li><li>Optionally turn on <b>Auto-stop</b> and choose a duration (1, 2 or 2.5 minutes, then in 5-minute steps). With Auto-stop off, the recording runs until you stop it, up to 8 hours.</li><li>Tap <b>Start</b>.</li></ol>
 <p>While recording you will see the elapsed time, heart rate, signal quality, strap battery, breathing rate (after about 30 seconds) and a live ECG trace.</p>
 <ul><li><b>Pause</b> stops counting without ending the recording. Paused time is left out of the analysis.</li><li><b>Dim screen</b> darkens the screen for long recordings; tap to wake it. Keep the app open in the foreground.</li><li><b>Hold to stop</b>: press and hold the button until it fills. Holding prevents accidental stops.</li><li>If Bluetooth drops, the app reconnects by itself and marks the gap in the report.</li><li>Data is saved every minute. If the phone or browser closes unexpectedly, the next time you open the app it offers to <b>Analyze recording</b> for the part that was saved.</li></ul>
 <p>When the recording ends, tap <b>View report</b>. You can also <b>Save recording file</b> to keep the raw ECG.</p>
@@ -567,8 +569,9 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 
     <div class="card setup">
       <div class="field"><label>Recording context <small class="opt">optional</small></label>
-        <div class="chips" id="ctxChips" role="radiogroup" aria-label="Recording context"></div></div>
-      <div class="field"><label>Body position <small class="opt">optional</small></label>
+        <div class="chips" id="ctxChips" role="radiogroup" aria-label="Recording context"></div>
+        <p class="dev-meta ctx-hint" id="ctxHint" hidden></p></div>
+      <div class="field" id="posField"><label>Body position <small class="opt">optional</small></label>
         <div class="chips" id="posChips" role="radiogroup" aria-label="Body position"></div></div>
       <div id="trainOpts" class="train-opts" hidden>
         <div class="field"><label>Training type</label><div class="chips" id="ttChips" role="radiogroup" aria-label="Training type"></div></div>
@@ -605,7 +608,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <button id="btnHelp" class="row-btn"><span>User manual<small>How to record, read your report, and keep your data safe</small></span><span class="chev">›</span></button>
       <button id="btnOpen" class="row-btn"><span>Open a recording file<small>A file saved from this app, or a Polar Sensor Logger ECG export</small></span><span class="chev">›</span></button>
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
-        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="dfa">DFA-α1 test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
+        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="dfa">DFA-α1 test</button><button class="btn" data-demo="meditation">Meditation</button><button class="btn" data-demo="ortho">Orthostatic test</button></span></div>
     </div>
     <input type="file" id="fileIn" accept=".json,.txt,application/json,text/plain,application/octet-stream,.csv,text/csv" hidden>
 
@@ -1226,6 +1229,39 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
   out.steep = out.valid && isFinite(out.vt2) && out.vt2 - out.vt1 < 8;
   return out;
 }
+/* RMSSD between t0 and t1 s from clean, consecutive normal beats */
+function rmssdBetween(A, t0, t1) {
+  let s = 0, n = 0;
+  for (let k = Math.max(2, lowerBound(A.t, t0)); k < A.beats && A.t[k] <= t1; k++)
+    if (A.rrOk[k] && A.rrOk[k - 1] && !A.ect[k] && !A.ect[k - 1] && !A.ect[k - 2]) { const d = A.rr[k] - A.rr[k - 1]; s += d * d; n++; }
+  return n >= 20 ? Math.sqrt(s / n) : NaN;
+}
+/* Orthostatic test: lie still, then stand up and stand still. standMark = the stand cue (s); without it the stand is
+   found as the largest sustained rise in heart rate. Lying = the last 2 min before standing; the peak = highest 5-s heart
+   rate in the first 45 s after standing; standing = the last minute of up to 3 min standing; 30:15 ratio = longest beat
+   interval around beat 30 after standing / shortest around beat 15 (Ewing et al. 1978). */
+function orthoTest(A, standMark) {
+  const B = cleanBeats(A), out = { valid: false, reason: '' };
+  if (B.T.length < 120 || A.dur < 180) { out.reason = 'short'; return out; }
+  let st = isFinite(standMark) && standMark >= 60 && standMark <= A.dur - 60 ? standMark : NaN; out.src = 'cue';
+  if (!isFinite(st)) {
+    out.src = 'detected'; let best = -Infinity;
+    for (let t = 60; t <= A.dur - 60; t += 2) { const d = meanHRBetween(B, t, t + 20).v - meanHRBetween(B, t - 40, t).v; if (d > best) { best = d; st = t; } }
+    if (!(best >= 8)) { out.reason = 'nostand'; return out; }
+  }
+  out.st = st;
+  const lie = meanHRBetween(B, Math.max(0, st - 120), st - 5);
+  const sEnd = Math.min(A.dur, st + 180), stand = meanHRBetween(B, Math.max(st + 60, sEnd - 60), sEnd);
+  let s5 = rollingHR(A, 5, 1, B), pk = s5.filter(p => p.t >= st && p.t <= st + 45).reduce((a, p) => p.v > a.v ? p : a, { v: -Infinity, t: NaN }); if (!isFinite(pk.v)) pk.v = NaN;
+  Object.assign(out, { lieHR: lie.v, lieCover: lie.cover, lieSec: Math.min(120, st - 5), standHR: stand.v, standSec: sEnd - st, peakHR: pk.v, peakT: pk.t,
+    rise: pk.v - lie.v, sustained: stand.v - lie.v, rmssdLie: rmssdBetween(A, Math.max(0, st - 120), st - 5), rmssdStand: rmssdBetween(A, Math.max(st + 60, sEnd - 120), sEnd) });
+  const k0 = lowerBound(A.t, st), rrAt = (a, b) => { const v = []; for (let k = k0 + a; k <= k0 + b && k < A.beats; k++) if (A.rrOk[k] && !A.ect[k]) v.push(A.rr[k]); return v; };
+  const r30 = rrAt(20, 40), r15 = rrAt(5, 25);
+  out.r3015 = r30.length >= 10 && r15.length >= 10 ? Math.max(...r30) / Math.min(...r15) : NaN;
+  if (st < 90) out.reason = 'shortLie'; else if (out.standSec < 120) out.reason = 'shortStand'; else if (!(lie.cover > 0.7) || !isFinite(stand.v) || !isFinite(pk.v)) out.reason = 'signal';
+  else out.valid = true;
+  return out;
+}
 /* LTHR: mean heart rate over the last 20 minutes of a 30-minute time trial */
 function lthrTest(A, ER) {
   const B = cleanBeats(A), end = ER && ER.end != null ? ER.end : (B.T.length ? B.T[B.T.length - 1] : A.dur);
@@ -1638,13 +1674,14 @@ function makeDemo(minutes = 46, seed = 11, kind = 'rest') {
       return 95 + 70 * Math.exp(-(tc - stop) / 70);
     }
     if (kind === 'meditation') return 68 - 4 * Math.min(1, tc / 300);
+    if (kind === 'ortho') { if (tc < 180) return 57; const d = tc - 180; return 70 + 22 * (1 - Math.exp(-d / 3)) * Math.exp(-d / 14) + 2 * Math.exp(-d / 60); }   // lie 3 min, then stand
     return 54 - 2 * Math.sin(2 * Math.PI * tc / 1700) + 2 * Math.max(0, (tc - 1800) / 1000) - 4 * Math.exp(-((tc - 500) ** 2) / (2 * 60 ** 2));
   };
   const pvcAt = kind === 'rest' ? [8.1, 15.3, 32.25, 39.1].map(m => m * 60).filter(x => x < T - 10) : EX ? [T * 0.4] : [];
   const pauseAt = kind === 'rest' && T > 500 ? 480 : -1;
   let tc = 0.8, nextPvc = 0, pausedone = false, ar = 0, pg = 0;
   while (tc < T - 1) {
-    const hr = hrAt(tc), rsaAmp = kind === 'meditation' ? 0.09 : EX ? 0.006 : 0.03;
+    const hr = hrAt(tc), rsaAmp = kind === 'meditation' ? 0.09 : EX ? 0.006 : kind === 'ortho' && tc > 180 ? 0.012 : 0.03;
     let rr = 60 / hr * (1 + rsaAmp * Math.sin(2 * Math.PI * brHz * tc) + 0.025 * Math.sin(2 * Math.PI * tc / 11 + 0.7) * (EX ? 0.3 : 1) + 0.012 * gauss());
     if (kind === 'dfa') {   // fractal (correlated) beat-to-beat variation at easy effort, turning uncorrelated as effort rises
       const w = Math.min(0.9, Math.max(0.2, 0.3 + 0.0057 * (hr - 100))), e = gauss();
@@ -1942,11 +1979,13 @@ function stripSvg(A, startSample, opt = {}) {
 /* ---------- recording context, references, baseline ---------- */
 const CTX = {
   morning: { label: 'Morning baseline (on waking)', short: 'Morning baseline', sub: 'on waking', rest: true },
+  ortho: { label: 'Orthostatic test (lie, then stand)', short: 'Orthostatic test', sub: 'lie 3 min, then stand', rest: true, noPos: true },
   training: { label: 'Training (during exercise)', short: 'Training', sub: 'during exercise', active: true },
   evening: { label: 'Evening', short: 'Evening', rest: true },
   meditation: { label: 'Meditation / breathing practice', short: 'Meditation', sub: 'breathing practice' },
   sleep: { label: 'Sleep (overnight)', short: 'Sleep', sub: 'overnight', rest: true },
-  rest: { label: 'General rest', short: 'General rest', rest: true }
+  rest: { label: 'General rest', short: 'General rest', rest: true },
+  spot: { label: 'Spot check (something felt off)', short: 'Spot check', sub: 'something felt off', rest: true }
 };
 const POS = {
   lying: { label: 'Lying (supine)', short: 'Lying' }, seated: { label: 'Seated', short: 'Seated' },
@@ -1984,10 +2023,13 @@ function refsFor(age, sex, ctx, pos) {
   };
 }
 function computeBaseline(hist, cur) {
-  const tr = cur.ctx === 'training';
-  if (!cur.ctx || (!cur.pos && !tr)) return { state: 'nocontext' };
+  const tr = cur.ctx === 'training', noPos = tr || (CTX[cur.ctx] && CTX[cur.ctx].noPos);
+  if (!cur.ctx || (!cur.pos && !noPos)) return { state: 'nocontext' };
   // training is compared by training type and recovery type (body position matters little during exercise)
   const match = tr ? h => h.ctx === 'training' && (h.trainType || 'session') === (cur.trainType || 'session') && (h.recovery || 'active') === (cur.recovery || 'active')
+                   : noPos ? h => h.ctx === cur.ctx
+                   // a spot check is compared with your general rest readings in the same position
+                   : cur.ctx === 'spot' ? h => (h.ctx === 'spot' || h.ctx === 'rest') && h.pos === cur.pos
                    : h => h.ctx === cur.ctx && h.pos === cur.pos;
   const prior = hist.filter(h => match(h) && h.id !== cur.id && h.start < cur.start && h.start >= cur.start - 30 * 864e5).sort((a, b) => a.start - b.start).slice(-30);
   const pts = hist.filter(h => match(h) && h.id !== cur.id && h.start < cur.start).sort((a, b) => a.start - b.start).slice(-20).concat([Object.assign({ current: true }, cur)]);
@@ -1995,6 +2037,7 @@ function computeBaseline(hist, cur) {
   const vals = (k) => prior.map(h => h[k]).filter(v => v != null && isFinite(v));
   const ms = k => { const v = vals(k); return v.length >= 3 ? { m: mean(v), sd: std(v), n: v.length } : null; };
   B.hr = ms('hr'); B.br = ms('br'); B.share = ms('brShare'); B.peak = ms('peak'); B.hrr = ms('hrr60');
+  B.oLie = ms('oLie'); B.oRise = ms('oRise'); B.oRmssd = ms('oRmssd');
   const ln = vals('ln');
   if (ln.length >= 5) {
     const m = mean(ln), sd = Math.max(std(ln), 0.05);
@@ -2009,9 +2052,13 @@ function computeBaseline(hist, cur) {
 }
 function commentary(A, meta, R, B, X = null) {
   const ctx = meta.ctx, pos = meta.pos, out = [], f0 = v => fmt(v), name = ctx ? CTX[ctx].short.toLowerCase() : '';
-  const where = ctx === 'training' && X ? `${TRAIN_TYPES[X.tt]} · ${X.rec} recovery` : ctx && pos ? `${CTX[ctx].short} · ${POS[pos].short}` : '';
+  const where = ctx === 'training' && X ? `${TRAIN_TYPES[X.tt]} · ${X.rec} recovery` : ctx === 'ortho' ? 'orthostatic' : ctx === 'spot' && pos ? `${CTX.rest.short} · ${POS[pos].short}` : ctx && pos ? `${CTX[ctx].short} · ${POS[pos].short}` : '';
   let verdict = null;
   const brNote = A.breath && A.breath.median < 9 ? ` Breathing averaged ${fmt(A.breath.median, 1)} breaths/min, below the 9/min threshold, so respiratory heart-rate oscillations fall in the LF band; the LF/HF ratio should not be read as autonomic balance for this recording.` : '';
+  if (ctx === 'spot') { const ev = A.events.length, pz = A.pauses.length;
+    out.push(`Spot check: heart rate averaged ${f0(A.meanHR)} bpm (${f0(A.minHR.v)}–${f0(A.maxHR.v)} bpm). ${ev ? `${ev} ectopic ${ev === 1 ? 'event was' : 'events were'} flagged; ${ev === 1 ? 'it is' : 'they are'} shown on the rhythm strips.` : 'No ectopic beats were detected.'} ${pz ? `${pz} ${pz === 1 ? 'pause' : 'pauses'} over 2 seconds ${pz === 1 ? 'was' : 'were'} found.` : 'No pauses over 2 seconds were found.'}`);
+    out.push('This report shows only the minutes you recorded. It cannot tell what caused how you felt, and it cannot rule anything out. A recording made while the feeling is happening is the most useful; if it keeps coming back, take this report to a doctor.');
+  }
   if (B.state === 'nocontext') {
     out.push('Select a recording context and body position (Details, at the top of the report) to compare this reading with your personal baseline. Comparisons are made only between readings taken under the same conditions.');
     return { verdict, paras: out };
@@ -2050,6 +2097,25 @@ function commentary(A, meta, R, B, X = null) {
     if (B.state === 'ready') out.push(`RMSSD of ${fmt(A.rmssd, 0)} ms compares with your usual ${f0(B.lo)}–${f0(B.hi)} ms for meditation sessions in this position.`);
     else out.push(`Personal baseline: ${B.n} earlier ${where} reading${B.n === 1 ? '' : 's'} in the past 30 days; comparisons start after ${B.need} more.`);
     out.push('During paced breathing, RMSSD and LF power rise because of the larger breathing-driven oscillation; these values are not comparable with resting readings.');
+    return { verdict, paras: out };
+  }
+  if (ctx === 'ortho') {
+    const O = X && X.ortho;
+    if (!O || !O.valid) { out.push(ORTHO_WHY[O ? O.reason : 'short'] || ORTHO_WHY.short); return { verdict: ['info', 'Test incomplete'], paras: out }; }
+    out.push(`Lying, your heart rate averaged ${f0(O.lieHR)} bpm (RMSSD ${fmt(O.rmssdLie, 0)} ms). On standing${O.src === 'detected' ? ` (found from the rise in heart rate, at ${meta._clock(O.st)})` : ''} it peaked at ${f0(O.peakHR)} bpm after ${f0(O.peakT - O.st)} seconds, then settled at ${f0(O.standHR)} bpm, ${f0(O.sustained)} bpm above lying (RMSSD ${fmt(O.rmssdStand, 0)} ms).${isFinite(O.r3015) ? ` The 30:15 ratio was ${O.r3015.toFixed(2)}.` : ''}`);
+    if (B.oLie && B.oRise) {
+      const dLie = O.lieHR - B.oLie.m, dRise = O.sustained - B.oRise.m, rel = B.oRmssd && isFinite(O.rmssdLie) ? O.rmssdLie / B.oRmssd.m : NaN;
+      const hiLie = dLie > Math.max(4, 1.5 * B.oLie.sd), hiRise = dRise > Math.max(5, 1.5 * B.oRise.sd), loHrv = rel < 0.8, n = hiLie + hiRise + loHrv;
+      out.push(`Compared with your previous ${B.oLie.n} tests: lying heart rate ${f0(O.lieHR)} bpm (usual ${f0(B.oLie.m)}), rise on standing ${f0(O.sustained)} bpm (usual ${f0(B.oRise.m)})${B.oRmssd ? `, lying RMSSD ${fmt(O.rmssdLie, 0)} ms (usual ${f0(B.oRmssd.m)})` : ''}. `
+        + (n >= 2 ? 'Two or more of these point the same way, a common sign of incomplete recovery from training, illness, poor sleep or stress. An easier day is a sensible choice.'
+          : n === 1 ? `Only ${hiLie ? 'lying heart rate is higher' : hiRise ? 'the rise on standing is larger' : 'lying HRV is lower'} than usual. One change on its own is often day-to-day variation; watch tomorrow's test.`
+          : 'All are in line with your usual values.'));
+      verdict = n >= 2 ? ['out', 'Signs of incomplete recovery'] : ['in', n ? 'Mostly as usual' : 'In line with your usual'];
+    } else {
+      out.push(`Personal baseline: ${B.n} earlier orthostatic ${B.n === 1 ? 'test' : 'tests'} in the past 30 days. Comparisons with your own usual values start after ${Math.max(1, 3 - B.n)} more.`);
+      verdict = O.sustained >= 30 ? ['out', 'Large rise on standing'] : ['in', 'Typical response'];
+    }
+    out.push('Do the test the same way each time: on waking, before caffeine, lying still for 3 minutes, then standing still for 3 minutes. Changes from your own usual values matter more than any single result.');
     return { verdict, paras: out };
   }
   // resting contexts
@@ -2107,10 +2173,18 @@ function sampleHistory(A, meta) {
       peak: isFinite(E.peak20) ? E.peak20 - 6 + rnd() * 5 : null, peak20: isFinite(E.peak20) ? E.peak20 - 6 + rnd() * 5 : null,
       hrr60: isFinite(E.hrr60) ? E.hrr60 + (rnd() - 0.5) * 8 : null, trainType: meta.ctx === 'training' ? 'session' : '' });
   }
+  if (meta.ctx === 'ortho') { const O = orthoTest(A, meta.standMark); if (O.valid) for (const h of out) { h.oLie = O.lieHR - 1.5 + (rnd() - 0.5) * 4; h.oRise = O.sustained + (rnd() - 0.5) * 6; h.oRmssd = O.rmssdLie * (0.9 + rnd() * 0.25); } }
   if (meta.ctx === 'training') out.push({ id: 'sample-lthr', start: meta.start - 9 * 864e5, ctx: 'training', pos: 'walking', trainType: 'lthr', lthr: 158, lthrValid: true, peak20: 163 });
   return out;
 }
 
+const ORTHO_WHY = {
+  short: 'The recording was too short. Lie still for 3 minutes, stand up at the signal, and stand still for 3 minutes.',
+  nostand: 'No change of position was found: heart rate did not rise as it does on standing. Choose the orthostatic test before you start so the app signals when to stand.',
+  shortLie: 'You stood up too soon after starting. Lie still for at least 90 seconds (3 minutes is better) before standing.',
+  shortStand: 'The recording stopped less than 2 minutes after standing. Stand still for 3 minutes before stopping.',
+  signal: 'Too much of the recording was unusable (strap contact or movement). Moisten the electrodes and keep still while lying.'
+};
 /* ---------- plain-language grading ---------- */
 const GRADE = {
   fav: { label: 'Favourable', cls: 'fav', rank: 0 }, norm: { label: 'Within normal range', cls: 'in', rank: 1 },
@@ -2146,6 +2220,20 @@ function gradeAll(A, meta, R, X = null) {
     else if (!short) { g = 'na'; t = 'SDNN grows with the length of the recording, so it is only graded for readings of 20 minutes or less.'; }
     else { g = higherBetter(v, q); t = { fav: 'Higher than typical: your heart rhythm adapts well over minutes as well as beat to beat.', norm: 'Typical overall variability for your age.', bord: 'Somewhat low overall variability. Like RMSSD, it varies with sleep, stress and fitness.', out: 'Low overall variability for your age. If this recurs on morning readings, it is worth mentioning to a doctor.' }[g]; }
     add('sdnn', { title: 'Overall variability (SDNN)', short: 'overall variability', value: f(v, 1) + ' ms', g, what: 'How much your heart rate varied over the whole recording, including slower ups and downs.', text: t }); }
+  // orthostatic test: the whole-recording values mix lying and standing, so the test's own results are graded instead
+  const O = ctx === 'ortho' && X ? X.ortho : null;
+  if (ctx === 'ortho') {
+    add('hr', { title: 'Heart rate', short: 'heart rate', value: f(A.meanHR) + ' bpm', g: 'na', what: 'Average over the whole test, lying and standing together.', text: 'Not graded: lying and standing heart rates are shown separately in the orthostatic test result.' });
+    add('rmssd', { title: 'Heart rate variability (RMSSD)', short: 'heart rate variability', value: f(A.rmssd, 1) + ' ms', g: 'na', what: 'Beat-to-beat variation over the whole test.', text: 'Not graded: standing up lowers HRV, so lying and standing values are shown separately in the orthostatic test result.' });
+    add('sdnn', { title: 'Overall variability (SDNN)', short: 'overall variability', value: f(A.sdnn, 1) + ' ms', g: 'na', what: 'Overall variation over the whole test.', text: 'Not graded: the change of position on purpose makes SDNN large.' });
+    if (O && O.valid) {
+      const v = O.sustained, g = v >= 30 ? 'bord' : 'norm';
+      add('ortho', { title: 'Heart rate on standing', short: 'heart rate on standing', value: '+' + f(v) + ' bpm', g,
+        what: `How much higher your heart rate stayed after standing (${f(O.standHR)} bpm) than while lying (${f(O.lieHR)} bpm). It jumps first, to ${f(O.peakHR)} bpm here, then settles.`,
+        text: g === 'norm' ? 'A typical response: heart rate rises on standing, then settles 10–20 bpm above lying. Compared with your own earlier tests, a larger rise or a higher lying heart rate than usual can mean you have not recovered from training, illness, poor sleep or dehydration.'
+          : 'A rise of 30 bpm or more that lasts while standing is larger than usual. Dehydration, illness, heat or a hard training block can cause it. If it happens repeatedly, or you feel dizzy, light-headed or faint when standing, mention it to a doctor.' });
+    } else add('ortho', { title: 'Orthostatic test', short: 'orthostatic test', value: '—', g: 'na', what: 'Heart rate lying, then after standing up.', text: ORTHO_WHY[O ? O.reason : 'short'] || ORTHO_WHY.short });
+  }
   // breathing
   if (A.breath) { const v = A.breath.median; let g, t;
     if (med) { g = v <= 7 ? 'fav' : v <= 12 ? 'norm' : 'bord'; t = { fav: 'In the slow "resonance" range of about 4.5–7 breaths per minute used in HRV-biofeedback breathing.', norm: 'Slow, relaxed breathing. Slowing to about 6 breaths per minute (5 seconds in, 5 seconds out) strengthens the effect.', bord: 'Faster than usual for a breathing practice. Try slower, even breaths.' }[g]; }
@@ -2336,6 +2424,19 @@ function planChart(A, P, startMs) {
   g += `<path d="${s.map((p, i) => (i ? 'L' : 'M') + F.X(p.t).toFixed(2) + ' ' + F.Y(p.v).toFixed(2)).join('')}" fill="none" stroke="var(--p-accent)" stroke-width="0.55"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate during the interval rounds">${F.g}${g}</svg>`;
 }
+/* orthostatic test: 5-s heart rate with the lying and standing windows shaded and the moment of standing marked */
+function orthoChart(A, o, startMs) {
+  const t0 = Math.max(0, o.st - 150), t1 = Math.min(A.dur, o.st + o.standSec), s = rollingHR(A, 5, 2).filter(p => p.t >= t0 && p.t <= t1);
+  if (s.length < 5) return '';
+  const W = 186, H = 50, lo = Math.floor((Math.min(...s.map(p => p.v)) - 6) / 10) * 10, hi = Math.ceil((Math.max(...s.map(p => p.v)) + 6) / 10) * 10;
+  const F = frame({ W, H, x0: t0, x1: t1, y0: lo, y1: hi, yTicks: niceTicks(lo, hi, 4), startMs });
+  let g = '';
+  for (const [a, b] of [[Math.max(t0, o.st - 120), o.st - 5], [Math.max(o.st + 60, o.st + o.standSec - 60), o.st + o.standSec]]) if (b > a) g += `<rect x="${F.X(a).toFixed(2)}" y="${F.padT}" width="${(F.X(b) - F.X(a)).toFixed(2)}" height="${F.ih}" fill="var(--p-teal-soft)" opacity=".7"/>`;
+  g += `<line x1="${F.X(o.st).toFixed(2)}" x2="${F.X(o.st).toFixed(2)}" y1="${F.padT}" y2="${F.padT + F.ih}" stroke="var(--p-ink)" stroke-width="0.35" stroke-dasharray="1 0.7"/><text x="${(F.X(o.st) + 1).toFixed(2)}" y="${F.padT + 3}" font-size="2.4" fill="var(--p-ink)">Stand</text>`;
+  g += `<path d="${s.map((p, i) => (i ? 'L' : 'M') + F.X(p.t).toFixed(2) + ' ' + F.Y(p.v).toFixed(2)).join('')}" fill="none" stroke="var(--p-accent)" stroke-width="0.55"/>`;
+  if (isFinite(o.peakT)) g += `<circle cx="${F.X(o.peakT).toFixed(2)}" cy="${F.Y(o.peakHR).toFixed(2)}" r="1" fill="var(--p-ink)"/><text x="${(F.X(o.peakT) + 1.6).toFixed(2)}" y="${(F.Y(o.peakHR) + 0.8).toFixed(2)}" font-size="2.4" fill="var(--p-ink)" stroke="var(--p-bg)" stroke-width="0.8" paint-order="stroke">Peak ${fmt(o.peakHR)}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate before and after standing up">${F.g}${g}</svg>`;
+}
 /* DFA alpha1 against heart rate: each 2-minute window as a dot, the fitted line, and the 0.75 / 0.5 thresholds */
 function dfaChart(r) {
   const ok = r.pts.filter(p => p.ok); if (ok.length < 5) return '';
@@ -2363,6 +2464,8 @@ function renderReport(A, meta0, st, hist = []) {
   const startMs = meta.start || Date.now(), age = ageAt(st.dob, startMs), sex = st.sex || '';
   const R = refsFor(age, sex, meta.ctx, meta.pos);
   const X = trainingContext(A, meta, hist, R.age, sex);
+  if (meta.ctx === 'ortho') X.ortho = orthoTest(A, meta.standMark);
+  const O = X.ortho && X.ortho.valid ? X.ortho : null;
   A = Object.assign({}, A, { zones: X.zonesPct, hrMax: Math.round(X.WM.v) });
   const G = gradeAll(A, meta, R, X), OV = overallVerdict(G), gc = k => G[k] ? gchip(G[k].g) : '';
   const gcol = g => g === 'out' ? 'var(--p-red)' : g === 'bord' ? 'var(--p-warn)' : g === 'na' ? 'var(--p-faint)' : 'var(--p-ok)';
@@ -2372,9 +2475,10 @@ function renderReport(A, meta0, st, hist = []) {
   const name = st.name ? esc(st.name) : '';
   const pausedSec = (meta.pauses || []).reduce((a, p) => a + Math.max(0, (p.t1 || 0) - p.t0), 0);
   const lostSec = (meta.gap || 0) / FS, recSec = A.dur - A.gapSec;
-  const ctxL = meta.ctx ? CTX[meta.ctx].label : null, posL = meta.pos ? POS[meta.pos].label : null;
+  const ctxL = meta.ctx ? CTX[meta.ctx].label : null, posL = meta.ctx === 'ortho' ? 'Lying, then standing' : meta.pos ? POS[meta.pos].label : null;
   const headR = `${name ? name + ' · ' : ''}${new Date(startMs).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · ${clock(0).slice(0, 5)}${ctxL ? ' · ' + esc(CTX[meta.ctx].short) : ''}`;
-  const cur = { id: meta.id || ('file-' + startMs), start: startMs, ctx: meta.ctx, pos: meta.pos, hr: A.meanHR, rmssd: A.rmssd, ln: A.lnRmssd, br: A.breath ? A.breath.median : null, brShare: A.breathShare, peak: X.ER ? X.ER.peak20 : null, hrr60: X.ER && X.ER.end != null ? X.ER.hrr60 : null, trainType: X.tt, recovery: X.tt ? X.rec : '' };
+  const cur = { id: meta.id || ('file-' + startMs), start: startMs, ctx: meta.ctx, pos: meta.pos, hr: A.meanHR, rmssd: A.rmssd, ln: A.lnRmssd, br: A.breath ? A.breath.median : null, brShare: A.breathShare, peak: X.ER ? X.ER.peak20 : null, hrr60: X.ER && X.ER.end != null ? X.ER.hrr60 : null, trainType: X.tt, recovery: X.tt ? X.rec : '',
+    oLie: O ? O.lieHR : null, oRise: O ? O.sustained : null, oRmssd: O ? O.rmssdLie : null };
   const B = computeBaseline(hist, cur), C = commentary(A, meta, R, B, X);
   const pages = [], page = inner => pages.push(inner);
   const isTraining = meta.ctx === 'training', isMed = meta.ctx === 'meditation';
@@ -2412,7 +2516,7 @@ function renderReport(A, meta0, st, hist = []) {
   const durTxt = recSec < 600 ? Math.floor(recSec / 60) + ' min ' + String(Math.round(recSec % 60)).padStart(2, '0') + ' s' : durShort(recSec);
   let summ = `${ctxL ? `${esc(ctxL)}${posL ? ', ' + esc(posL.toLowerCase()) : ''}` : 'Recording'}, <b>${durTxt}</b> of ECG${pausedSec > 1 ? ` (paused ${durShort(pausedSec)})` : ''}${lostSec > 1 ? `; signal unavailable for ${durShort(lostSec)}` : ''}. `;
   summ += `Mean heart rate <b>${fmt(A.meanHR)} bpm</b> (${fmt(A.minHR.v)}–${fmt(A.maxHR.v)} bpm) across ${fmt(A.beats)} beats. `;
-  summ += isTraining && X.ER ? `${esc(TRAIN_TYPES[X.tt])}. Peak <b>${fmt(X.ER.peak20)} bpm</b> (20-s mean; ${fmt(100 * X.ER.peak20 / X.WM.v)} % of working maximum ${fmt(X.WM.v)} bpm). ${X.ER.end != null && isFinite(X.ER.hrr60) ? `Recovery ${fmt(X.ER.hrr60)} bpm in the first minute (${X.rec}). ` : 'Recovery not measured. '}` : `RMSSD <b>${fmt(A.rmssd, 1)} ms</b>, SDNN ${fmt(A.sdnn, 1)} ms${A.breath ? `, breathing ${fmt(A.breath.median, 1)}/min` : ''}. `;
+  summ += O ? `Orthostatic test: lying <b>${fmt(O.lieHR)} bpm</b>, peak ${fmt(O.peakHR)} bpm on standing, then <b>${fmt(O.standHR)} bpm</b> standing (+${fmt(O.sustained)} bpm). ` : isTraining && X.ER ? `${esc(TRAIN_TYPES[X.tt])}. Peak <b>${fmt(X.ER.peak20)} bpm</b> (20-s mean; ${fmt(100 * X.ER.peak20 / X.WM.v)} % of working maximum ${fmt(X.WM.v)} bpm). ${X.ER.end != null && isFinite(X.ER.hrr60) ? `Recovery ${fmt(X.ER.hrr60)} bpm in the first minute (${X.rec}). ` : 'Recovery not measured. '}` : `RMSSD <b>${fmt(A.rmssd, 1)} ms</b>, SDNN ${fmt(A.sdnn, 1)} ms${A.breath ? `, breathing ${fmt(A.breath.median, 1)}/min` : ''}. `;
   summ += nEv ? `<b>${nEv} ectopic ${nEv === 1 ? 'event' : 'events'}</b> (${fmt(evPct, 2)} % of beats). ` : 'No ectopic beats detected. ';
   summ += A.pauses.length ? `<b>${A.pauses.length} ${A.pauses.length === 1 ? 'pause' : 'pauses'} over 2 s</b>, longest ${(longP.ms / 1000).toFixed(2)} s at ${clock(longP.time)}. ` : 'No pauses over 2 s. ';
   summ += outs.length ? `Outside the normal range: ${outs.map(m => m.label).join(', ')}.` : 'All other graded values are within or better than the normal range.';
@@ -2433,6 +2537,16 @@ function renderReport(A, meta0, st, hist = []) {
       : X.tt === 'lthr' && X.lt ? kpi('Threshold HR (LTHR)', X.lt.valid ? fmt(X.lt.lthr) : '—', X.lt.valid ? 'bpm' : '', X.lt.valid ? chip('info', 'Last 20 min of 30') : chip('info', 'Test too short'), `effort ${fmt(X.lt.effortMin)} min`)
       : kpi('Time ≥ 80 % max', durShort(hi80).split(' ')[0], durShort(hi80).split(' ').slice(1).join(' '), chip('info', 'Anaerobic + maximum'), '≥ ' + A.zones[3].bpmLo + ' bpm');
     tiles = [first, peakTile, recTile, maxTile, kpi('QTc', fmt(G.qtc && G.qtc.frid ? A.qtcF : A.qtc), 'ms', gc('qtc'), (G.qtc && G.qtc.frid ? 'Fridericia' : 'Bazett') + ' · ref ' + R.qtc[0] + '–' + R.qtc[1]), rhythmTile];
+  } else if (meta.ctx === 'ortho') {
+    const usual = (k, d = 0) => B[k] ? 'usual ' + fmt(B[k].m, d) : '';
+    tiles = O ? [
+      kpi('Lying heart rate', fmt(O.lieHR), 'bpm', chip('info', 'Last 2 min lying'), usual('oLie') || 'before standing'),
+      kpi('Peak on standing', fmt(O.peakHR), 'bpm', chip('info', fmt(O.peakT - O.st) + ' s after standing'), '+' + fmt(O.rise) + ' bpm from lying'),
+      kpi('Rise when standing', '+' + fmt(O.sustained), 'bpm', gc('ortho'), (usual('oRise') ? usual('oRise') + ' · ' : '') + 'settled at ' + fmt(O.standHR) + ' bpm'),
+      kpi('RMSSD lying', fmt(O.rmssdLie, 1), 'ms', chip('info', 'standing ' + fmt(O.rmssdStand, 1) + ' ms'), usual('oRmssd') || 'beat-to-beat variation'),
+      kpi('30:15 ratio', isFinite(O.r3015) ? O.r3015.toFixed(2) : '—', '', chip('info', 'Heart-rate reflex'), 'beat 30 / beat 15 after standing'),
+      rhythmTile]
+      : [kpi('Orthostatic test', '—', '', chip('info', 'Test incomplete'), 'see the results page'), kpi('Mean heart rate', fmt(A.meanHR), 'bpm', chip('info', 'Whole recording'), 'range ' + fmt(A.minHR.v) + '–' + fmt(A.maxHR.v)), rhythmTile];
   } else if (isMed) {
     tiles = [
       kpi('Breathing rate', A.breath ? fmt(A.breath.median, 1) : '—', '/min', gc('br'), A.breath ? 'range ' + fmt(A.breath.lo, 1) + '–' + fmt(A.breath.hi, 1) : 'not estimated'),
@@ -2451,6 +2565,7 @@ function renderReport(A, meta0, st, hist = []) {
       rhythmTile];
   }
   const baseCharts = B.pts && B.pts.length >= 2 ? (isTraining ? `<div class="cols2"><div class="fig"><div class="cap">Peak heart rate, recent ${esc(CTX.training.short.toLowerCase())} sessions</div>${trendChart(B, 'peak', 'bpm')}</div><div class="fig"><div class="cap">1-minute recovery (bpm)</div>${trendChart(B, 'hrr60', 'bpm')}</div></div>`
+    : meta.ctx === 'ortho' ? `<div class="cols2"><div class="fig"><div class="cap">Lying heart rate (bpm), recent tests</div>${trendChart(B, 'oLie', 'bpm')}</div><div class="fig"><div class="cap">Rise when standing (bpm)</div>${trendChart(B, 'oRise', 'bpm')}</div></div>`
     : isMed ? `<div class="cols2"><div class="fig"><div class="cap">Breathing rate (/min)</div>${trendChart(B, 'br', '/min', 1)}</div><div class="fig"><div class="cap">Breathing-linked HRV (%)</div>${trendChart(B, 'brShare', '%')}</div></div>`
     : `<div class="cols2"><div class="fig"><div class="cap">RMSSD (ms) · green band = your usual range</div>${trendChart(B, 'rmssd', 'ms')}</div><div class="fig"><div class="cap">Mean heart rate (bpm) · green band = usual ±1 SD</div>${trendChart(B, 'hr', 'bpm')}</div></div>`) : '';
   const tags = `<div class="ctxline">${ctxL ? `<span class="tag ac">${esc(ctxL)}</span>` : '<span class="tag">Context not set</span>'}${posL ? `<span class="tag">${esc(posL)}</span>` : '<span class="tag">Position not set</span>'}${age ? `<span class="tag">Age ${age}</span>` : ''}${sex ? `<span class="tag">${sex === 'M' ? 'Male' : 'Female'}</span>` : ''}</div>`;
@@ -2461,13 +2576,14 @@ function renderReport(A, meta0, st, hist = []) {
       <div class="when">${date} · <span class="mono">${clock(0)} – ${clock(A.dur)}</span></div>${tags}${meta.notes ? `<div class="notes-p"><b>Notes</b>${esc(String(meta.notes).slice(0, 200))}</div>` : ''}</div>
       <div class="who">${name ? `<b>${name}</b>` : ''}<span>${esc(meta.device || 'Polar H10')}${meta.fw ? ' · fw ' + esc(meta.fw) : ''}${meta.battery != null ? ' · battery ' + meta.battery + '%' : ''}</span><span>HRV source: ${srcTxt}</span></div></div>
     ${meta.sample ? '<div class="summary" style="background:var(--p-warn-soft)"><b>Sample report.</b> Generated from a synthetic ECG and synthetic history to illustrate the layout. It is not a recording of any person.</div>' : ''}
+    ${meta.ctx === 'spot' ? '<div class="summary spot-box"><b>Spot check.</b> If you have chest pain or pressure, fainting, severe shortness of breath, or a racing or very irregular heartbeat with dizziness, call emergency services now; do not wait for this report. Otherwise, this report shows your heart rhythm during these minutes only. It cannot diagnose or rule out any condition.</div>' : ''}
     <div class="summary">${summ}</div>
     <div class="kpis k6">${tiles.join('')}</div>
-    <div class="base"><div class="verdict"><h3>Personal baseline${B.state === 'ready' ? (isTraining ? ` · ${esc(TRAIN_TYPES[X.tt])} · ${esc(X.rec)} recovery` : ` · ${esc(CTX[meta.ctx].short)} · ${esc(POS[meta.pos].short)}`) : ''}</h3>${C.verdict ? chip(C.verdict[0] === 'out' ? 'low' : C.verdict[0], C.verdict[1]) : ''}</div>
+    <div class="base"><div class="verdict"><h3>Personal baseline${B.state === 'ready' ? (isTraining ? ` · ${esc(TRAIN_TYPES[X.tt])} · ${esc(X.rec)} recovery` : ` · ${esc(meta.ctx === 'spot' ? CTX.rest.short : CTX[meta.ctx].short)}${meta.pos && POS[meta.pos] && meta.ctx !== 'ortho' ? ' · ' + esc(POS[meta.pos].short) : ''}`) : ''}</h3>${C.verdict ? chip(C.verdict[0] === 'out' ? 'low' : C.verdict[0], C.verdict[1]) : ''}</div>
       ${C.paras.map(p => `<p>${p}</p>`).join('')}${baseCharts}</div>`);
 
   /* ---- plain-language page(s) ---- */
-  const order = ['hr', 'rmssd', 'sdnn', 'br', 'coupling', 'dfa', 'ramp', 'lthr', 'intervals', 'tempo', 'peak', 'maxhr', 'hrr', 'ect', 'pause', 'qtc', 'qrs', 't', 'j', 'quality'].filter(k => G[k]);
+  const order = ['ortho', 'hr', 'rmssd', 'sdnn', 'br', 'coupling', 'dfa', 'ramp', 'lthr', 'intervals', 'tempo', 'peak', 'maxhr', 'hrr', 'ect', 'pause', 'qtc', 'qrs', 't', 'j', 'quality'].filter(k => G[k]);
   const card = k => { const x = G[k]; return `<div class="pl-card g-${x.g}"><div class="pl-top"><b>${x.title}</b><span class="pl-val">${x.value}</span></div>${gchip(x.g)}<p class="pl-what">${x.what}</p><p>${x.text}</p></div>`; };
   const legend = `<div class="pl-legend">${['fav', 'norm', 'bord', 'out', 'na'].map(g => gchip(g)).join('')}</div>`;
   const help = `<div class="pl-help"><b>When to seek medical help.</b> Whatever this report shows, seek urgent care for chest pain or pressure, fainting, severe shortness of breath, or a racing or very irregular heartbeat with dizziness. This report is for general wellness and education only: it cannot diagnose or rule out any condition. For any health concern, see a doctor rather than relying on this report. The pages that follow give the detailed measurements.</div>`;
@@ -2558,6 +2674,14 @@ function renderReport(A, meta0, st, hist = []) {
       <h3 class="zh">Zones by maximum heart rate · working max ${fmt(W.v)} bpm (${esc(W.label.toLowerCase())})</h3>
       <table class="ev"><thead><tr><th>Zone</th><th>% max</th><th>Heart rate</th><th>Time</th></tr></thead><tbody>${zRows(X.zonesPct)}</tbody></table>`);
   }
+
+  /* ---- orthostatic test page ---- */
+  if (meta.ctx === 'ortho' && X.ortho) { const o = X.ortho, kvT = (l, v, sub) => `<div class="kv"><span>${l}${sub ? `<small>${sub}</small>` : ''}</span><b>${v}</b></div>`;
+    page(`<div class="sec-h"><h2>Orthostatic test</h2><span>Lie still 3 min, then stand still 3 min${o.src === 'detected' ? ' · stand found from heart rate' : ''}</span></div>
+      ${o.valid ? `<div class="fig">${orthoChart(A, o, startMs)}<div class="cap">Heart rate (5-s means). Shaded: the 2 minutes lying and the last minute standing that the results use; dashed line: standing up.</div></div>
+      <div class="cols2"><div class="panel"><h3>Result</h3>${kvT('Lying heart rate', fmt(o.lieHR) + ' bpm', 'last 2 minutes before standing')}${kvT('Peak on standing', fmt(o.peakHR) + ' bpm', fmt(o.peakT - o.st) + ' s after standing (5-s mean)')}${kvT('Standing heart rate', fmt(o.standHR) + ' bpm', 'last minute of standing')}${kvT('Rise when standing', '+' + fmt(o.sustained) + ' bpm', 'standing minus lying')}${kvT('RMSSD lying / standing', fmt(o.rmssdLie, 1) + ' / ' + fmt(o.rmssdStand, 1) + ' ms', 'beat-to-beat variation')}${kvT('30:15 ratio', isFinite(o.r3015) ? o.r3015.toFixed(2) : '—', 'longest interval near beat 30 ÷ shortest near beat 15')}</div>
+      <div class="panel"><h3>How to read it</h3><p class="note-p" style="margin:0">Standing up pools blood in the legs. Your heart rate jumps within about 10–20 seconds, then settles, usually 10–20 bpm above lying. Athletes use this test on waking to check recovery: compared with your own usual values, a higher lying heart rate, a larger rise or lower lying HRV can mean you have not recovered from training, illness, poor sleep or stress. The 30:15 ratio reflects how briskly heart rate rebounds after the first jump; values of about 1.04 or more are usual in healthy adults, and it falls with age. A rise of 30 bpm or more that lasts while standing, especially with dizziness, is worth mentioning to a doctor.</p></div></div>`
+      : `<div class="panel"><h3>Test incomplete</h3><p class="note-p" style="margin:0">${ORTHO_WHY[o.reason] || ORTHO_WHY.short}</p></div>`}`); }
 
   /* ---- page 2: measurements ---- */
   page(`
@@ -2688,7 +2812,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.6.5 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.7.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* ---------- Android app (Capacitor) ----------
@@ -2904,10 +3028,10 @@ function cleanMeta(m) {
     pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && num(p.t1) != null && p.t1 >= p.t0).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
-    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), plan: cleanPlan(m.plan)
+    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), plan: cleanPlan(m.plan), standMark: num(m.standMark)
   };
 }
-const HNUM = ['start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
+const HNUM = ['oLie', 'oRise', 'oRmssd', 'oPeak', 'start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
 function cleanHistory(x) {
   if (!x || typeof x !== 'object' || num(x.start) == null) return null;
   const o = { id: str(x.id, 80), ctx: own(CTX, x.ctx), pos: own(POS, x.pos), src: x.src === 'h10' ? 'h10' : 'ecg', notes: str(x.notes, 200),
@@ -2966,7 +3090,14 @@ function planUI(x, plan, onChange) {   // x = '' (recording setup) or '2' (repor
   return () => sel.k === 'auto' ? null : sel.k === 'custom' ? cleanPlan({ w: $('#pW' + x).value, r: $('#pR' + x).value, n: $('#pN' + x).value }) : PLANS[sel.k];
 }
 let getPlanSetup = () => null;
+const CTX_HINTS = {
+  ortho: 'Lie on your back and keep still. After 3 minutes the app beeps: stand up straight away and stand still, without leaning, for 3 more minutes. It stops by itself after 6 minutes. Best on waking, before caffeine, the same way each time.',
+  spot: 'Record for at least 2 minutes, ideally while you still feel it, and describe what you felt in Session notes. If you have chest pain or pressure, fainting, severe shortness of breath, or a racing heartbeat that won\u2019t settle, call emergency services instead of recording.'
+};
 function showTrainOpts() {
+  $('#ctxHint').hidden = !CTX_HINTS[S.ctx]; $('#ctxHint').textContent = CTX_HINTS[S.ctx] || '';
+  $('#posField').hidden = !!(CTX[S.ctx] && CTX[S.ctx].noPos);
+  $('.setup .auto').hidden = $('#autoHint').hidden = S.ctx === 'ortho';   // the test stops itself after 6 minutes
   $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || '';
   $('#planField').hidden = S.ttSel !== 'intervals';
 }
@@ -3310,7 +3441,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: S.pos, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -3321,7 +3452,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
   Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
-  S.autoMin = $('#autoOn').checked ? S.autoMinSel : 0;
+  S.autoMin = S.ctx === 'ortho' ? 6 : $('#autoOn').checked ? S.autoMinSel : 0;   // the orthostatic test is 3 min lying + 3 min standing
+  S.standMark = null; S.orthoWarned = false;
   S.notes = str($('#notesIn').value.trim(), 200);
   S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
@@ -3337,9 +3469,9 @@ async function startRecording() {
   if (NATIVE) LeadOneNative.recording(true, 'Recording ECG. It continues with the screen off.');   // foreground service: keeps recording with the screen off
   $('#notesIn').value = ''; upNotes();
   $('#recBatt').textContent = S.battery != null ? S.battery + '%' : '--';
-  $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
+  $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && !(CTX[S.ctx] && CTX[S.ctx].noPos) && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
   $('#btnRecov').hidden = S.ctx !== 'training'; $('#btnRecov').disabled = false; $('#btnRecov').textContent = 'Start recovery';
-  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa'); $('#stepPanel').classList.remove('go');
+  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa' || S.ctx === 'ortho'); $('#stepPanel').classList.remove('go');
   $('#a1Live').hidden = S.trainType !== 'dfa'; S.a1 = null; S.a1At = 0; $('#a1Val').textContent = '—'; $('#a1Msg').textContent = 'α1 appears after 2 minutes';
   if (S.trainType) $('#recCtx').textContent += ' · ' + TRAIN_TYPES[S.trainType] + ' · ' + (S.recovery === 'passive' ? 'passive' : 'active') + ' recovery';
   setPausedUI(false); show('scrRec'); tickRec(); requestAnimationFrame(drawLive);
@@ -3406,7 +3538,16 @@ function liveAlpha1(el) {
   const a = dfaAlpha1(x); if (!isFinite(a)) return; S.a1 = a; val.textContent = a.toFixed(2);
   msg.textContent = a > 0.75 ? 'below aerobic threshold (above 0.75)' : a > 0.5 ? 'between the thresholds (0.75 to 0.5)' : 'past the anaerobic threshold: you can stop when ready';
 }
+function tickOrtho() {   // orthostatic test: lie 3 min, a strong cue to stand, stand 3 min
+  const el = S.total / FS, P = $('#stepPanel'), left = 180 - el;
+  if (left <= 10.5 && left > 0 && !S.orthoWarned) { S.orthoWarned = true; cue(false); }
+  if (el >= 180 && S.standMark == null) { S.standMark = 180; cue(true); S.goUntil = Date.now() + 8000; putSession(sessionMeta('recording')); }
+  const go = Date.now() < (S.goUntil || 0); P.classList.toggle('go', go);
+  if (S.standMark == null) { $('#spLabel').textContent = 'Lie still'; $('#spStep').textContent = '1'; $('#spCount').textContent = ms2(left); $('#spMsg').textContent = left <= 10.5 ? 'get ready to stand' : 'until you stand up'; }
+  else { $('#spLabel').textContent = 'Stand still'; $('#spStep').textContent = '2'; $('#spCount').textContent = go ? 'STAND' : ms2(Math.max(0, 360 - el)); $('#spMsg').textContent = go ? 'stand up now, then keep still' : 'until the test ends'; }
+}
 function tickTraining() {
+  if (S.ctx === 'ortho' && !$('#stepPanel').hidden) { tickOrtho(); return; }
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = S.total / FS, P = $('#stepPanel');
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
@@ -3499,7 +3640,8 @@ function historyEntry(A, meta) {
     ect: A.ectopicBeats, beats: A.beats, src: A.hrvSource, trainType: meta.ctx === 'training' ? (meta.trainType || 'session') : '', recovery: meta.recovery || '',
     ...(meta.ctx === 'training' && meta.trainType === 'ramp' ? (r => ({ rampMax: r.max, rampPlateau: r.plateau && r.valid }))(rampTest(A, A.exercise)) : {}),
     ...(meta.ctx === 'training' && meta.trainType === 'lthr' ? (r => ({ lthr: r.lthr, lthrValid: r.valid }))(lthrTest(A, A.exercise)) : {}),
-    ...(meta.ctx === 'training' && (meta.trainType === 'dfa' || meta.trainType === 'ramp') ? (r => r.valid ? { hrvt1: r.vt1, hrvt2: isFinite(r.vt2) ? r.vt2 : null } : {})(dfaTest(A, A.exercise)) : {})
+    ...(meta.ctx === 'training' && (meta.trainType === 'dfa' || meta.trainType === 'ramp') ? (r => r.valid ? { hrvt1: r.vt1, hrvt2: isFinite(r.vt2) ? r.vt2 : null } : {})(dfaTest(A, A.exercise)) : {}),
+    ...(meta.ctx === 'ortho' ? (o => o.valid ? { oLie: o.lieHR, oRise: o.sustained, oRmssd: o.rmssdLie, oPeak: o.peakHR } : {})(orthoTest(A, meta.standMark)) : {})
   };
 }
 async function runReport(raw, meta) {
@@ -3579,7 +3721,7 @@ function saveRecordingFile() {
   downloadFile('LeadOne-ECG-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()) + '.json',
     JSON.stringify({ format: 'lead-one-ecg', version: 3, fs: FS, id: m.id, start: m.start, ctx: m.ctx, pos: m.pos, notes: m.notes || '', device: m.device, fw: m.fw, battery: m.battery,
       gap: m.gap, paused: m.paused, pauses: m.pauses, rr: m.rr, gapMarker: GAP, samples: btoa(bin),
-      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, plan: m.plan || null,
+      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, plan: m.plan || null, standMark: m.standMark,
       accFs: m._acc ? m._acc.fs : 0, accT0: m._acc ? m._acc.t0 : 0, acc: m._acc ? b64(new Uint8Array(m._acc.data.buffer, m._acc.data.byteOffset, m._acc.data.byteLength)) : '' }));
 }
 async function openFile(file) {
@@ -3674,10 +3816,10 @@ for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runS
 function runSample(kind) {
   const d = new Date(); d.setDate(d.getDate() - 1);
   const cfg = { rest: [5, 30, 2, 46, 'morning', 'lying', 'rest'], training: [17, 10, 0, 35, 'training', 'walking', 'intervals', 'intervals', 'passive'], tempo: [7, 0, 0, 36, 'training', 'walking', 'tempo', 'tempo', 'active'], ramp: [17, 40, 0, 31, 'training', 'walking', 'ramp', 'ramp', 'passive', 1530], dfa: [9, 0, 0, 33, 'training', 'walking', 'dfa', 'dfa', 'active', 1800],
-    meditation: [20, 15, 0, 10, 'meditation', 'seated', 'meditation'] }[kind];
+    meditation: [20, 15, 0, 10, 'meditation', 'seated', 'meditation'], ortho: [6, 40, 0, 6, 'ortho', '', 'ortho'] }[kind];
   d.setHours(cfg[0], cfg[1], cfg[2], 0);
   const demo = makeDemo(cfg[3], 7, cfg[6]);
-  runReport(demo.raw, { id: 'sample-' + kind, start: d.getTime(), ctx: cfg[4], pos: cfg[5], trainType: cfg[7] || '', recovery: cfg[8] || '', recMark: cfg[9], device: 'Polar H10', fw: '5.0.0', battery: 80, rr: demo.rr, _acc: demo.acc, sample: true });
+  runReport(demo.raw, { id: 'sample-' + kind, start: d.getTime(), ctx: cfg[4], pos: cfg[5], trainType: cfg[7] || '', recovery: cfg[8] || '', recMark: cfg[9], standMark: kind === 'ortho' ? 180 : null, device: 'Polar H10', fw: '5.0.0', battery: 80, rr: demo.rr, _acc: demo.acc, sample: true });
 }
 window.addEventListener('beforeunload', e => { if (S.recording) { e.preventDefault(); e.returnValue = ''; } });
 

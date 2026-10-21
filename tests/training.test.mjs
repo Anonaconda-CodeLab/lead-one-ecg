@@ -169,3 +169,25 @@ test('interval plan: rounds end at Start recovery; heart rate per round', async 
   const short = L.planWork(A, A.exercise, { w: 20, r: 10, n: 200 }, 60);
   assert.ok(short.clipped && short.t0 === 0, 'a plan longer than the recording is clipped, not shifted');
 });
+
+test('orthostatic test: lying, peak and standing heart rate, with and without the stand cue', async () => {
+  const d = L.makeDemo(6, 7, 'ortho'), A = await L.analyze(d.raw, { age: 50, rr: d.rr, acc: d.acc });
+  for (const mark of [180, undefined]) {
+    const o = L.orthoTest(A, mark);
+    assert.ok(o.valid, 'valid'); assert.equal(o.src, mark ? 'cue' : 'detected'); near(o.st, 180, 6, 'stand time');
+    near(o.lieHR, 57, 2, 'lying'); near(o.standHR, 70, 3, 'standing'); assert.ok(o.peakHR > o.standHR + 5, 'peak above standing');
+    assert.ok(o.rmssdStand < o.rmssdLie, 'HRV lower standing'); assert.ok(o.r3015 > 1, '30:15 ratio');
+  }
+  const r = L.makeDemo(6, 3, 'rest'), B = await L.analyze(r.raw, { age: 50, rr: r.rr, acc: r.acc });
+  assert.equal(L.orthoTest(B, undefined).reason, 'nostand', 'a resting recording has no stand');
+});
+
+test('orthostatic and spot-check reports', async () => {
+  const st = { sex: 'M', dob: '1970-01-01' }, start = Date.now() - 864e5;
+  const d = L.makeDemo(6, 7, 'ortho'), A = await L.analyze(d.raw, { age: 50, rr: d.rr, acc: d.acc });
+  const h = L.renderReport(A, { start, ctx: 'ortho', pos: 'seated', standMark: 180 }, st, []);
+  assert.ok(h.includes('Lying, then standing') && h.includes('Rise when standing') && h.includes('<h2>Orthostatic test</h2>'));
+  const r = L.makeDemo(5, 3, 'rest'), B = await L.analyze(r.raw, { age: 50, rr: r.rr, acc: r.acc });
+  const s = L.renderReport(B, { start, ctx: 'spot', pos: 'seated' }, st, []);
+  assert.ok(s.includes('call emergency services now') && s.includes('cannot rule anything out'), 'spot-check safety wording');
+});

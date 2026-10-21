@@ -67,9 +67,19 @@ the reports is optional. You can change all of this later with the **settings ic
 
 ## Making a recording
 1. Tap **Connect H10** and choose your strap from the list. The dot turns green when it is connected.
-2. Optionally choose a **recording context** (Morning baseline, Training, Evening, Meditation, Sleep, General rest) and a
-   **body position** (Lying, Seated, Standing, Walking / moving). These matter more than they look: see
-   *Your personal baseline* below.
+2. Optionally choose a **recording context** (Morning baseline, Orthostatic test, Training, Evening, Meditation, Sleep,
+   General rest, Spot check) and a **body position** (Lying, Seated, Standing, Walking / moving). These matter more than
+   they look: see *Your personal baseline* below.
+   - **Orthostatic test**: a 6-minute recovery check, best on waking. Lie on your back and keep still. After 3 minutes the
+     app beeps and vibrates: stand up straight away and stand still, without leaning, until it stops by itself at 6
+     minutes. The report shows your lying heart rate, the peak on standing, how far heart rate stays raised, and lying and
+     standing HRV. After 3 tests it compares each one with your usual values: a higher lying heart rate, a larger rise or
+     lower lying HRV than usual can mean you haven't recovered from training, illness, poor sleep or stress.
+   - **Spot check**: for when something felt off, such as a flutter or a skipped beat. Record for at least 2 minutes,
+     ideally while you still feel it, and describe what you felt in the notes. The report lists any extra beats and pauses
+     and compares the reading with your General rest readings. It cannot tell what caused how you felt and cannot rule
+     anything out. **If you have chest pain or pressure, fainting, severe shortness of breath, or a racing heartbeat that
+     won't settle, call emergency services instead of recording.**
 3. Optionally add **session notes** (up to 200 characters), such as "after lunch" or "slept 5 hours".
 4. Optionally turn on **Auto-stop** and choose a duration (1, 2 or 2.5 minutes, then in 5-minute steps). With Auto-stop off,
    the recording runs until you stop it, up to 8 hours.

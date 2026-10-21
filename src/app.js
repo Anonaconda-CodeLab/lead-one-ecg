@@ -86,10 +86,10 @@ function cleanMeta(m) {
     pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && num(p.t1) != null && p.t1 >= p.t0).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
-    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), plan: cleanPlan(m.plan)
+    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), plan: cleanPlan(m.plan), standMark: num(m.standMark)
   };
 }
-const HNUM = ['start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
+const HNUM = ['oLie', 'oRise', 'oRmssd', 'oPeak', 'start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
 function cleanHistory(x) {
   if (!x || typeof x !== 'object' || num(x.start) == null) return null;
   const o = { id: str(x.id, 80), ctx: own(CTX, x.ctx), pos: own(POS, x.pos), src: x.src === 'h10' ? 'h10' : 'ecg', notes: str(x.notes, 200),
@@ -148,7 +148,14 @@ function planUI(x, plan, onChange) {   // x = '' (recording setup) or '2' (repor
   return () => sel.k === 'auto' ? null : sel.k === 'custom' ? cleanPlan({ w: $('#pW' + x).value, r: $('#pR' + x).value, n: $('#pN' + x).value }) : PLANS[sel.k];
 }
 let getPlanSetup = () => null;
+const CTX_HINTS = {
+  ortho: 'Lie on your back and keep still. After 3 minutes the app beeps: stand up straight away and stand still, without leaning, for 3 more minutes. It stops by itself after 6 minutes. Best on waking, before caffeine, the same way each time.',
+  spot: 'Record for at least 2 minutes, ideally while you still feel it, and describe what you felt in Session notes. If you have chest pain or pressure, fainting, severe shortness of breath, or a racing heartbeat that won\u2019t settle, call emergency services instead of recording.'
+};
 function showTrainOpts() {
+  $('#ctxHint').hidden = !CTX_HINTS[S.ctx]; $('#ctxHint').textContent = CTX_HINTS[S.ctx] || '';
+  $('#posField').hidden = !!(CTX[S.ctx] && CTX[S.ctx].noPos);
+  $('.setup .auto').hidden = $('#autoHint').hidden = S.ctx === 'ortho';   // the test stops itself after 6 minutes
   $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || '';
   $('#planField').hidden = S.ttSel !== 'intervals';
 }
@@ -492,7 +499,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: S.pos, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -503,7 +510,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
   Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
-  S.autoMin = $('#autoOn').checked ? S.autoMinSel : 0;
+  S.autoMin = S.ctx === 'ortho' ? 6 : $('#autoOn').checked ? S.autoMinSel : 0;   // the orthostatic test is 3 min lying + 3 min standing
+  S.standMark = null; S.orthoWarned = false;
   S.notes = str($('#notesIn').value.trim(), 200);
   S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
@@ -519,9 +527,9 @@ async function startRecording() {
   if (NATIVE) LeadOneNative.recording(true, 'Recording ECG. It continues with the screen off.');   // foreground service: keeps recording with the screen off
   $('#notesIn').value = ''; upNotes();
   $('#recBatt').textContent = S.battery != null ? S.battery + '%' : '--';
-  $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
+  $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && !(CTX[S.ctx] && CTX[S.ctx].noPos) && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
   $('#btnRecov').hidden = S.ctx !== 'training'; $('#btnRecov').disabled = false; $('#btnRecov').textContent = 'Start recovery';
-  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa'); $('#stepPanel').classList.remove('go');
+  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa' || S.ctx === 'ortho'); $('#stepPanel').classList.remove('go');
   $('#a1Live').hidden = S.trainType !== 'dfa'; S.a1 = null; S.a1At = 0; $('#a1Val').textContent = '—'; $('#a1Msg').textContent = 'α1 appears after 2 minutes';
   if (S.trainType) $('#recCtx').textContent += ' · ' + TRAIN_TYPES[S.trainType] + ' · ' + (S.recovery === 'passive' ? 'passive' : 'active') + ' recovery';
   setPausedUI(false); show('scrRec'); tickRec(); requestAnimationFrame(drawLive);
@@ -588,7 +596,16 @@ function liveAlpha1(el) {
   const a = dfaAlpha1(x); if (!isFinite(a)) return; S.a1 = a; val.textContent = a.toFixed(2);
   msg.textContent = a > 0.75 ? 'below aerobic threshold (above 0.75)' : a > 0.5 ? 'between the thresholds (0.75 to 0.5)' : 'past the anaerobic threshold: you can stop when ready';
 }
+function tickOrtho() {   // orthostatic test: lie 3 min, a strong cue to stand, stand 3 min
+  const el = S.total / FS, P = $('#stepPanel'), left = 180 - el;
+  if (left <= 10.5 && left > 0 && !S.orthoWarned) { S.orthoWarned = true; cue(false); }
+  if (el >= 180 && S.standMark == null) { S.standMark = 180; cue(true); S.goUntil = Date.now() + 8000; putSession(sessionMeta('recording')); }
+  const go = Date.now() < (S.goUntil || 0); P.classList.toggle('go', go);
+  if (S.standMark == null) { $('#spLabel').textContent = 'Lie still'; $('#spStep').textContent = '1'; $('#spCount').textContent = ms2(left); $('#spMsg').textContent = left <= 10.5 ? 'get ready to stand' : 'until you stand up'; }
+  else { $('#spLabel').textContent = 'Stand still'; $('#spStep').textContent = '2'; $('#spCount').textContent = go ? 'STAND' : ms2(Math.max(0, 360 - el)); $('#spMsg').textContent = go ? 'stand up now, then keep still' : 'until the test ends'; }
+}
 function tickTraining() {
+  if (S.ctx === 'ortho' && !$('#stepPanel').hidden) { tickOrtho(); return; }
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = S.total / FS, P = $('#stepPanel');
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
@@ -681,7 +698,8 @@ function historyEntry(A, meta) {
     ect: A.ectopicBeats, beats: A.beats, src: A.hrvSource, trainType: meta.ctx === 'training' ? (meta.trainType || 'session') : '', recovery: meta.recovery || '',
     ...(meta.ctx === 'training' && meta.trainType === 'ramp' ? (r => ({ rampMax: r.max, rampPlateau: r.plateau && r.valid }))(rampTest(A, A.exercise)) : {}),
     ...(meta.ctx === 'training' && meta.trainType === 'lthr' ? (r => ({ lthr: r.lthr, lthrValid: r.valid }))(lthrTest(A, A.exercise)) : {}),
-    ...(meta.ctx === 'training' && (meta.trainType === 'dfa' || meta.trainType === 'ramp') ? (r => r.valid ? { hrvt1: r.vt1, hrvt2: isFinite(r.vt2) ? r.vt2 : null } : {})(dfaTest(A, A.exercise)) : {})
+    ...(meta.ctx === 'training' && (meta.trainType === 'dfa' || meta.trainType === 'ramp') ? (r => r.valid ? { hrvt1: r.vt1, hrvt2: isFinite(r.vt2) ? r.vt2 : null } : {})(dfaTest(A, A.exercise)) : {}),
+    ...(meta.ctx === 'ortho' ? (o => o.valid ? { oLie: o.lieHR, oRise: o.sustained, oRmssd: o.rmssdLie, oPeak: o.peakHR } : {})(orthoTest(A, meta.standMark)) : {})
   };
 }
 async function runReport(raw, meta) {
@@ -761,7 +779,7 @@ function saveRecordingFile() {
   downloadFile('{{FILE_PREFIX}}-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()) + '.json',
     JSON.stringify({ format: 'lead-one-ecg', version: 3, fs: FS, id: m.id, start: m.start, ctx: m.ctx, pos: m.pos, notes: m.notes || '', device: m.device, fw: m.fw, battery: m.battery,
       gap: m.gap, paused: m.paused, pauses: m.pauses, rr: m.rr, gapMarker: GAP, samples: btoa(bin),
-      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, plan: m.plan || null,
+      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, plan: m.plan || null, standMark: m.standMark,
       accFs: m._acc ? m._acc.fs : 0, accT0: m._acc ? m._acc.t0 : 0, acc: m._acc ? b64(new Uint8Array(m._acc.data.buffer, m._acc.data.byteOffset, m._acc.data.byteLength)) : '' }));
 }
 async function openFile(file) {
@@ -856,10 +874,10 @@ for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runS
 function runSample(kind) {
   const d = new Date(); d.setDate(d.getDate() - 1);
   const cfg = { rest: [5, 30, 2, 46, 'morning', 'lying', 'rest'], training: [17, 10, 0, 35, 'training', 'walking', 'intervals', 'intervals', 'passive'], tempo: [7, 0, 0, 36, 'training', 'walking', 'tempo', 'tempo', 'active'], ramp: [17, 40, 0, 31, 'training', 'walking', 'ramp', 'ramp', 'passive', 1530], dfa: [9, 0, 0, 33, 'training', 'walking', 'dfa', 'dfa', 'active', 1800],
-    meditation: [20, 15, 0, 10, 'meditation', 'seated', 'meditation'] }[kind];
+    meditation: [20, 15, 0, 10, 'meditation', 'seated', 'meditation'], ortho: [6, 40, 0, 6, 'ortho', '', 'ortho'] }[kind];
   d.setHours(cfg[0], cfg[1], cfg[2], 0);
   const demo = makeDemo(cfg[3], 7, cfg[6]);
-  runReport(demo.raw, { id: 'sample-' + kind, start: d.getTime(), ctx: cfg[4], pos: cfg[5], trainType: cfg[7] || '', recovery: cfg[8] || '', recMark: cfg[9], device: 'Polar H10', fw: '5.0.0', battery: 80, rr: demo.rr, _acc: demo.acc, sample: true });
+  runReport(demo.raw, { id: 'sample-' + kind, start: d.getTime(), ctx: cfg[4], pos: cfg[5], trainType: cfg[7] || '', recovery: cfg[8] || '', recMark: cfg[9], standMark: kind === 'ortho' ? 180 : null, device: 'Polar H10', fw: '5.0.0', battery: 80, rr: demo.rr, _acc: demo.acc, sample: true });
 }
 window.addEventListener('beforeunload', e => { if (S.recording) { e.preventDefault(); e.returnValue = ''; } });
 

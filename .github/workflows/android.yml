@@ -44,7 +44,7 @@ jobs:
       - name: Require the release key
         run: |
           if [ ! -f mobile/android/app/build/outputs/apk/release/app-release.apk ]; then
-            echo "::error::The app compiled, but it is unsigned. Add the repository secrets STUDIO_KEYSTORE_B64, STUDIO_KEYSTORE_PASSWORD and STUDIO_KEY_ALIAS (Settings > Secrets and variables > Actions), then run this workflow again."
+            echo "::error::The app compiled, but it is unsigned. Add the repository secrets LEADONE_KEYSTORE_B64 and LEADONE_KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions), then run this workflow again."
             exit 1
           fi
       - name: Check the APK (no internet permission, signed)

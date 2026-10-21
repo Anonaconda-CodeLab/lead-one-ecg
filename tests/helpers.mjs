@@ -11,7 +11,7 @@ const code = ['core.js', 'report.js'].map(f => fill(readFileSync(join(root, 'src
 export function load() {
   const ctx = vm.createContext({ console, setTimeout, Date, Intl });
   vm.runInContext(code + `
-    ;globalThis.api = { planWork, dfaAlpha1, dfaTest, analyze, makeDemo, accBreathing, pmdSamples, gradeAll, overallVerdict, refsFor, ctxView, renderReport, FS, rampTest, lthrTest, zoneTime, exerciseResponse, rollingHR, PCT_ZONES, LTHR_ZONES, maxHrEstimate, ageFormulas, delineate, intervalWork, tempoWork };`, ctx);
+    ;globalThis.api = { orthoTest, planWork, dfaAlpha1, dfaTest, analyze, makeDemo, accBreathing, pmdSamples, gradeAll, overallVerdict, refsFor, ctxView, renderReport, FS, rampTest, lthrTest, zoneTime, exerciseResponse, rollingHR, PCT_ZONES, LTHR_ZONES, maxHrEstimate, ageFormulas, delineate, intervalWork, tempoWork };`, ctx);
   return ctx.api;
 }
 export const distHtml = () => readFileSync(join(root, 'dist', 'index.html'), 'utf8');

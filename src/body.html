@@ -89,8 +89,9 @@
 
     <div class="card setup">
       <div class="field"><label>Recording context <small class="opt">optional</small></label>
-        <div class="chips" id="ctxChips" role="radiogroup" aria-label="Recording context"></div></div>
-      <div class="field"><label>Body position <small class="opt">optional</small></label>
+        <div class="chips" id="ctxChips" role="radiogroup" aria-label="Recording context"></div>
+        <p class="dev-meta ctx-hint" id="ctxHint" hidden></p></div>
+      <div class="field" id="posField"><label>Body position <small class="opt">optional</small></label>
         <div class="chips" id="posChips" role="radiogroup" aria-label="Body position"></div></div>
       <div id="trainOpts" class="train-opts" hidden>
         <div class="field"><label>Training type</label><div class="chips" id="ttChips" role="radiogroup" aria-label="Training type"></div></div>
@@ -127,7 +128,7 @@
       <button id="btnHelp" class="row-btn"><span>User manual<small>How to record, read your report, and keep your data safe</small></span><span class="chev">›</span></button>
       <button id="btnOpen" class="row-btn"><span>Open a recording file<small>A file saved from this app, or a Polar Sensor Logger ECG export</small></span><span class="chev">›</span></button>
       <div class="row-btn" style="cursor:default"><span>Sample reports<small>Synthetic ECG, for previewing the report layout</small></span>
-        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="dfa">DFA-α1 test</button><button class="btn" data-demo="meditation">Meditation</button></span></div>
+        <span class="mini-acts"><button class="btn" data-demo="rest">Rest</button><button class="btn" data-demo="training">Training</button><button class="btn" data-demo="ramp">Max HR test</button><button class="btn" data-demo="dfa">DFA-α1 test</button><button class="btn" data-demo="meditation">Meditation</button><button class="btn" data-demo="ortho">Orthostatic test</button></span></div>
     </div>
     <input type="file" id="fileIn" accept=".json,.txt,application/json,text/plain,application/octet-stream,.csv,text/csv" hidden>
 
