@@ -87,3 +87,13 @@ test('link previews: canonical, Open Graph image, robots.txt and sitemap.xml', a
   assert.match(readFileSync(new URL('../dist/robots.txt', import.meta.url), 'utf8'), /Sitemap: https:\/\/leadone\.anonacondacodelab\.com\/sitemap\.xml/);
   assert.match(readFileSync(new URL('../dist/sitemap.xml', import.meta.url), 'utf8'), /<loc>https:\/\/leadone\.anonacondacodelab\.com\/<\/loc>/);
 });
+
+test('web app, Android package and Android build all carry the same version', async () => {
+  const { readFileSync } = await import('node:fs');
+  const r = f => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+  const v = JSON.parse(r('package.json')).version, [a, b, c] = v.split('.').map(Number);
+  assert.equal(JSON.parse(r('mobile/package.json')).version, v, 'mobile/package.json');
+  const g = r('mobile/android/app/build.gradle');
+  assert.match(g, new RegExp(`versionName "${v.replace(/\./g, '\\.')}"`), 'versionName');
+  assert.match(g, new RegExp(`versionCode ${a * 10000 + b * 100 + c}\\b`), 'versionCode');
+});
