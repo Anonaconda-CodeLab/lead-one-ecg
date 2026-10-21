@@ -445,7 +445,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.6.3 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.6.4 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
@@ -1207,6 +1207,8 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
   else if (out.minA1 > 0.8) out.reason = 'notHard';
   else { const v1 = at(0.75); if (inRange(v1)) { out.vt1 = v1; out.valid = true; } else out.reason = 'flat'; }
   if (out.valid && out.minA1 <= 0.55) { const v2 = at(0.5); if (inRange(v2) && v2 > out.vt1) out.vt2 = v2; }
+  // α1 that collapses within a step puts both thresholds close together; the straight-line fit then spreads them apart
+  out.steep = out.valid && isFinite(out.vt2) && out.vt2 - out.vt1 < 8;
   return out;
 }
 /* LTHR: mean heart rate over the last 20 minutes of a 30-minute time trial */
@@ -2002,7 +2004,7 @@ function commentary(A, meta, R, B, X = null) {
   if (ctx === 'training' && X) {
     const E = X.ER, W = X.WM, L = HRR_LIMITS[X.rec];
     if (E) out.push(`Peak 20-second heart rate was ${f0(E.peak20)} bpm (${f0(100 * E.peak20 / W.v)} % of your working maximum of ${f0(W.v)} bpm${W.src === 'tanaka' ? ', estimated from age' : ''}).${B.peak ? ` Your usual training peak is ${f0(B.peak.m)} bpm.` : ''}`);
-    if (X.tt === 'dfa' && X.dfa) out.push(X.dfa.valid ? `DFA α1 fell from ${X.dfa.startA1.toFixed(2)} at easy effort to ${X.dfa.minA1.toFixed(2)}; it crossed 0.75 (aerobic threshold) at about ${f0(X.dfa.vt1)} bpm${isFinite(X.dfa.vt2) ? ` and 0.5 (anaerobic threshold) at about ${f0(X.dfa.vt2)} bpm` : ''}.` : 'The DFA α1 thresholds could not be determined from this recording (see the training pages).');
+    if (X.tt === 'dfa' && X.dfa) out.push(X.dfa.valid ? `DFA α1 fell from ${X.dfa.startA1.toFixed(2)} at easy effort to ${X.dfa.minA1.toFixed(2)}; it crossed 0.75 (aerobic threshold) at about ${f0(X.dfa.vt1)} bpm${isFinite(X.dfa.vt2) ? ` and 0.5 (anaerobic threshold) at about ${f0(X.dfa.vt2)} bpm` : ''}.${X.dfa.steep ? ' DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.' : ''}` : 'The DFA α1 thresholds could not be determined from this recording (see the training pages).');
     if (X.tt === 'session' || X.tt === 'intervals' || X.tt === 'tempo') out.push('Training sessions, including intervals such as 4 × 4, rarely reach true maximum heart rate: peaks seen in them are a floor, not a ceiling. A ramp test gives a measured value.');
     if (X.tt === 'intervals' && X.plan && X.plan.rounds.length) { const P = X.plan;
       out.push(`${P.rounds.length} rounds of ${mmss(P.w)} work${P.r ? ` / ${mmss(P.r)} rest` : ''} (your interval plan, lined up with ${P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise'}): average heart rate rose from ${f0(P.first)} bpm in round 1 to ${f0(P.last)} bpm in the last round, peaking at ${f0(P.peak)} bpm.${P.r && P.r <= 15 ? ' Rests this short barely let heart rate fall, so it climbs from round to round; that is expected.' : ''}`); }
@@ -2170,7 +2172,7 @@ function gradeAll(A, meta, R, X = null) {
             : `Your heart rate was still rising when you stopped (${f(r.max)} bpm), so your true maximum is probably higher. This value is a floor, not a ceiling.` }); }
       if (X.tt === 'dfa' && X.dfa) { const r = X.dfa;
         add('dfa', { title: 'Aerobic threshold (DFA α1)', short: 'aerobic threshold', value: r.valid ? f(r.vt1) + ' bpm' : 'Not determined', g: 'na', what: 'The heart rate where easy effort turns moderate, found from how orderly your beat-to-beat variation is (DFA α1 falls to 0.75).',
-          text: r.valid ? `Your aerobic threshold is about ${f(r.vt1)} bpm${isFinite(r.vt2) ? `, and your anaerobic threshold about ${f(r.vt2)} bpm (α1 = 0.5)` : ''}. Easy, base-building training stays below the aerobic threshold.` : DFA_WHY[r.reason] || DFA_WHY.flat }); }
+          text: r.valid ? `Your aerobic threshold is about ${f(r.vt1)} bpm${isFinite(r.vt2) ? `, and your anaerobic threshold about ${f(r.vt2)} bpm (α1 = 0.5)` : ''}.${r.steep ? ' DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.' : ''} Easy, base-building training stays below the aerobic threshold.` : DFA_WHY[r.reason] || DFA_WHY.flat }); }
       if (X.tt === 'intervals' && X.plan) { const P = X.plan;
         add('intervals', { title: 'Interval rounds', short: 'interval rounds', value: P.rounds.length + ' rounds', g: 'na', what: 'Your heart rate in each round of your interval plan.',
           text: `Average heart rate went from ${f(P.first)} bpm in round 1 to ${f(P.last)} bpm in round ${P.rounds.length} (peak ${f(P.peak)} bpm). See the training pages for every round.` }); }
@@ -2497,7 +2499,7 @@ function renderReport(A, meta0, st, hist = []) {
       const dfaSec = `<div class="sec-h"><h2>DFA α1 thresholds</h2><span>2-minute windows every 10 s · ${r.src === 'strap' ? 'strap beat intervals' : 'ECG beats'}</span></div>
         <div class="cols2"><div>${dfaChart(r)}</div>
         <div class="panel"><h3>Result</h3>${kvT('Aerobic threshold (HRVT1)', r.valid ? fmt(r.vt1) + ' bpm' : '—', 'heart rate where α1 = 0.75')}${kvT('Anaerobic threshold (HRVT2)', isFinite(r.vt2) ? fmt(r.vt2) + ' bpm' : '—', isFinite(r.vt2) ? 'heart rate where α1 = 0.5' : 'α1 did not reach 0.5')}${kvT('α1 at easy effort', isFinite(r.startA1) ? r.startA1.toFixed(2) : '—', 'about 1.0 or higher is expected')}${kvT('Lowest α1', isFinite(r.minA1) ? r.minA1.toFixed(2) : '—')}${r.fit ? kvT('Fit', 'r² ' + r.fit.r2.toFixed(2), r.fit.n + ' windows on the falling part') : ''}${kvT('Artifacts', fmt(r.artPct, 1) + ' %', 'windows over 5 % are left out')}
-        <p class="note-p" style="margin:0">${r.valid ? (X.tt === 'ramp' ? 'Estimated from the ramp test. A dedicated DFA-α1 test, stopped once α1 is below 0.5, gives the same result without going to exhaustion.' : 'Thresholds from α1 agree with laboratory gas-exchange thresholds within a few beats per minute in most studies, best in cycling with smooth effort. Repeat the test every 6–8 weeks.') : DFA_WHY[r.reason] || DFA_WHY.flat}</p></div></div>`;
+        <p class="note-p" style="margin:0">${r.valid ? (X.tt === 'ramp' ? 'Estimated from the ramp test. A dedicated DFA-α1 test, stopped once α1 is below 0.5, gives the same result without going to exhaustion.' : 'Thresholds from α1 agree with laboratory gas-exchange thresholds within a few beats per minute in most studies, best in cycling with smooth effort. Repeat the test every 6–8 weeks.') + (r.steep ? ' <b>DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.</b> Smaller steps around this heart rate next time will separate them more clearly.' : '') : DFA_WHY[r.reason] || DFA_WHY.flat}</p></div></div>`;
       if (X.tt === 'dfa') tests = dfaSec; else dfaAfter = dfaSec; }
     if (X.tt === 'intervals' && X.plan) { const P = X.plan;
       tests = `<div class="sec-h"><h2>Interval rounds</h2><span>${P.n} × ${mmss(P.w)}${P.r ? ' / ' + mmss(P.r) : ''} · lined up with ${P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise'}</span></div>
@@ -2671,7 +2673,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.6.3 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.6.4 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* ---------- Android app (Capacitor) ----------

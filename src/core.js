@@ -522,6 +522,8 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
   else if (out.minA1 > 0.8) out.reason = 'notHard';
   else { const v1 = at(0.75); if (inRange(v1)) { out.vt1 = v1; out.valid = true; } else out.reason = 'flat'; }
   if (out.valid && out.minA1 <= 0.55) { const v2 = at(0.5); if (inRange(v2) && v2 > out.vt1) out.vt2 = v2; }
+  // α1 that collapses within a step puts both thresholds close together; the straight-line fit then spreads them apart
+  out.steep = out.valid && isFinite(out.vt2) && out.vt2 - out.vt1 < 8;
   return out;
 }
 /* LTHR: mean heart rate over the last 20 minutes of a 30-minute time trial */

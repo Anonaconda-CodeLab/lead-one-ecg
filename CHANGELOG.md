@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.4
+- DFA-α1 test: when α1 falls steeply and the two thresholds land within 8 bpm of each other, the report says so and
+  points to the aerobic threshold as the more reliable one, with a tip to use smaller steps around that heart rate.
+- Link previews (Open Graph), canonical address, robots.txt and sitemap.xml for the web app.
+
 ## 1.6.3
 - A short thank-you note with a Ko-fi link at the foot of the home screen.
 

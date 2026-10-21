@@ -147,6 +147,7 @@ test('DFA-alpha1 test: thresholds from strap intervals and from ECG agree', asyn
     const r = L.dfaTest(A, A.exercise); res.push(r);
     assert.ok(r.valid, 'valid'); assert.equal(r.src, strap ? 'strap' : 'ecg');
     near(r.vt1, 132, 6, 'HRVT1'); near(r.vt2, 155, 7, 'HRVT2'); assert.ok(r.startA1 > 0.9 && r.minA1 < 0.5);
+    assert.equal(r.steep, false, 'a gradual fall is not flagged as steep');
   }
   near(res[0].vt1, res[1].vt1, 3, 'strap vs ECG');
 });
