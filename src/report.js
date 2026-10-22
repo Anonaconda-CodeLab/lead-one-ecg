@@ -378,7 +378,7 @@ function commentary(A, meta, R, B, X = null) {
     const O = X && X.ortho;
     if (!O || !O.valid) { out.push(ORTHO_WHY[O ? O.reason : 'short'] || ORTHO_WHY.short); return { verdict: ['info', 'Test incomplete'], paras: out }; }
     out.push(`Lying, your heart rate averaged ${f0(O.lieHR)} bpm (RMSSD ${fmt(O.rmssdLie, 0)} ms). On standing${O.src === 'detected' ? ` (found from the rise in heart rate, at ${meta._clock(O.st)})` : ''} it peaked at ${f0(O.peakHR)} bpm after ${f0(O.peakT - O.st)} seconds, then settled at ${f0(O.standHR)} bpm, ${f0(O.sustained)} bpm above lying (RMSSD ${fmt(O.rmssdStand, 0)} ms).${isFinite(O.r3015) ? ` The 30:15 ratio was ${O.r3015.toFixed(2)}.` : ''}`);
-    if (O.rmssdStand > O.rmssdLie * 1.15) out.push('HRV was higher standing than lying, the reverse of the usual pattern. This almost always comes from deep breaths, sighs or shifting your weight while standing; next time, stand still and breathe normally. The lying values and the heart-rate response are unaffected.');
+    if (O.rmssdStand > O.rmssdLie * 1.15) out.push('HRV was higher standing than lying, the reverse of the usual pattern. Deeper or slower breathing, sighs or shifting your weight while standing can cause it; in some fit people lying HRV also reads lower than expected (vagal saturation). Watch the pattern across tests rather than this one number; the lying values and the heart-rate response are unaffected.');
     if (B.oLie && B.oRise) {
       const dLie = O.lieHR - B.oLie.m, dRise = O.sustained - B.oRise.m, rel = B.oRmssd && isFinite(O.rmssdLie) ? O.rmssdLie / B.oRmssd.m : NaN;
       const hiLie = dLie > Math.max(4, 1.5 * B.oLie.sd), hiRise = dRise > Math.max(5, 1.5 * B.oRise.sd), loHrv = rel < 0.8, n = hiLie + hiRise + loHrv;
