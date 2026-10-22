@@ -40,7 +40,8 @@ history and recordings first, uninstall the official app, then install yours.
 
 ## Releases
 
-Pushing a version tag (`git tag v1.8.0 && git push origin v1.8.0`, matching `package.json`) builds the APK, checks that
+Pushing a version tag (`git tag v1.8.0 && git push origin v1.8.0`, matching `package.json`), or running the *Android APK*
+workflow by hand with **release** ticked (it then creates the tag), builds the APK, checks that
 it has no internet permission and that it is signed with the published key (`certSha256` in `../build.mjs`), and
 publishes a GitHub release with the APK, its SHA-256 checksum and the changelog entry. The source code of that exact
 version is attached to every release by GitHub.
