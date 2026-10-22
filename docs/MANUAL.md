@@ -195,7 +195,7 @@ Everything is stored **only in Chrome on the device you record with**, at this a
 and no cloud copy.
 
 - **Reading history** (the summary of each reading, used for your baseline and trends) is small and kept indefinitely.
-- **Recordings** (the raw ECG) are kept on the device until you delete them from the list on the home screen.
+- **Recordings** (the raw ECG) are kept on the device until you delete them from the list on the home screen. Deleting a recording also removes it from your personal baseline, so a reading taken under the wrong conditions no longer affects later comparisons.
 
 **Back up regularly.** Clearing Chrome's browsing data ("Cookies and site data"), uninstalling Chrome, resetting or
 replacing your phone, or using an Incognito tab would lose them. The app shows a reminder when a backup is due.

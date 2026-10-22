@@ -272,6 +272,7 @@ async function deleteSession(id) {
   await idb('sessions', 'readwrite', s => s.delete(id));
   await idb('chunks', 'readwrite', s => s.delete(IDBKeyRange.bound(id + ':', id + ':￿')));
   await idb('chunks', 'readwrite', s => s.delete(IDBKeyRange.bound('A:' + id + ':', 'A:' + id + ':￿')));
+  await idb('history', 'readwrite', s => s.delete(id));   // a deleted recording no longer counts in the personal baseline
 }
 
 /* ---------- history export / import ---------- */
@@ -838,7 +839,7 @@ async function refreshPast() {
     const v = document.createElement('button'); v.className = 'btn'; v.textContent = 'Report';
     v.onclick = async () => { const raw = await loadChunks(s.id); if (raw && raw.length) runReport(raw, Object.assign({}, s, { _acc: await loadAccFor(s) })); else toast('The data for this recording is missing.'); };
     const d = document.createElement('button'); d.className = 'btn'; d.textContent = 'Delete';
-    d.onclick = async () => { if (d.dataset.arm) { await deleteSession(s.id); refreshPast(); } else { d.dataset.arm = 1; d.textContent = 'Tap to confirm'; setTimeout(() => { delete d.dataset.arm; d.textContent = 'Delete'; }, 3000); } };
+    d.onclick = async () => { if (d.dataset.arm) { await deleteSession(s.id); refreshPast(); refreshHistCount(); toast('Recording deleted and removed from your baseline.'); } else { d.dataset.arm = 1; d.textContent = 'Tap to confirm'; setTimeout(() => { delete d.dataset.arm; d.textContent = 'Delete'; }, 3000); } };
     li.append(v, d); ul.appendChild(li);
   }
 }

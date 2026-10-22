@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.2
+- Deleting a recording now also removes it from your personal baseline (it used to keep counting in later comparisons).
+- Orthostatic test: gentler wording when standing HRV comes out higher than lying.
+
 ## 1.7.1
 - Android app: Bluetooth requests to the strap now wait their turn and are retried if the strap is still busy. This
   fixes "Writing characteristic failed with status code 201" when starting a recording soon after connecting; if it
