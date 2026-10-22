@@ -46,10 +46,18 @@ The first time you open the app, it asks you to confirm that you have read and u
     device.
 - The app's web address: **https://leadone.anonacondacodelab.com**
 
-There is nothing to install from an app store. To open the app from an icon like a normal app, tap **Add to home screen**
+There is nothing you have to install. To open the app from an icon like a normal app, tap **Add to home screen**
 under **More** on the home screen and confirm. If Chrome doesn't offer it there, tap Chrome's **⋮** menu and choose **Add to
 Home screen** (or **Install app**). The icon opens the same web address, so your recordings and history are all there.
 It opens full screen, without the address bar.
+
+### The Android app
+There is also an Android app: the same app, with recording that continues while the screen is off, and no internet
+permission at all. It is not on Google Play; download it from **https://leadone.anonacondacodelab.com/android.html**,
+which explains how to install it, how to check it is the official build, and why it isn't on Google Play. In the app,
+**Settings → About → Check for updates** opens that page and tells you whether a newer version exists. Updates install
+over the old version and keep your recordings. The web app and the Android app keep separate data on the same phone;
+move it with **Export history** and **Save recording**.
 
 ## First-time setup
 The first time you open the app it shows a short **Before you start** notice about wellness use. Tick the box to confirm
@@ -236,10 +244,15 @@ The recording ended while you were still exercising. Tap **Start recovery** when
 
 ## Privacy
 Lead One ECG makes no network requests at all while you use it: no analytics, no tracking, no cookies, no account. Your
-recordings, history and profile never leave your device unless you export them yourself. The app's source code is open, so
+recordings, history and profile never leave your device unless you export them yourself. The Android app goes further: it
+has no internet permission, so it cannot connect to anything except the strap. The app's source code is open, so
 anyone can check this.
 
 ## Support and feedback
+Questions, problems or ideas: email **hello@anonacondacodelab.com**. Describe what happened and, if you can, add a
+screenshot. Please don't send recordings, reports or history exports unless you are happy to share them: they contain your
+health data. Technical users can also open an issue at **https://github.com/Anonaconda-CodeLab/lead-one-ecg**.
+
 Lead One ECG is free and open-source software from Anonaconda Code Lab, released under the GNU General Public License v3.
 If it is useful to you, you can support its development at **https://ko-fi.com/anonacondacodelab**.
 

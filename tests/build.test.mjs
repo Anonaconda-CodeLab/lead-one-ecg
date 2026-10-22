@@ -97,3 +97,20 @@ test('web app, Android package and Android build all carry the same version', as
   assert.match(g, new RegExp(`versionName "${v.replace(/\./g, '\\.')}"`), 'versionName');
   assert.match(g, new RegExp(`versionCode ${a * 10000 + b * 100 + c}\\b`), 'versionCode');
 });
+
+test('launch: source link, contact, update button and the Android page', async () => {
+  const { readFileSync } = await import('node:fs');
+  const r = f => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+  const h = distHtml(), v = JSON.parse(r('package.json')).version;
+  assert.ok(h.includes('href="https://github.com/Anonaconda-CodeLab/lead-one-ecg"'), 'source-code link');
+  assert.ok(h.includes('mailto:hello@anonacondacodelab.com') && /don.t send recordings or reports/.test(h), 'contact with a privacy note');
+  assert.ok(h.includes(`class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=${v}"`), 'Check for updates (Android only)');
+  const a = r('dist/android.html');
+  assert.ok(!/\{\{[A-Z_]+\}\}/.test(a), 'all placeholders filled');
+  assert.ok(a.includes('4D:6C:EA:58:94:C0:D7:D8:E9:AB:74:BC:3A:1E:9C:A5:47:BD:40:A2:02:B6:70:99:AF:66:5B:29:7F:7A:8F:47'), 'signing fingerprint');
+  assert.ok(a.includes(`var latest = '${v}'`) && a.includes('releases/latest') && a.includes('keepandroidopen.org') && a.includes('Obtainium'));
+  assert.match(a, /default-src 'none'/);
+  assert.ok(r('dist/sitemap.xml').includes('/android.html'));
+  const w = r('.github/workflows/android.yml');
+  assert.ok(w.includes("tags: ['v*']") && w.includes('Published fingerprint') === false && w.includes('the published fingerprint is'), 'tag releases check the signing key');
+});

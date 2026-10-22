@@ -16,7 +16,7 @@ function loadShim() {
   };
   const navigator = {};
   const ctx = vm.createContext({ console, setTimeout, Promise, Uint8Array, DataView, ArrayBuffer, Error, String, Object, Math,
-    navigator, document: { documentElement: { classList: { add() {} } }, getElementById: () => null, body: { dataset: {} } },
+    navigator, document: { documentElement: { classList: { add() {} } }, getElementById: () => null, body: { dataset: {} }, addEventListener() {} },
     window: { Capacitor: { isNativePlatform: () => true, nativePromise, addListener: () => ({ remove() {} }) } } });
   ctx.window.navigator = navigator;
   vm.runInContext(readFileSync(new URL('../src/native.js', import.meta.url), 'utf8'), ctx);

@@ -1,4 +1,5 @@
-/* ---------- Android app (Capacitor) ----------
+/* Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later
+   ---------- Android app (Capacitor) ----------
    In the Android app the page runs inside Android's WebView, which lacks Web Bluetooth, file downloads, printing,
    vibration and screen wake locks. This file supplies native stand-ins so the rest of the app runs unchanged.
    In a browser NATIVE is false and nothing here is used. All calls stay on the phone: the app has no internet permission. */
@@ -17,11 +18,18 @@ const LeadOneNative = NATIVE ? {
   print: name => nativeCall('LeadOne', 'print', { name }),
   keepScreenOn: on => nativeCall('LeadOne', 'keepScreenOn', { on: !!on }).catch(() => {}),
   vibrate: pattern => nativeCall('LeadOne', 'vibrate', { pattern }).catch(() => {}),
-  recording: (on, text) => nativeCall('LeadOne', on ? 'startRecording' : 'stopRecording', { text: text || '' }).catch(() => {})
+  recording: (on, text) => nativeCall('LeadOne', on ? 'startRecording' : 'stopRecording', { text: text || '' }).catch(() => {}),
+  openUrl: url => nativeCall('LeadOne', 'openUrl', { url })
 } : null;
 
 if (NATIVE) (() => {
   document.documentElement.classList.add('native');   // hides browser-only guidance (see style.css)
+  // links to websites and email open in the phone's browser or mail app, never inside the app
+  document.addEventListener('click', e => {
+    const a = e.target && e.target.closest && e.target.closest('a[href]'); if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (/^(https:|mailto:)/i.test(href)) { e.preventDefault(); LeadOneNative.openUrl(href).catch(() => {}); }
+  }, true);
   // Web Bluetooth subset used by app.js, implemented on @capacitor-community/bluetooth-le
   const BLE = 'BluetoothLe';
   const STD = { heart_rate: 0x180d, battery_service: 0x180f, device_information: 0x180a,

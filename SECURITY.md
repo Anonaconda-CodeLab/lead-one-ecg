@@ -13,6 +13,16 @@
 - **Bluetooth scope.** The app requests only devices named `Polar H10`/`Polar H9` and only the services it needs (PMD
   streaming, heart rate, battery, device information).
 
+## Android app
+- **No internet permission.** It is removed in the manifest, and every build fails if it reappears. The app cannot
+  connect to anything but the strap. Links (source code, Ko-fi, email, Check for updates) open in your browser or mail
+  app, outside the app.
+- **Permissions:** Bluetooth (Nearby devices; location only on Android 11 and older, where Bluetooth scanning requires
+  it), notifications and a foreground service (so recording continues with the screen off), wake lock and vibration.
+- **Signed releases.** Official APKs are signed with one key. Its SHA-256 certificate fingerprint is published on the
+  [Android page](https://leadone.anonacondacodelab.com/android.html) and in every release, and the release build fails if
+  an APK is signed with any other key. Each release also lists the APK's SHA-256 checksum.
+
 ## Known limitations
 - Data at rest is not encrypted; anyone with access to the unlocked device and browser profile can read it.
 - Bluetooth Low Energy traffic from the strap is not encrypted by the device.
@@ -20,4 +30,5 @@
 
 ## Reporting a vulnerability
 Please report security issues privately using GitHub's **Security → Report a vulnerability** (private vulnerability
-reporting) on this repository rather than opening a public issue. Include steps to reproduce and the affected version.
+reporting) on this repository rather than opening a public issue, or email hello@anonacondacodelab.com. Include steps
+to reproduce and the affected version.

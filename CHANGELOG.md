@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.0
+- First public release of the Android app, alongside the web app. Download, install guide and checksums:
+  https://leadone.anonacondacodelab.com/android.html
+- Android app: **Check for updates** in Settings → About; links open in your browser or mail app.
+- Contact address (hello@anonacondacodelab.com) and source-code link in Settings → About, the manual and the README.
+- Source code published at https://github.com/Anonaconda-CodeLab/lead-one-ecg. Releases are built from tagged source by
+  GitHub Actions, with the APK's SHA-256 checksum and the signing certificate's fingerprint in every release.
+
 ## 1.7.2
 - Deleting a recording now also removes it from your personal baseline (it used to keep counting in later comparisons).
 - Orthostatic test: gentler wording when standing HRV comes out higher than lying.

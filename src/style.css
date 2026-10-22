@@ -1,3 +1,4 @@
+/* Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later */
 /* Layout: phone-first single column for the recorder; A4 paper sheets for the report. */
 :root{
   --bg:#f4f1f1; --surface:#ffffff; --surface-2:#ece7e7; --fg:#1e1a20; --muted:#655f69; --line:#e0d9da;
@@ -331,6 +332,7 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 
 /* Android app: browser guidance does not apply */
 .native .browser-req{display:none}
+.native-only{display:none} .native .native-only{display:revert}
 
 /* live DFA alpha1 during the DFA test */
 .a1-live{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 16px;margin-top:10px}

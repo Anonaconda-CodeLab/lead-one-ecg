@@ -39,6 +39,11 @@ Everything runs in your browser: no account, no server, no data leaves your devi
 ## Getting started
 The full **[user manual](docs/MANUAL.md)** is also built into the app (home screen → *User manual*).
 
+**Android app:** download it from **[leadone.anonacondacodelab.com/android.html](https://leadone.anonacondacodelab.com/android.html)**
+(the latest [release](https://github.com/Anonaconda-CodeLab/lead-one-ecg/releases/latest), with its SHA-256 checksum and the
+signing certificate's fingerprint), or let [Obtainium](https://github.com/ImranR98/Obtainium) install updates from this
+repository's releases. It is not on Google Play; the Android page explains why.
+
 1. Open **[leadone.anonacondacodelab.com](https://leadone.anonacondacodelab.com)**. **On a phone, use Google Chrome or Chromium on
    Android.** On a computer, use Chrome or Edge (Windows, macOS, ChromeOS) or another Chromium-based browser with Web
    Bluetooth. On iPhone and iPad, use the Bluefy browser. The app must be served over **https**.
@@ -67,6 +72,11 @@ recording files first.
 
 Details and how to report a vulnerability: [SECURITY.md](SECURITY.md).
 
+## Support
+Questions, problems or ideas: **hello@anonacondacodelab.com**, or open an issue here. A description or a screenshot is
+usually enough; please don't post or send recordings or reports unless you are happy to share them, because they contain
+health data.
+
 ## How it works
 Signal processing, reference ranges and their sources are documented in [docs/METHODS.md](docs/METHODS.md).
 
@@ -75,8 +85,9 @@ Signal processing, reference ranges and their sources are documented in [docs/ME
 npm run build   # writes dist/index.html (no dependencies, Node 18+)
 npm test        # builds and runs the test suite
 ```
-See [CONTRIBUTING.md](CONTRIBUTING.md). Optional project settings (source-code link, Ko-fi username) are at the
-top of `build.mjs`.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Project settings (web address, source-code link, contact address, Ko-fi username,
+signing-certificate fingerprint) are at the top of `build.mjs`. Building the Android app yourself:
+[mobile/README.md](mobile/README.md).
 
 ## Disclaimer: wellness use only
 **Lead One ECG is for general wellness, fitness and education only. It is not a medical device.**

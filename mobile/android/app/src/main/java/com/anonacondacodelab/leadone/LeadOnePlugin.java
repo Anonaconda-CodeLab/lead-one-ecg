@@ -1,3 +1,4 @@
+// Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later
 package com.anonacondacodelab.leadone;
 
 import android.Manifest;
@@ -41,6 +42,22 @@ public class LeadOnePlugin extends Plugin {
     /* Saving a file is two steps. pickSaveLocation opens Android's "save as" screen with only the file name: Capacitor
        keeps the pending call in the app's saved state while that screen is open, and Android limits that state to
        about 1 MB, so a recording passed along here would be lost. writeChunk then writes the data in pieces. */
+    /* Open a web or email link in the phone's browser or mail app. The app itself has no internet permission;
+       only https: and mailto: links are accepted. */
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        String u = call.getString("url", "");
+        if (!(u.startsWith("https://") || u.startsWith("mailto:"))) { call.reject("unsupported link"); return; }
+        try {
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(u));
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getActivity().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage() != null ? e.getMessage() : "no app can open this link");
+        }
+    }
+
     @PluginMethod
     public void pickSaveLocation(PluginCall call) {
         Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
