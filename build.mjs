@@ -27,8 +27,8 @@ APP.APP_URL = appUrl || 'its https web address';
 APP.APP_HOST = appUrl ? appUrl.replace('https://', '') : 'the https address';
 const safeUrl = u => /^https:\/\/[\w.-]+(\/[\w./%-]*)?$/.test(u) ? u : '';
 const contact = /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(PROJECT.contact) ? PROJECT.contact : '';
-// the commit an APK or page was built from: GitHub Actions sets GITHUB_SHA; local builds show the version only
-const BUILD = /^[0-9a-f]{40}$/.test(process.env.GITHUB_SHA || '') ? process.env.GITHUB_SHA.slice(0, 7) : '';
+// the commit an APK was built from: the Android workflow sets LEADONE_BUILD_ID; the committed web page shows the version only
+const BUILD = /^[0-9a-f]{40}$/.test(process.env.LEADONE_BUILD_ID || '') ? process.env.LEADONE_BUILD_ID.slice(0, 7) : '';
 const repo = safeUrl(PROJECT.repoUrl), kofi = /^[A-Za-z0-9_]{1,60}$/.test(PROJECT.kofi) ? 'https://ko-fi.com/' + PROJECT.kofi : '';
 const about = `<div class="card" id="aboutCard">
       <div><div class="dev-name">About ${APP.APP_NAME}</div><div class="dev-meta">Version ${APP.VERSION}${BUILD ? ` · build ${BUILD}` : ''} · free and open source (GNU GPL v3) · runs entirely on this device</div></div>

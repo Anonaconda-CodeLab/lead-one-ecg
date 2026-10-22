@@ -26,6 +26,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - name: Build the web app
+        env:
+          LEADONE_BUILD_ID: ${{ github.sha }}   # shown as "build abc1234" in the app's About
         run: node build.mjs
       - name: Copy it into the Android project
         working-directory: mobile
