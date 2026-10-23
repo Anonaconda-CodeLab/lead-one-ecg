@@ -42,7 +42,7 @@ The full **[user manual](docs/MANUAL.md)** is also built into the app (home scre
 **Android app:** download it from **[leadone.anonacondacodelab.com/android.html](https://leadone.anonacondacodelab.com/android.html)**
 (the latest [release](https://github.com/Anonaconda-CodeLab/lead-one-ecg/releases/latest), with its SHA-256 checksum and the
 signing certificate's fingerprint), or let [Obtainium](https://github.com/ImranR98/Obtainium) install updates from this
-repository's releases. It is not on Google Play; the Android page explains why.
+repository's releases (leave *Include prereleases* off: pre-releases are untested builds). It is not on Google Play; the Android page explains why.
 
 1. Open **[leadone.anonacondacodelab.com](https://leadone.anonacondacodelab.com)**. **On a phone, use Google Chrome or Chromium on
    Android.** On a computer, use Chrome or Edge (Windows, macOS, ChromeOS) or another Chromium-based browser with Web
