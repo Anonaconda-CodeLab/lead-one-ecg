@@ -619,6 +619,37 @@ function overallVerdict(G) {
   return { g: favs.length ? 'fav' : 'norm', head: favs.length ? 'All values normal, several favourable' : 'All values within the normal range', text: `Every graded measurement is within the normal range for your age and sex.${favTxt} No action is needed based on this reading.` };
 }
 const plain = t => `<div class="plain"><b>In plain terms</b> ${t}</div>`;
+/* short summary for the "Recording complete" screen: the report's own verdict and grades, 4-6 rows by context */
+let LAST_SUM = '';
+function summaryCard(A, meta, G, OV, B, X, O) {
+  const row = (label, value, g, note) => `<div class="sum-row"><span>${label}</span><b>${value}</b>${g && g !== 'na' ? gchip(g) : ''}${note ? `<small>${note}</small>` : ''}</div>`;
+  const worst = ks => ks.map(k => G[k]).filter(x => x && x.g !== 'na').sort((a, b) => GRADE[b.g].rank - GRADE[a.g].rank)[0];
+  const rows = [];
+  if (meta.ctx === 'training') {
+    const E = A.exercise || {};
+    const test = X.tt === 'ramp' && X.ramp && X.ramp.valid ? ['Maximum heart rate', fmt(X.ramp.max) + ' bpm'] : X.tt === 'dfa' && X.dfa && X.dfa.valid ? ['Aerobic threshold', fmt(X.dfa.vt1) + ' bpm']
+      : X.tt === 'lthr' && X.lt && X.lt.valid ? ['Threshold heart rate', fmt(X.lt.lthr) + ' bpm'] : null;
+    if (test) rows.push(row(test[0], test[1]));
+    rows.push(G.peak ? row('Peak heart rate', G.peak.value, G.peak.g) : row('Peak heart rate', fmt(E.peak20) + ' bpm'));
+    if (G.hrr) rows.push(row('Recovery after 1 min', G.hrr.value, G.hrr.g));
+  } else if (meta.ctx === 'ortho' && O) {
+    rows.push(row('Rise on standing', '+' + fmt(O.sustained) + ' bpm', G.ortho && G.ortho.g));
+    rows.push(row('HRV lying / standing', fmt(O.rmssdLie, 0) + ' / ' + fmt(O.rmssdStand, 0) + ' ms'));
+  } else {
+    if (meta.ctx === 'sleep' && A.minHR) rows.push(row('Lowest heart rate', fmt(A.minHR.v) + ' bpm'));
+    if (G.hr) rows.push(row('Heart rate', G.hr.value, G.hr.g));
+    if (G.rmssd) {
+      const vs = B && B.typical && isFinite(A.rmssd) ? Math.round(100 * (A.rmssd / B.typical - 1)) : null;
+      rows.push(row('HRV (RMSSD)', G.rmssd.value, G.rmssd.g, vs == null ? '' : (vs >= 0 ? '↑ ' : '↓ ') + Math.abs(vs) + ' % vs your usual'));
+    }
+  }
+  const nE = A.ectopicBeats || 0, nP = (A.pauses || []).length, rh = worst(['ect', 'pause']);
+  rows.push(row('Rhythm', nE || nP ? [nE ? nE + ' extra beat' + (nE > 1 ? 's' : '') : '', nP ? nP + ' pause' + (nP > 1 ? 's' : '') : ''].filter(Boolean).join(', ') : 'Regular', rh ? rh.g : 'na'));
+  const sh = worst(['pr', 'qrs', 'qtc', 'j', 't']);
+  rows.push(row('ECG shape', sh && GRADE[sh.g].rank >= 2 ? 'Check ' + sh.short : 'As expected', sh ? sh.g : 'na'));
+  if (G.quality) rows.push(row('Signal quality', G.quality.value, G.quality.g));
+  return `<div class="sum-card g-${GRADE[OV.g].cls}"><div class="sum-head">${esc(OV.head)}</div>${rows.join('')}</div>`;
+}
 
 /* ---------- training: working maximum heart rate, recovery, tests, zones ---------- */
 const DFA_WHY = {
@@ -756,6 +787,7 @@ function renderReport(A, meta0, st, hist = []) {
   const cur = { id: meta.id || ('file-' + startMs), start: startMs, ctx: meta.ctx, pos: meta.pos, hr: A.meanHR, rmssd: A.rmssd, ln: A.lnRmssd, br: A.breath ? A.breath.median : null, brShare: A.breathShare, peak: X.ER ? X.ER.peak20 : null, hrr60: X.ER && X.ER.end != null ? X.ER.hrr60 : null, trainType: X.tt, recovery: X.tt ? X.rec : '',
     oLie: O ? O.lieHR : null, oRise: O ? O.sustained : null, oRmssd: O ? O.rmssdLie : null };
   const B = computeBaseline(hist, cur), C = commentary(A, meta, R, B, X);
+  try { LAST_SUM = summaryCard(A, meta, G, OV, B, X, O); } catch (e) { LAST_SUM = ''; }
   const pages = [], page = inner => pages.push(inner);
   const isTraining = meta.ctx === 'training', isMed = meta.ctx === 'meditation';
   const srcTxt = A.hrvSource === 'h10' ? 'strap beat intervals (1 ms)' : 'ECG R-peaks (sub-sample timing)';

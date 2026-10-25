@@ -512,7 +512,7 @@ async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
   Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
   S.autoMin = S.ctx === 'ortho' ? 6 : $('#autoOn').checked ? S.autoMinSel : 0;   // the orthostatic test is 3 min lying + 3 min standing
-  S.standMark = null; S.orthoWarned = false;
+  S.standMark = null; S.orthoWarned = false; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
   S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
@@ -545,13 +545,14 @@ function setPausedUI(p) {
 $('#btnPause').onclick = () => {
   if (!S.recording) return;
   const t = S.total / FS;
+  cancelCues();
   if (!S.paused) { S.paused = true; S.pauses.push({ t0: t, t1: null }); S.rr.push([t, -1]); }
   else { S.paused = false; const p = S.pauses[S.pauses.length - 1]; if (p) p.t1 = t; S.rr.push([t, -1]); }
   setPausedUI(S.paused); putSession(sessionMeta('recording'));
 };
 async function stopRecording(why) {
   if (!S.recording || S.stopping) return;
-  S.stopping = true;
+  S.stopping = true; cancelCues();
   if (S.paused) { const p = S.pauses[S.pauses.length - 1]; if (p) p.t1 = S.total / FS; S.paused = false; }
   try { if (S.connected) await cpWrite(ECG_STOP); } catch (e) {}
   try { if (S.connected && S.acc.on) await cpWrite(ACC_STOP); } catch (e) {}
@@ -572,7 +573,7 @@ async function stopRecording(why) {
   $('#doneDur').textContent = hms((S.total - S.pausedSamples - S.gapSamples) / FS);
   $('#doneStart').textContent = new Date(S.startMs).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   $('#doneGap').textContent = (S.pausedSamples || S.gapSamples) ? durText(S.pausedSamples / FS) + ' / ' + durText(S.gapSamples / FS) : 'None';
-  show('scrDone'); refreshPast();
+  show('scrDone'); refreshPast(); autoSummary();
   setDev(S.connected ? 'on' : 'off', S.connected ? (S.device.name || 'Polar H10') : 'Polar H10 disconnected', S.connected ? devMetaText() : 'Tap Connect to reconnect.');
 }
 
@@ -587,8 +588,61 @@ function cueBus(a) {
   const comp = a.createDynamicsCompressor(); comp.threshold.value = -18; comp.knee.value = 0; comp.ratio.value = 20; comp.attack.value = 0.001; comp.release.value = 0.05;
   const g = a.createGain(); g.gain.value = 1.75; comp.connect(g); g.connect(a.destination); cueOut = comp; return comp;
 }
-function beep(freq = 2400, ms = 220, at = 0) { try { const a = S.audio; if (!a) return; if (a.state === 'suspended') a.resume(); const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = freq; o.connect(g); g.connect(cueBus(a)); const t = a.currentTime + at; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.008); g.gain.setValueAtTime(0.9, t + ms / 1000 - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000); o.start(t); o.stop(t + ms / 1000 + 0.02); } catch (e) {} }
-function cue(strong) { const vib = strong ? [400, 120, 400, 120, 400] : [200, 100, 200]; if (NATIVE) LeadOneNative.vibrate(vib); else try { navigator.vibrate && navigator.vibrate(vib); } catch (e) {} if (strong) { beep(2400, 220, 0); beep(2400, 220, 0.3); beep(3000, 450, 0.6); } else { beep(2000, 160, 0); beep(2000, 160, 0.25); } }
+/* cue timing. Phones take 0.1-0.3 s to actually play a sound (AudioContext.outputLatency + baseLatency), so a cue that is
+   due within the next second (step change, "stand now", end of the time trial) is scheduled ahead on the audio clock,
+   that much early, and the screen and vibration change at the same moment. The offset between the audio clock and
+   performance.now() is checked on every tick: if it moves by more than 0.1 s on two checks in a row (the audio started
+   late or drifted), tones that haven't started yet are re-scheduled; a tone already playing is left alone. Pausing,
+   stopping or starting recovery cancels anything still waiting. Results come from the heartbeat data, not the cues. */
+const CUE = { strong: [[2400, 220, 0], [2400, 220, 0.3], [3000, 450, 0.6]], soft: [[2000, 160, 0], [2000, 160, 0.25]] };
+const CQ = { tones: [], timers: [], off: null, strikes: 0 };
+const audioLat = a => Math.min(0.5, Math.max(0, (a.outputLatency || 0) + (a.baseLatency || 0)));
+const audioOff = a => a.currentTime - performance.now() / 1000;
+function tone(a, freq, ms, t, heard) {
+  const o = a.createOscillator(), g = a.createGain(); o.type = 'square'; o.frequency.value = freq; o.connect(g); g.connect(cueBus(a));
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.008); g.gain.setValueAtTime(0.9, t + ms / 1000 - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+  o.start(t); o.stop(t + ms / 1000 + 0.02);
+  const x = { o, g, t, freq, ms, heard }; CQ.tones.push(x);
+  o.onended = () => { const i = CQ.tones.indexOf(x); if (i >= 0) CQ.tones.splice(i, 1); };
+}
+function dropTone(x) {
+  try { x.o.onended = null; x.g.gain.cancelScheduledValues(0); x.g.gain.value = 0; x.g.disconnect(); } catch (e) {}
+  const i = CQ.tones.indexOf(x); if (i >= 0) CQ.tones.splice(i, 1);
+}
+// play a pattern so that it is heard `due` seconds from now (0 = as soon as possible), keeping its rhythm
+function playPattern(pat, due = 0) {
+  const a = S.audio; if (!a) return;
+  try { if (a.state === 'suspended') a.resume(); } catch (e) {}
+  try {
+    const now = a.currentTime, heard = performance.now() / 1000 + due, base = Math.max(now, now + due - audioLat(a));
+    for (const [freq, ms, at] of pat) tone(a, freq, ms, base + at, heard + at);
+    CQ.off = audioOff(a); CQ.strikes = 0;
+  } catch (e) {}
+}
+function cueDrift() {   // called on every recording tick (twice a second)
+  const a = S.audio; if (!a || CQ.off == null) return;
+  const now = a.currentTime, wait = CQ.tones.filter(x => x.t > now + 0.02);
+  if (!wait.length) { CQ.off = null; return; }
+  if (Math.abs(audioOff(a) - CQ.off) <= 0.1) { CQ.strikes = 0; return; }
+  if (++CQ.strikes < 2) return;
+  const off = audioOff(a), lat = audioLat(a), want = wait.map(x => x.heard + off - lat);
+  const late = now - Math.min(...want), shift = Math.max(0, late);
+  wait.forEach(dropTone);
+  if (late < 1) wait.forEach((x, i) => { try { tone(a, x.freq, x.ms, want[i] + shift, x.heard); } catch (e) {} });   // over a second late: drop it
+  CQ.off = off; CQ.strikes = 0;
+}
+function cancelCues() {
+  CQ.timers.forEach(clearTimeout); CQ.timers = []; S.planned = null;
+  const a = S.audio; if (a) CQ.tones.filter(x => x.t > a.currentTime + 0.01).forEach(dropTone);
+}
+function buzz(strong) { const vib = strong ? [400, 120, 400, 120, 400] : [200, 100, 200]; if (NATIVE) LeadOneNative.vibrate(vib); else try { navigator.vibrate && navigator.vibrate(vib); } catch (e) {} }
+function cue(strong) { if (S.paused) return; buzz(strong); playPattern(strong ? CUE.strong : CUE.soft); }   // no sounds while paused
+// a cue due in `due` seconds: sound scheduled now, vibration and screen change when it is heard
+function planCue(key, strong, due, then) {
+  S.planned = key; playPattern(strong ? CUE.strong : CUE.soft, due);
+  CQ.timers.push(setTimeout(() => { if (S.recording && S.planned === key) { buzz(strong); then(); } }, Math.max(0, due * 1000)));
+}
+const AHEAD = 1.2;   // seconds: the tick runs every 0.5 s, so a cue is always planned at least 0.7 s ahead
 /* live DFA-alpha1 from the strap's beat intervals: last 2 minutes, recomputed every 10 s */
 function liveAlpha1(el) {
   if (el - (S.a1At || 0) < 10 && S.a1At) return; S.a1At = el;
@@ -600,14 +654,21 @@ function liveAlpha1(el) {
   const a = dfaAlpha1(x); if (!isFinite(a)) return; S.a1 = a; val.textContent = a.toFixed(2);
   msg.textContent = a > 0.75 ? 'below aerobic threshold (above 0.75)' : a > 0.5 ? 'between the thresholds (0.75 to 0.5)' : 'past the anaerobic threshold: you can stop when ready';
 }
+function standNow(sound) {
+  if (S.standMark != null) return;
+  S.standMark = 180; if (sound) cue(true); S.goUntil = Date.now() + 8000; putSession(sessionMeta('recording')); tickOrtho();
+}
 function tickOrtho() {   // orthostatic test: lie 3 min, a strong cue to stand, stand 3 min
   const el = S.total / FS, P = $('#stepPanel'), left = 180 - el;
   if (left <= 10.5 && left > 0 && !S.orthoWarned) { S.orthoWarned = true; cue(false); }
-  if (el >= 180 && S.standMark == null) { S.standMark = 180; cue(true); S.goUntil = Date.now() + 8000; putSession(sessionMeta('recording')); }
+  if (S.standMark == null && !S.paused && left > 0 && left <= AHEAD && S.planned !== 'stand') planCue('stand', true, left, () => standNow(false));
+  if (el >= 180 && S.standMark == null) { standNow(S.planned !== 'stand'); return; }
   const go = Date.now() < (S.goUntil || 0); P.classList.toggle('go', go);
   if (S.standMark == null) { $('#spLabel').textContent = 'Lie still'; $('#spStep').textContent = '1'; $('#spCount').textContent = ms2(left); $('#spMsg').textContent = left <= 10.5 ? 'get ready to stand' : 'until you stand up'; }
   else { $('#spLabel').textContent = 'Stand still'; $('#spStep').textContent = '2'; $('#spCount').textContent = go ? 'STAND' : ms2(Math.max(0, 360 - el)); $('#spMsg').textContent = go ? 'stand up now, then keep still' : 'until the test ends'; }
 }
+function nextStep(n, sound) { if (n <= S.lastStep) return; S.lastStep = n; if (sound) cue(true); S.goUntil = Date.now() + 5000; tickTraining(); }
+function lthrNow(sound) { if (S.lthrCued) return; S.lthrCued = true; if (sound) cue(true); tickTraining(); }
 function tickTraining() {
   if (S.ctx === 'ortho' && !$('#stepPanel').hidden) { tickOrtho(); return; }
   if (!S.trainType || $('#stepPanel').hidden) return;
@@ -615,20 +676,23 @@ function tickTraining() {
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
   if (S.trainType === 'dfa') liveAlpha1(el);
   if (S.trainType === 'ramp' || S.trainType === 'dfa') {
-    const step = Math.floor(el / 180) + 1, left = 180 - (el % 180);
-    if (step > S.lastStep) { S.lastStep = step; cue(true); S.goUntil = Date.now() + 5000; }
+    const left = 180 - (el % 180), step = Math.max(Math.floor(el / 180) + 1, S.lastStep), nk = 'step' + (step + 1);
+    if (!S.paused && left <= AHEAD && S.planned !== nk && step === Math.floor(el / 180) + 1) planCue(nk, true, left, () => nextStep(step + 1, false));
+    if (Math.floor(el / 180) + 1 > S.lastStep) { nextStep(Math.floor(el / 180) + 1, S.planned !== 'step' + (Math.floor(el / 180) + 1)); return; }
     if (left <= 10.5 && left > 9.9 && S.warned !== step) { S.warned = step; cue(false); }
     const go = Date.now() < (S.goUntil || 0); P.classList.toggle('go', go);
     $('#spLabel').textContent = 'Step'; $('#spStep').textContent = step; $('#spCount').textContent = go ? 'GO' : ms2(left); $('#spMsg').textContent = go ? 'increase the load now' : 'until the next step';
   } else {
-    const done = el >= 1800; if (done && !S.lthrCued) { S.lthrCued = true; cue(true); }
+    if (!S.lthrCued && !S.paused && el < 1800 && 1800 - el <= AHEAD && S.planned !== 'lthr') planCue('lthr', true, 1800 - el, () => lthrNow(false));
+    if (el >= 1800 && !S.lthrCued) { lthrNow(S.planned !== 'lthr'); return; }
+    const done = el >= 1800 || S.lthrCued;
     P.classList.toggle('go', done); $('#spLabel').textContent = 'Time trial'; $('#spStep').textContent = ms2(Math.min(el, 1800));
     $('#spCount').textContent = done ? 'Done' : ms2(1800 - el); $('#spMsg').textContent = done ? 'tap Start recovery' : el < 600 ? 'last 20 min count from 10:00' : 'counting toward threshold';
   }
 }
 $('#btnRecov').onclick = () => {
   if (!S.recording || S.recMark != null) return;
-  S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
+  cancelCues(); S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
   cue(false); putSession(sessionMeta('recording'));
 };
 function tickRec() {
@@ -637,7 +701,7 @@ function tickRec() {
   $('#recTimer').textContent = hms(active); $('#dimT').textContent = hms(active);
   $('#recRemain').textContent = S.autoMin ? `Stops automatically in ${ms2(S.autoMin * 60 - active)}` : `${hms(MAX_SAMPLES / FS - S.total / FS)} remaining before the 8-hour limit`;
   $('#recHR').innerHTML = S.hr ? S.hr + '<small>bpm</small>' : '--';
-  tickTraining();
+  tickTraining(); cueDrift();
   if (Date.now() - S.acc.lastBrCalc > 5000) { S.acc.lastBrCalc = Date.now(); S.acc.liveBr = liveBreathing(); }
   $('#recBr').innerHTML = !S.acc.on ? 'n/a' : S.acc.liveBr ? S.acc.liveBr.toFixed(1) + '<small>/min</small>' : '…';
   let mn = Infinity, mx = -Infinity; const L = S.live.length;
@@ -849,7 +913,21 @@ $('#btnConnect').onclick = connectFlow;
 $('#btnStart').onclick = startRecording;
 $('#btnDim').onclick = () => { $('#dim').hidden = false; };
 $('#dim').onclick = () => { $('#dim').hidden = true; };
-$('#btnView').onclick = () => runReport(S.raw, S.meta);
+$('#btnView').onclick = () => { if (S.ready === S.meta && S.analysis) { show('scrReport'); fitPages(); } else runReport(S.raw, S.meta); };
+/* after a recording: analyse at once and show a short summary above "View full report" */
+async function autoSummary() {
+  const box = $('#doneSum'), meta = S.meta, raw = S.raw; S.ready = null;
+  box.hidden = false; box.innerHTML = '<p class="sum-wait">Analysing… <span id="sumPct">0</span> %</p>';
+  try {
+    const st = getSettings(), age = ageAt(st.dob, meta.start);
+    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark }, p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
+    if (S.meta !== meta) return;   // moved on to something else meanwhile
+    S.analysis = A;
+    if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));
+    await renderInto(); S.ready = meta;
+    box.innerHTML = LAST_SUM || '<p class="sum-wait">No summary for this recording; the full report has the details.</p>';
+  } catch (e) { if (S.meta === meta) box.innerHTML = '<p class="sum-wait">The summary could not be made (' + esc(e.message || String(e)) + '). Try the full report.</p>'; }
+}
 $('#btnNew').onclick = () => show('scrHome');
 $('#btnSaveRec').onclick = saveRecordingFile;
 $('#btnSaveRec2').onclick = saveRecordingFile;

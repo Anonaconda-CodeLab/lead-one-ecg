@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+- **Summary when a recording ends:** the "Recording complete" screen now analyses the recording straight away and shows
+  the report's overall verdict with 4-6 key results: heart rate and HRV (with the change from your usual), rhythm, ECG
+  shape and signal quality; for training, peak heart rate, recovery and any test result; for the orthostatic test, the
+  rise on standing and HRV lying and standing. **View full report** then opens instantly. Suggested by a user.
+- Sharper audio cues on Android phones: the orthostatic "stand now" beep, the ramp and DFA step beeps and the end of the
+  LTHR time trial are scheduled slightly ahead to allow for the phone's audio delay, so you hear them as the screen
+  changes. Cues still waiting are cancelled when you pause, stop or start recovery, and no cues sound while paused.
+  Measurements are unaffected: they come from the heartbeat data, not from when a beep is heard.
+
 ## 1.8.0
 - First public release of the Android app, alongside the web app. Download, install guide and checksums:
   https://leadone.anonacondacodelab.com/android.html

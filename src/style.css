@@ -375,3 +375,13 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 #scrRec .btn-recov{min-height:54px}
 .ctx-hint{margin:8px 0 0}
 .summary.spot-box{background:var(--p-warn-soft);border-left:1.2mm solid var(--p-warn)}
+
+/* summary on the "Recording complete" screen */
+#doneSum{margin:0 0 16px}
+.sum-wait{text-align:center;color:var(--muted);margin:8px 0}
+.sum-card{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--ok);border-radius:14px;padding:12px 14px}
+.sum-card.g-bord{border-left-color:var(--warn)}.sum-card.g-red{border-left-color:var(--accent)}.sum-card.g-info{border-left-color:var(--line)}
+.sum-head{font-weight:700;font-size:17px;margin-bottom:6px}
+.sum-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:4px 10px;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.sum-row span{color:var(--muted)}.sum-row small{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:-2px}
+.sum-row .chip{font-size:12px;padding:2px 9px;border-radius:999px}
