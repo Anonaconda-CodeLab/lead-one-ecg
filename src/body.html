@@ -47,7 +47,7 @@
       <div class="acts-row"><button id="btnSaveSettings" class="btn primary">Save</button><button id="btnCloseSettings" class="btn">Cancel</button><button id="btnSetupLater" class="btn ghost" hidden>Set up later</button></div>
     </div>
     <div class="card" id="historyCard">
-      <div><div class="dev-name">Reading history</div><div class="dev-meta" id="histCount">No readings yet.</div></div>
+      <div><div class="dev-name">Reading history</div><div class="dev-meta" id="histCount" translate="no">No readings yet.</div></div>
       <p class="dev-meta" style="margin:0">History holds the summary of each analyzed recording and is used for your personal baseline. Export it to keep a backup or to move it to another device.</p>
       <div class="acts-row">
         <button id="btnExportHist" class="btn">Export history</button>
@@ -70,7 +70,7 @@
   <section id="scrHome" class="screen">
     <div id="profileNote" class="note" hidden><b>Profile incomplete.</b> Add your date of birth and sex so reference intervals match you. <button class="linkbtn" id="btnFixProfile">Open profile</button></div>
     <div id="recoverBanner" class="banner" hidden>
-      <div><b>An interrupted recording was found.</b><br><span id="recoverText" class="dev-meta"></span></div>
+      <div><b>An interrupted recording was found.</b><br><span id="recoverText" translate="no" class="dev-meta"></span></div>
       <div class="acts"><button id="btnRecoverView" class="btn primary">Analyze recording</button><button id="btnRecoverDiscard" class="btn">Discard</button></div>
     </div>
     <div id="backupBanner" class="banner" hidden>
@@ -80,8 +80,8 @@
     <div class="card">
       <div class="dev-row">
         <span id="devDot" class="dot"></span>
-        <div><div id="devName" class="dev-name">Polar H10 not connected</div>
-        <div id="devMeta" class="dev-meta">Moisten the electrodes, fit the strap, then connect.</div></div>
+        <div><div id="devName" translate="no" class="dev-name">Polar H10 not connected</div>
+        <div id="devMeta" translate="no" class="dev-meta">Moisten the electrodes, fit the strap, then connect.</div></div>
       </div>
       <button id="btnConnect" class="btn primary">Connect H10</button>
       <p class="dev-meta browser-req" style="margin:0"><b>On a phone, use Google Chrome or Chromium on Android.</b> On a computer, use Chrome or Edge. On iPhone or iPad, use the free <b>Bluefy</b> browser from the App Store. Safari and Firefox can’t connect to the strap.</p>
@@ -121,7 +121,7 @@
     </button>
 
     <h2 class="sec">Recordings on this device</h2>
-    <ul id="pastList" class="past"><li class="empty">No recordings yet.</li></ul>
+    <ul id="pastList" translate="no" class="past"><li class="empty">No recordings yet.</li></ul>
 
     <h2 class="sec">More</h2>
     <div class="links">
@@ -154,14 +154,14 @@
     <div class="rec-top"><span class="live-chip" id="liveChip"><i></i><span id="liveTxt">Recording</span></span><span id="recConn" class="conn">Connected</span></div>
     <div id="recCtx" class="rec-ctx"></div>
     <div id="stepPanel" class="step-panel" hidden><div class="sp-l"><small id="spLabel">Step</small><b id="spStep">1</b></div><div class="sp-r"><b id="spCount">3:00</b><small id="spMsg">until the next step</small></div></div>
-    <div id="a1Live" class="a1-live" hidden><b id="a1Val">—</b><span><small>DFA α1</small><span id="a1Msg">α1 appears after 2 minutes</span></span></div>
+    <div id="a1Live" class="a1-live" hidden><b id="a1Val" translate="no">—</b><span><small>DFA α1</small><span id="a1Msg">α1 appears after 2 minutes</span></span></div>
     <div id="recTimer" class="timer">00:00:00</div>
     <div id="recRemain" class="timer-sub"></div>
     <div class="vitals">
-      <div><span id="recHR">--</span><label>Heart rate</label></div>
-      <div><span id="recQual">—</span><label>Signal</label></div>
-      <div><span id="recBatt">--</span><label>Strap battery</label></div>
-      <div><span id="recBr">…</span><label>Breathing</label></div>
+      <div><span id="recHR" translate="no">--</span><label>Heart rate</label></div>
+      <div><span id="recQual" translate="no">—</span><label>Signal</label></div>
+      <div><span id="recBatt" translate="no">--</span><label>Strap battery</label></div>
+      <div><span id="recBr" translate="no">…</span><label>Breathing</label></div>
     </div>
     <canvas id="liveCanvas" aria-label="Live ECG trace"></canvas>
     <button id="btnRecov" class="btn-recov" hidden>Start recovery</button>
@@ -177,7 +177,7 @@
       <div><b id="doneStart">—</b><span>Started</span></div>
       <div><b id="doneGap">—</b><span>Paused / signal lost</span></div>
     </div>
-    <div id="doneSum" aria-live="polite" hidden></div>
+    <div id="doneSum" translate="no" aria-live="polite" hidden></div>
     <button id="btnView" class="btn-start" style="min-height:84px;font-size:24px">View full report</button>
     <div class="acts-row" style="justify-content:center">
       <button id="btnSaveRec" class="btn">Save recording file</button>
@@ -211,7 +211,7 @@
       <div class="field"><label for="notesIn2">Session notes</label><textarea id="notesIn2" maxlength="200" rows="2"></textarea><small class="count" id="notesCount2">0 / 200</small></div>
       <div class="acts-row"><button id="btnDetailsSave" class="btn primary">Update report</button><button id="btnDetailsCancel" class="btn">Cancel</button></div>
     </div>
-    <div id="reportPages"></div>
+    <div id="reportPages" translate="no"></div>
   </section>
 </main>
 

@@ -465,7 +465,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <div class="acts-row"><button id="btnSaveSettings" class="btn primary">Save</button><button id="btnCloseSettings" class="btn">Cancel</button><button id="btnSetupLater" class="btn ghost" hidden>Set up later</button></div>
     </div>
     <div class="card" id="historyCard">
-      <div><div class="dev-name">Reading history</div><div class="dev-meta" id="histCount">No readings yet.</div></div>
+      <div><div class="dev-name">Reading history</div><div class="dev-meta" id="histCount" translate="no">No readings yet.</div></div>
       <p class="dev-meta" style="margin:0">History holds the summary of each analyzed recording and is used for your personal baseline. Export it to keep a backup or to move it to another device.</p>
       <div class="acts-row">
         <button id="btnExportHist" class="btn">Export history</button>
@@ -478,7 +478,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.8.1 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <p class="dev-meta" style="margin:0">Questions or problems: <a href="mailto:hello@anonacondacodelab.com">hello@anonacondacodelab.com</a>. A description or a screenshot is usually enough; please don't send recordings or reports unless you are happy to share them, because they contain your health data.</p>
-      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.1" target="_blank" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" target="_blank" rel="noopener noreferrer">Source code</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
+      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.1" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">Source code</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
   </section>
 
@@ -496,10 +496,10 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <p>Words such as &quot;normal range&quot;, &quot;borderline&quot; or &quot;outside normal range&quot; in the app describe how a measurement compares with published values for healthy adults. They are <b>not</b> medical findings. For any health concern, see a doctor, and do not rely on this app.</p>
 <p>The first time you open the app, it asks you to confirm that you have read and understood this.</p>
 <h2>What you need</h2>
-<ul><li>A <b>Polar H10</b> chest strap.</li><li>A browser that supports Bluetooth for web apps (called &quot;Web Bluetooth&quot;):<ul><li><b>On a phone, use Google Chrome or Chromium on Android.</b> This is the browser the app is built and tested for. Other phone browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.</li><li><b>On a computer</b> (Windows, macOS or ChromeOS), use <b>Chrome or Microsoft Edge</b>. Other Chromium-based browsers such as Opera usually work too. Brave and Linux need a setting switched on first (see <i>Troubleshooting</i>), and recording on Linux can be unreliable.</li><li><b>On iPhone and iPad, use the free Bluefy browser</b> (from the App Store). Safari, Chrome and the other iPhone and iPad browsers do not offer Web Bluetooth and cannot connect to the strap. <b>Firefox and Safari</b> do not support it on any device.</li></ul></li><li>The app's web address: <b><a href="https://leadone.anonacondacodelab.com" target="_blank" rel="noopener noreferrer">leadone.anonacondacodelab.com</a></b></li></ul>
+<ul><li>A <b>Polar H10</b> chest strap.</li><li>A browser that supports Bluetooth for web apps (called &quot;Web Bluetooth&quot;):<ul><li><b>On a phone, use Google Chrome or Chromium on Android.</b> This is the browser the app is built and tested for. Other phone browsers such as Firefox, Brave or Samsung Internet either cannot use Bluetooth in web apps or are not tested.</li><li><b>On a computer</b> (Windows, macOS or ChromeOS), use <b>Chrome or Microsoft Edge</b>. Other Chromium-based browsers such as Opera usually work too. Brave and Linux need a setting switched on first (see <i>Troubleshooting</i>), and recording on Linux can be unreliable.</li><li><b>On iPhone and iPad, use the free Bluefy browser</b> (from the App Store). Safari, Chrome and the other iPhone and iPad browsers do not offer Web Bluetooth and cannot connect to the strap. <b>Firefox and Safari</b> do not support it on any device.</li></ul></li><li>The app's web address: <b><a href="https://leadone.anonacondacodelab.com" rel="noopener noreferrer">leadone.anonacondacodelab.com</a></b></li></ul>
 <p>There is nothing you have to install. To open the app from an icon like a normal app, tap <b>Add to home screen</b> under <b>More</b> on the home screen and confirm. If Chrome doesn't offer it there, tap Chrome's <b>⋮</b> menu and choose <b>Add to Home screen</b> (or <b>Install app</b>). The icon opens the same web address, so your recordings and history are all there. It opens full screen, without the address bar.</p>
 <h3>The Android app</h3>
-<p>There is also an Android app: the same app, with recording that continues while the screen is off, and no internet permission at all. It is not on Google Play; download it from <b><a href="https://leadone.anonacondacodelab.com/android.html" target="_blank" rel="noopener noreferrer">leadone.anonacondacodelab.com/android.html</a></b>, which explains how to install it, how to check it is the official build, and why it isn't on Google Play. In the app, <b>Settings → About → Check for updates</b> opens that page and tells you whether a newer version exists. Updates install over the old version and keep your recordings. The web app and the Android app keep separate data on the same phone; move it with <b>Export history</b> and <b>Save recording</b>.</p>
+<p>There is also an Android app: the same app, with recording that continues while the screen is off, and no internet permission at all. It is not on Google Play; download it from <b><a href="https://leadone.anonacondacodelab.com/android.html" rel="noopener noreferrer">leadone.anonacondacodelab.com/android.html</a></b>, which explains how to install it, how to check it is the official build, and why it isn't on Google Play. In the app, <b>Settings → About → Check for updates</b> opens that page and tells you whether a newer version exists. Updates install over the old version and keep your recordings. The web app and the Android app keep separate data on the same phone; move it with <b>Export history</b> and <b>Save recording</b>.</p>
 <h2>First-time setup</h2>
 <p>The first time you open the app it shows a short <b>Before you start</b> notice about wellness use. Tick the box to confirm you understand it, then tap <b>Continue</b>.</p>
 <p>Next it asks for your <b>date of birth</b> and <b>sex</b>. These choose the right reference ranges and heart-rate zones; your age is worked out for the date of each recording, so you never need to update it. A name for the reports is optional. You can change all of this later with the <b>settings icon</b> (top right).</p>
@@ -552,10 +552,11 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <h3>The report says recovery was not measured</h3>
 <p>The recording ended while you were still exercising. Tap <b>Start recovery</b> when you stop, and keep recording for at least 2 minutes.</p>
 <h2>Privacy</h2>
-<p>Lead One ECG makes no network requests at all while you use it: no analytics, no tracking, no cookies, no account. Your recordings, history and profile never leave your device unless you export them yourself. The Android app goes further: it has no internet permission, so it cannot connect to anything except the strap. The app's source code is open, so anyone can check this.</p>
+<p>Lead One ECG makes no network requests at all while you use it: no analytics, no tracking, no cookies, no account. Your recordings, history and profile never leave your device unless you export them yourself. The Android app goes further: it has no internet permission, so it cannot connect to anything except the strap. The app's source code is open, so anyone can check this. (Opening the web app is an ordinary visit to its website, like any page; after that it makes no requests.)</p>
+<p><b>Translating the page.</b> If you use your browser's <i>Translate</i> button, the browser sends the page's text to its translation service (Google's, in Chrome). Lead One ECG marks your readings, reports, history and strap details so the translator leaves them out: only the app's own buttons and labels are translated.</p>
 <h2>Support and feedback</h2>
-<p>Questions, problems or ideas: email <b>hello@anonacondacodelab.com</b>. Describe what happened and, if you can, add a screenshot. Please don't send recordings, reports or history exports unless you are happy to share them: they contain your health data. Technical users can also open an issue at <b><a href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" target="_blank" rel="noopener noreferrer">github.com/Anonaconda-CodeLab/lead-one-ecg</a></b>.</p>
-<p>Lead One ECG is free and open-source software from Anonaconda Code Lab, released under the GNU General Public License v3. If it is useful to you, you can support its development at <b><a href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">ko-fi.com/anonacondacodelab</a></b>.</p>
+<p>Questions, problems or ideas: email <b>hello@anonacondacodelab.com</b>. Describe what happened and, if you can, add a screenshot. Please don't send recordings, reports or history exports unless you are happy to share them: they contain your health data. Technical users can also open an issue at <b><a href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">github.com/Anonaconda-CodeLab/lead-one-ecg</a></b>.</p>
+<p>Lead One ECG is free and open-source software from Anonaconda Code Lab, released under the GNU General Public License v3. If it is useful to you, you can support its development at <b><a href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">ko-fi.com/anonacondacodelab</a></b>.</p>
 <p>Polar and H10 are trademarks of Polar Electro Oy. Lead One ECG is independent and not affiliated with or endorsed by Polar Electro.</p>
 <hr>
 <p><i>Lead One ECG is provided &quot;as is&quot;, without warranty of any kind, under the GNU General Public License v3. It is for general wellness and education only and is not a medical device.</i></p></article>
@@ -566,7 +567,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
   <section id="scrHome" class="screen">
     <div id="profileNote" class="note" hidden><b>Profile incomplete.</b> Add your date of birth and sex so reference intervals match you. <button class="linkbtn" id="btnFixProfile">Open profile</button></div>
     <div id="recoverBanner" class="banner" hidden>
-      <div><b>An interrupted recording was found.</b><br><span id="recoverText" class="dev-meta"></span></div>
+      <div><b>An interrupted recording was found.</b><br><span id="recoverText" translate="no" class="dev-meta"></span></div>
       <div class="acts"><button id="btnRecoverView" class="btn primary">Analyze recording</button><button id="btnRecoverDiscard" class="btn">Discard</button></div>
     </div>
     <div id="backupBanner" class="banner" hidden>
@@ -576,8 +577,8 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
     <div class="card">
       <div class="dev-row">
         <span id="devDot" class="dot"></span>
-        <div><div id="devName" class="dev-name">Polar H10 not connected</div>
-        <div id="devMeta" class="dev-meta">Moisten the electrodes, fit the strap, then connect.</div></div>
+        <div><div id="devName" translate="no" class="dev-name">Polar H10 not connected</div>
+        <div id="devMeta" translate="no" class="dev-meta">Moisten the electrodes, fit the strap, then connect.</div></div>
       </div>
       <button id="btnConnect" class="btn primary">Connect H10</button>
       <p class="dev-meta browser-req" style="margin:0"><b>On a phone, use Google Chrome or Chromium on Android.</b> On a computer, use Chrome or Edge. On iPhone or iPad, use the free <b>Bluefy</b> browser from the App Store. Safari and Firefox can’t connect to the strap.</p>
@@ -617,7 +618,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
     </button>
 
     <h2 class="sec">Recordings on this device</h2>
-    <ul id="pastList" class="past"><li class="empty">No recordings yet.</li></ul>
+    <ul id="pastList" translate="no" class="past"><li class="empty">No recordings yet.</li></ul>
 
     <h2 class="sec">More</h2>
     <div class="links">
@@ -642,10 +643,10 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
     </details>
     <div id="donateCard" class="card donate" hidden>
       <p><b>Enjoying Lead One?</b><br><span class="dev-meta">You've made <span id="donateN">20</span> readings. The app is free, with no ads or tracking. If it's useful to you, a coffee helps keep it going.</span></p>
-      <div class="acts"><a id="btnDonate" class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a><button id="btnDonateLater" class="btn">Not now</button></div>
+      <div class="acts"><a id="btnDonate" class="btn coffee" href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">☕ Support on Ko-fi</a><button id="btnDonateLater" class="btn">Not now</button></div>
     </div>
     <p class="wellness-line"><b>For general wellness and education only. Not a medical device.</b> It cannot diagnose or rule out any condition. If you feel unwell, call your local emergency number; do not stop to record.</p>
-    <p class="thanks">If you find this app useful, please consider <a href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">a small donation</a>. This is a one-man show, and your support encourages me to keep going. Thank you!</p>
+    <p class="thanks">If you find this app useful, please consider <a href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">a small donation</a>. This is a one-man show, and your support encourages me to keep going. Thank you!</p>
   </section>
 
   <!-- RECORDING -->
@@ -653,14 +654,14 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
     <div class="rec-top"><span class="live-chip" id="liveChip"><i></i><span id="liveTxt">Recording</span></span><span id="recConn" class="conn">Connected</span></div>
     <div id="recCtx" class="rec-ctx"></div>
     <div id="stepPanel" class="step-panel" hidden><div class="sp-l"><small id="spLabel">Step</small><b id="spStep">1</b></div><div class="sp-r"><b id="spCount">3:00</b><small id="spMsg">until the next step</small></div></div>
-    <div id="a1Live" class="a1-live" hidden><b id="a1Val">—</b><span><small>DFA α1</small><span id="a1Msg">α1 appears after 2 minutes</span></span></div>
+    <div id="a1Live" class="a1-live" hidden><b id="a1Val" translate="no">—</b><span><small>DFA α1</small><span id="a1Msg">α1 appears after 2 minutes</span></span></div>
     <div id="recTimer" class="timer">00:00:00</div>
     <div id="recRemain" class="timer-sub"></div>
     <div class="vitals">
-      <div><span id="recHR">--</span><label>Heart rate</label></div>
-      <div><span id="recQual">—</span><label>Signal</label></div>
-      <div><span id="recBatt">--</span><label>Strap battery</label></div>
-      <div><span id="recBr">…</span><label>Breathing</label></div>
+      <div><span id="recHR" translate="no">--</span><label>Heart rate</label></div>
+      <div><span id="recQual" translate="no">—</span><label>Signal</label></div>
+      <div><span id="recBatt" translate="no">--</span><label>Strap battery</label></div>
+      <div><span id="recBr" translate="no">…</span><label>Breathing</label></div>
     </div>
     <canvas id="liveCanvas" aria-label="Live ECG trace"></canvas>
     <button id="btnRecov" class="btn-recov" hidden>Start recovery</button>
@@ -676,7 +677,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <div><b id="doneStart">—</b><span>Started</span></div>
       <div><b id="doneGap">—</b><span>Paused / signal lost</span></div>
     </div>
-    <div id="doneSum" aria-live="polite" hidden></div>
+    <div id="doneSum" translate="no" aria-live="polite" hidden></div>
     <button id="btnView" class="btn-start" style="min-height:84px;font-size:24px">View full report</button>
     <div class="acts-row" style="justify-content:center">
       <button id="btnSaveRec" class="btn">Save recording file</button>
@@ -710,7 +711,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <div class="field"><label for="notesIn2">Session notes</label><textarea id="notesIn2" maxlength="200" rows="2"></textarea><small class="count" id="notesCount2">0 / 200</small></div>
       <div class="acts-row"><button id="btnDetailsSave" class="btn primary">Update report</button><button id="btnDetailsCancel" class="btn">Cancel</button></div>
     </div>
-    <div id="reportPages"></div>
+    <div id="reportPages" translate="no"></div>
   </section>
 </main>
 

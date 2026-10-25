@@ -246,7 +246,9 @@ The recording ended while you were still exercising. Tap **Start recovery** when
 Lead One ECG makes no network requests at all while you use it: no analytics, no tracking, no cookies, no account. Your
 recordings, history and profile never leave your device unless you export them yourself. The Android app goes further: it
 has no internet permission, so it cannot connect to anything except the strap. The app's source code is open, so
-anyone can check this.
+anyone can check this. (Opening the web app is an ordinary visit to its website, like any page; after that it makes no requests.)
+
+**Translating the page.** If you use your browser's *Translate* button, the browser sends the page's text to its translation service (Google's, in Chrome). Lead One ECG marks your readings, reports, history and strap details so the translator leaves them out: only the app's own buttons and labels are translated.
 
 ## Support and feedback
 Questions, problems or ideas: email **hello@anonacondacodelab.com**. Describe what happened and, if you can, add a

@@ -60,7 +60,7 @@ test('home-screen install: manifest and icons are local, CSP stays offline', asy
 test('donation card is quiet: hidden by default, milestone-based, link isolated', () => {
   const h = distHtml();
   assert.match(h, /<div id="donateCard" class="card donate" hidden>/);
-  assert.match(h, /id="btnDonate"[^>]*href="https:\/\/ko-fi\.com\/[^"]+" target="_blank" rel="noopener noreferrer"/);
+  assert.match(h, /id="btnDonate"[^>]*href="https:\/\/ko-fi\.com\/[^"]+" rel="noopener noreferrer"/);
   assert.match(h, /const DONATE_AT = \[20, 50, 100\]/);
 });
 
