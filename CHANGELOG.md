@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.8.1
+- **Even countdowns:** the recording timer and the step, orthostatic and time-trial countdowns now tick once a second
+  evenly, instead of stalling and jumping as the strap's data arrives in Bluetooth bursts.
 - **Summary when a recording ends:** the "Recording complete" screen now analyses the recording straight away and shows
   the report's overall verdict with 4-6 key results: heart rate and HRV (with the change from your usual), rhythm, ECG
   shape and signal quality; for training, peak heart rate, recovery and any test result; for the orthostatic test, the

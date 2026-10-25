@@ -512,7 +512,7 @@ async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
   Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
   S.autoMin = S.ctx === 'ortho' ? 6 : $('#autoOn').checked ? S.autoMinSel : 0;   // the orthostatic test is 3 min lying + 3 min standing
-  S.standMark = null; S.orthoWarned = false; cancelCues();
+  S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
   S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
@@ -658,8 +658,16 @@ function standNow(sound) {
   if (S.standMark != null) return;
   S.standMark = 180; if (sound) cue(true); S.goUntil = Date.now() + 8000; putSession(sessionMeta('recording')); tickOrtho();
 }
+/* a smooth clock for the countdowns: the ECG samples arrive from the strap in uneven Bluetooth bursts, so time is
+   read from performance.now() and slowly steered toward the sample count (which stays the reference for every
+   measurement); the displayed seconds then tick evenly instead of stalling and jumping */
+function elNow() {
+  const d = S.total / FS, w = performance.now() / 1000, o = d - w;
+  if (!S.ck || Math.abs(o - S.ck.off) > 2) S.ck = { off: o, last: 0 }; else S.ck.off += 0.08 * (o - S.ck.off);
+  S.ck.last = Math.max(S.ck.last, w + S.ck.off); return S.ck.last;
+}
 function tickOrtho() {   // orthostatic test: lie 3 min, a strong cue to stand, stand 3 min
-  const el = S.total / FS, P = $('#stepPanel'), left = 180 - el;
+  const el = elNow(), P = $('#stepPanel'), left = 180 - el;
   if (left <= 10.5 && left > 0 && !S.orthoWarned) { S.orthoWarned = true; cue(false); }
   if (S.standMark == null && !S.paused && left > 0 && left <= AHEAD && S.planned !== 'stand') planCue('stand', true, left, () => standNow(false));
   if (el >= 180 && S.standMark == null) { standNow(S.planned !== 'stand'); return; }
@@ -672,7 +680,7 @@ function lthrNow(sound) { if (S.lthrCued) return; S.lthrCued = true; if (sound) 
 function tickTraining() {
   if (S.ctx === 'ortho' && !$('#stepPanel').hidden) { tickOrtho(); return; }
   if (!S.trainType || $('#stepPanel').hidden) return;
-  const el = S.total / FS, P = $('#stepPanel');
+  const el = elNow(), P = $('#stepPanel');
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
   if (S.trainType === 'dfa') liveAlpha1(el);
   if (S.trainType === 'ramp' || S.trainType === 'dfa') {
@@ -697,7 +705,7 @@ $('#btnRecov').onclick = () => {
 };
 function tickRec() {
   if (!S.recording) return;
-  const active = (S.total - S.pausedSamples - S.gapSamples) / FS;
+  const active = Math.max(0, elNow() - (S.pausedSamples + S.gapSamples) / FS);
   $('#recTimer').textContent = hms(active); $('#dimT').textContent = hms(active);
   $('#recRemain').textContent = S.autoMin ? `Stops automatically in ${ms2(S.autoMin * 60 - active)}` : `${hms(MAX_SAMPLES / FS - S.total / FS)} remaining before the 8-hour limit`;
   $('#recHR').innerHTML = S.hr ? S.hr + '<small>bpm</small>' : '--';
@@ -714,7 +722,7 @@ function tickRec() {
   else { q.textContent = 'Good'; q.className = 'q-good'; }
   ecgWatchdog();
   if (Date.now() - lastBattRead > 600000 && S.connected) { lastBattRead = Date.now(); readBattery(); }
-  setTimeout(tickRec, 500);
+  setTimeout(tickRec, 200);   // 5 times a second, so each second shows for close to a full second
 }
 /* the strap sometimes accepts the start command but sends no ECG (another app holds the stream, or a stale stream);
    restart the stream automatically, and explain what to do if that does not help */

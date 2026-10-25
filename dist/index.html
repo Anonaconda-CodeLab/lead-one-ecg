@@ -475,10 +475,10 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.8.0 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.8.1 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <p class="dev-meta" style="margin:0">Questions or problems: <a href="mailto:hello@anonacondacodelab.com">hello@anonacondacodelab.com</a>. A description or a screenshot is usually enough; please don't send recordings or reports unless you are happy to share them, because they contain your health data.</p>
-      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.0" target="_blank" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" target="_blank" rel="noopener noreferrer">Source code</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
+      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.1" target="_blank" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" target="_blank" rel="noopener noreferrer">Source code</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" target="_blank" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
   </section>
 
@@ -2864,7 +2864,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.8.0 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.8.1 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later
@@ -3527,7 +3527,7 @@ async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
   Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
   S.autoMin = S.ctx === 'ortho' ? 6 : $('#autoOn').checked ? S.autoMinSel : 0;   // the orthostatic test is 3 min lying + 3 min standing
-  S.standMark = null; S.orthoWarned = false; cancelCues();
+  S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
   S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
@@ -3673,8 +3673,16 @@ function standNow(sound) {
   if (S.standMark != null) return;
   S.standMark = 180; if (sound) cue(true); S.goUntil = Date.now() + 8000; putSession(sessionMeta('recording')); tickOrtho();
 }
+/* a smooth clock for the countdowns: the ECG samples arrive from the strap in uneven Bluetooth bursts, so time is
+   read from performance.now() and slowly steered toward the sample count (which stays the reference for every
+   measurement); the displayed seconds then tick evenly instead of stalling and jumping */
+function elNow() {
+  const d = S.total / FS, w = performance.now() / 1000, o = d - w;
+  if (!S.ck || Math.abs(o - S.ck.off) > 2) S.ck = { off: o, last: 0 }; else S.ck.off += 0.08 * (o - S.ck.off);
+  S.ck.last = Math.max(S.ck.last, w + S.ck.off); return S.ck.last;
+}
 function tickOrtho() {   // orthostatic test: lie 3 min, a strong cue to stand, stand 3 min
-  const el = S.total / FS, P = $('#stepPanel'), left = 180 - el;
+  const el = elNow(), P = $('#stepPanel'), left = 180 - el;
   if (left <= 10.5 && left > 0 && !S.orthoWarned) { S.orthoWarned = true; cue(false); }
   if (S.standMark == null && !S.paused && left > 0 && left <= AHEAD && S.planned !== 'stand') planCue('stand', true, left, () => standNow(false));
   if (el >= 180 && S.standMark == null) { standNow(S.planned !== 'stand'); return; }
@@ -3687,7 +3695,7 @@ function lthrNow(sound) { if (S.lthrCued) return; S.lthrCued = true; if (sound) 
 function tickTraining() {
   if (S.ctx === 'ortho' && !$('#stepPanel').hidden) { tickOrtho(); return; }
   if (!S.trainType || $('#stepPanel').hidden) return;
-  const el = S.total / FS, P = $('#stepPanel');
+  const el = elNow(), P = $('#stepPanel');
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
   if (S.trainType === 'dfa') liveAlpha1(el);
   if (S.trainType === 'ramp' || S.trainType === 'dfa') {
@@ -3712,7 +3720,7 @@ $('#btnRecov').onclick = () => {
 };
 function tickRec() {
   if (!S.recording) return;
-  const active = (S.total - S.pausedSamples - S.gapSamples) / FS;
+  const active = Math.max(0, elNow() - (S.pausedSamples + S.gapSamples) / FS);
   $('#recTimer').textContent = hms(active); $('#dimT').textContent = hms(active);
   $('#recRemain').textContent = S.autoMin ? `Stops automatically in ${ms2(S.autoMin * 60 - active)}` : `${hms(MAX_SAMPLES / FS - S.total / FS)} remaining before the 8-hour limit`;
   $('#recHR').innerHTML = S.hr ? S.hr + '<small>bpm</small>' : '--';
@@ -3729,7 +3737,7 @@ function tickRec() {
   else { q.textContent = 'Good'; q.className = 'q-good'; }
   ecgWatchdog();
   if (Date.now() - lastBattRead > 600000 && S.connected) { lastBattRead = Date.now(); readBattery(); }
-  setTimeout(tickRec, 500);
+  setTimeout(tickRec, 200);   // 5 times a second, so each second shows for close to a full second
 }
 /* the strap sometimes accepts the start command but sends no ECG (another app holds the stream, or a stale stream);
    restart the stream automatically, and explain what to do if that does not help */
