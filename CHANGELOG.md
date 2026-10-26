@@ -1,8 +1,8 @@
 # Changelog
 
 ## Unreleased
-- Saved files are named by date, day first, so they're easy to find on a phone: the PDF report and the recording file
-  are both called like **26-10-26_ECG_0712** (day-month-year, then the start time), with .pdf or .json.
+- Saved files are named by date, time and recording type, like **2026-10-26_ECG_0712_morning** (.pdf for the report,
+  .json for the recording file), so they list in date order and readings to compare are easy to spot.
 - Results summary: **Avg heart rate** on every summary, including training and the orthostatic test (lying and standing).
 
 ## 1.8.1
