@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+- Saved files are named by date, day first, so they're easy to find on a phone: the PDF report and the recording file
+  are both called like **26-10-26_ECG_0712** (day-month-year, then the start time), with .pdf or .json.
+- Results summary: **Avg heart rate** on every summary, including training and the orthostatic test (lying and standing).
+
 ## 1.8.1
 - **Even countdowns:** the recording timer and the step, orthostatic and time-trial countdowns now tick once a second
   evenly, instead of stalling and jumping as the strap's data arrives in Bluetooth bursts.

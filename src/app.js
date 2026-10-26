@@ -834,7 +834,7 @@ function savePdf() {
     return;
   }
   const old = document.title, d = new Date(S.meta.start);
-  document.title = 'ECG ' + d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' + pad2(d.getHours()) + pad2(d.getMinutes());
+  document.title = fileStamp(d);
   const z = [...document.querySelectorAll('.zoomer')].map(p => p.style.zoom);
   document.querySelectorAll('.zoomer').forEach(p => p.style.zoom = 1);
   const restore = () => { document.title = old; document.querySelectorAll('.zoomer').forEach((p, i) => p.style.zoom = z[i]); };
@@ -847,12 +847,14 @@ function savePdf() {
 }
 function b64(bytes) { let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(bin); }
 function unb64(str) { const bin = atob(str), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return u8; }
+// saved file names start with the date, day first, so they're easy to spot on a phone: 26-10-26_ECG_0712
+const fileStamp = d => pad2(d.getDate()) + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getFullYear() % 100) + '_ECG_' + pad2(d.getHours()) + pad2(d.getMinutes());
 function saveRecordingFile() {
   if (!S.raw) return;
   const bytes = new Uint8Array(S.raw.buffer, S.raw.byteOffset, S.raw.byteLength); let bin = '';
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
   const m = S.meta || {}, d = new Date(m.start || Date.now());
-  downloadFile('{{FILE_PREFIX}}-' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + pad2(d.getHours()) + pad2(d.getMinutes()) + '.json',
+  downloadFile(fileStamp(d) + '.json',
     JSON.stringify({ format: 'lead-one-ecg', version: 3, fs: FS, id: m.id, start: m.start, ctx: m.ctx, pos: m.pos, notes: m.notes || '', device: m.device, fw: m.fw, battery: m.battery,
       gap: m.gap, paused: m.paused, pauses: m.pauses, rr: m.rr, gapMarker: GAP, samples: btoa(bin),
       trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, plan: m.plan || null, standMark: m.standMark,

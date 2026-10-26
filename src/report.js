@@ -630,14 +630,16 @@ function summaryCard(A, meta, G, OV, B, X, O) {
     const test = X.tt === 'ramp' && X.ramp && X.ramp.valid ? ['Maximum heart rate', fmt(X.ramp.max) + ' bpm'] : X.tt === 'dfa' && X.dfa && X.dfa.valid ? ['Aerobic threshold', fmt(X.dfa.vt1) + ' bpm']
       : X.tt === 'lthr' && X.lt && X.lt.valid ? ['Threshold heart rate', fmt(X.lt.lthr) + ' bpm'] : null;
     if (test) rows.push(row(test[0], test[1]));
+    rows.push(row('Avg heart rate', fmt(A.meanHR) + ' bpm'));
     rows.push(G.peak ? row('Peak heart rate', G.peak.value, G.peak.g) : row('Peak heart rate', fmt(E.peak20) + ' bpm'));
     if (G.hrr) rows.push(row('Recovery after 1 min', G.hrr.value, G.hrr.g));
   } else if (meta.ctx === 'ortho' && O) {
+    rows.push(row('Avg heart rate lying / standing', fmt(O.lieHR) + ' / ' + fmt(O.standHR) + ' bpm'));
     rows.push(row('Rise on standing', '+' + fmt(O.sustained) + ' bpm', G.ortho && G.ortho.g));
     rows.push(row('HRV lying / standing', fmt(O.rmssdLie, 0) + ' / ' + fmt(O.rmssdStand, 0) + ' ms'));
   } else {
     if (meta.ctx === 'sleep' && A.minHR) rows.push(row('Lowest heart rate', fmt(A.minHR.v) + ' bpm'));
-    if (G.hr) rows.push(row('Heart rate', G.hr.value, G.hr.g));
+    if (G.hr) rows.push(row('Avg heart rate', G.hr.value, G.hr.g));
     if (G.rmssd) {
       const vs = B && B.typical && isFinite(A.rmssd) ? Math.round(100 * (A.rmssd / B.typical - 1)) : null;
       rows.push(row('HRV (RMSSD)', G.rmssd.value, G.rmssd.g, vs == null ? '' : (vs >= 0 ? '↑ ' : '↓ ') + Math.abs(vs) + ' % vs your usual'));
