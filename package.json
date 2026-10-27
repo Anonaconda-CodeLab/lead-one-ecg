@@ -1,6 +1,6 @@
 {
   "name": "lead-one-ecg",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Record, analyse and report single-lead ECG and HRV from a chest-strap heart-rate monitor, entirely in the browser.",
   "private": true,
   "type": "module",

@@ -1,9 +1,16 @@
 # Changelog
 
-## Unreleased
+## 1.8.2
 - Saved files are named by date, time and recording type, like **2026-10-26_ECG_0712_morning** (.pdf for the report,
   .json for the recording file), so they list in date order and readings to compare are easy to spot.
 - Results summary: **Avg heart rate** on every summary, including training and the orthostatic test (lying and standing).
+- Links open in the same tab.
+- Readings, reports, history and strap details are marked so a browser's Translate button leaves them out
+  (translation sends the page's text to an online service). The manual explains this, and that opening the web app
+  is an ordinary website visit.
+- **New home:** the website moved to Cloudflare Pages, with stricter security headers: no other site can show
+  the app inside its own page, and browsers always use HTTPS.
+- Shorter thank-you line at the bottom of the start screen.
 
 ## 1.8.1
 - **Even countdowns:** the recording timer and the step, orthostatic and time-trial countdowns now tick once a second

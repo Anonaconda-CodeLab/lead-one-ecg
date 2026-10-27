@@ -3,8 +3,9 @@
 ## Design
 - **No network access.** The built page carries a Content Security Policy (`default-src 'none'; connect-src 'none'`) so the
   app cannot send or fetch anything, even if malicious code were injected. Fonts are embedded; there are no external scripts,
-  analytics or trackers. The only outbound links are optional *Source code* / *Support on Ko-fi* buttons, which open in a new,
-  isolated tab (`rel="noopener noreferrer"`).
+  analytics or trackers. The only outbound links are optional *Source code* / *Support on Ko-fi* buttons, which open in the same
+  tab (`rel="noopener noreferrer"`). The site's HTTP headers (`dist/_headers`) add a second block on connections and stop
+  other sites from framing the app.
 - **Local storage only.** Recordings, history and profile (date of birth, sex, optional name) are stored in the browser's
   IndexedDB and localStorage on the user's own device. Nothing is uploaded. Data leaves the device only when the user exports
   a file.

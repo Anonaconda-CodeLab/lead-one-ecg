@@ -58,7 +58,8 @@ The app explains the fix if Bluetooth is unavailable. Sample reports and recordi
 
 ### Hosting your own copy
 The whole app is one file, `dist/index.html`. Host it anywhere that serves https:
-- **Netlify, Cloudflare Pages or similar:** link your fork and set the publish directory to `dist` (no build command).
+- **Cloudflare Pages, Netlify or similar:** link your fork and set the publish directory to `dist` (no build command).
+  The official site is on Cloudflare Pages; `dist/_headers` holds its HTTP headers.
 - **Any static host:** upload `dist/index.html`.
 - Set `appUrl` at the top of `build.mjs` to your own address so the in-app help points to it.
 
