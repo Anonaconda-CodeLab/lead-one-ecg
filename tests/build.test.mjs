@@ -77,6 +77,8 @@ test('Android app: no internet permission, native layer inactive in browsers', a
   assert.match(m, /android\.permission\.INTERNET" tools:node="remove"/);
   assert.ok(!/<uses-permission android:name="android\.permission\.INTERNET" \/>/.test(m));
   assert.ok(!/<provider\b|FileProvider/.test(m), 'no FileProvider: nothing in the app shares files by link');
+  const { existsSync } = await import('node:fs');
+  assert.ok(!existsSync(new URL('../mobile/android/app/src/main/res/xml/file_paths.xml', import.meta.url)), 'the template FileProvider paths file stays gone');
   const gw = readFileSync(new URL('../mobile/android/gradle/wrapper/gradle-wrapper.properties', import.meta.url), 'utf8');
   assert.match(gw, /^distributionSha256Sum=[0-9a-f]{64}$/m, 'the Gradle download is checked against a known hash');
   const j = readFileSync(new URL('../mobile/android/app/src/main/java/com/anonacondacodelab/leadone/LeadOnePlugin.java', import.meta.url), 'utf8');
