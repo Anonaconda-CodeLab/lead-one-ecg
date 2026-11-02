@@ -15,6 +15,9 @@
   wrong part of the spike and call it an extra beat (one training session showed 81 instead of about 13). A late beat
   followed by an early one is now recognised as a timing slip, and extra beats are not judged where the spikes are too
   small; the report says for how long. The extra-beats card now says "beats".
+- **T-wave shape** is now judged on averaged beats, as the "Average beat" picture shows, instead of one beat at a
+  time. When the strap's signal is small, single T waves are easily flipped by ordinary wobble, which gave false
+  "Outside normal range" results on readings whose averaged T wave was clearly upright.
 - Time in zones counts only normal beat-to-beat intervals, so extra beats and timing slips no longer add seconds to the
   top zones.
 - **QTc on the short side:** from 330 ms is within the normal range, 320–329 ms borderline and below 320 ms outside it

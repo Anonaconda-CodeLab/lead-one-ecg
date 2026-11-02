@@ -147,3 +147,15 @@ test('a weak stretch is measured and is not counted as noise', async () => {
   assert.ok(A.weakSec >= 100 && A.weakSec <= 130, `weak stretch measured (${A.weakSec})`);
   assert.ok(A.noisePct < 5, 'a weak signal is not counted as noise');
 });
+
+test('T-wave direction is judged on averaged beats: small noisy T waves read upright, inverted ones are still caught', async () => {
+  const d = L.makeDemo(5, 7, 'rest');
+  let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5;
+  // a third of the size, with wobble and a slow baseline sway (per-beat counting gave 56 % upright on this)
+  const weak = Int32Array.from(d.raw, (v, i) => Math.round(v * 0.35 + 120 * rnd() + 150 * Math.sin(i / L.FS * 2 * Math.PI * 0.6)));
+  const A = await L.analyze(weak, { age: 45 });
+  assert.ok(A.tPosPct >= 90, `small, noisy but upright T waves (${A.tPosPct})`);
+  const inv = Int32Array.from(d.raw, v => -v);
+  const B = await L.analyze(inv, { age: 45 });
+  assert.ok(B.tPosPct <= 10, `inverted T waves are still found (${B.tPosPct})`);
+});

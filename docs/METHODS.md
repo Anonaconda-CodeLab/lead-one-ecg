@@ -58,7 +58,10 @@ following the QRS limb by limb from the main peak (either polarity): a limb ends
 maximum QRS slope, and a further large deflection within 40 ms (or a limb ending well beyond the baseline, as at the
 bottom of an S wave) continues the QRS. If no end is found within 120 ms of the peak, QRS width is reported as not
 measurable rather than given a fixed value; this matters during exercise, when a raised, sloping ST segment can run
-straight into the T wave. T end by the tangent method on the T-wave down-slope. QT is measured per beat and corrected per beat with Bazett (QT/√RR)
+straight into the T wave. T end by the tangent method on the T-wave down-slope. T-wave direction ("% upright") comes from the averaged beat of
+each 5-minute window, weighted by its number of beats: upright when the T peak is above baseline by more than 5 % of the
+QRS size (and at least 25 µV); flat or inverted otherwise. Single beats are not used, because a small T wave on one beat
+is easily flipped by noise or baseline sway. QT is measured per beat and corrected per beat with Bazett (QT/√RR)
 and Fridericia (QT/∛RR). A single chest lead is not equivalent to a 12-lead ECG; waveform findings should be
 confirmed clinically.
 

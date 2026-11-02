@@ -867,7 +867,8 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     const T = buildTemplate(sig, r, ks, pre, post, 200); if (!T) continue;
     const up = upsample(T.tp, UP), rrW = median(ks.map(k => rr[k]));
     const D = delineate(up, fsu, pre * UP, rrW, pol);
-    morphWin.push({ w: w5, t0: w5 * 300, rr: rrW, ...D, onOff: (pre * UP - D.on) / UP });
+    let qMax = -Infinity, qMin = Infinity; for (let i = D.on; i <= D.J; i++) { if (up[i] > qMax) qMax = up[i]; if (up[i] < qMin) qMin = up[i]; }
+    morphWin.push({ w: w5, t0: w5 * 300, rr: rrW, ...D, n: ks.length, qrsPP: qMax - qMin, onOff: (pre * UP - D.on) / UP });
   }
   morphWin.sort((a, b) => a.w - b.w);
   const winOn = new Map(morphWin.map(m => [m.w, m.onOff]));
@@ -946,7 +947,11 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     qtc: qtcVals.length ? median(qtcVals) : (morphWin.length ? median(morphWin.map(m => m.qt / Math.sqrt(m.rr / 1000))) : NaN),
     qtcF: qtcPts.length ? median(qtcPts.map(p => p.qtcF)) : NaN,
     qt: qtcPts.length ? median(qtcPts.map(p => p.qt)) : NaN,
-    tPosPct: tTot ? 100 * tPos / tTot : NaN,
+    // T-wave direction from the averaged beat of each 5-minute window, weighted by its beats: one beat's T wave of
+    // 100 µV is easily flipped by ordinary wobble, while the average of hundreds is not. Flat (under 5 % of the QRS or
+    // 25 µV) counts as not upright.
+    tPosPct: (() => { const tot = morphWin.reduce((a, m) => a + m.n, 0); if (!tot) return tTot ? 100 * tPos / tTot : NaN;
+      return 100 * morphWin.filter(m => m.tAmp > Math.max(25, 0.05 * m.qrsPP)).reduce((a, m) => a + m.n, 0) / tot; })(),
     qtcPts, qtcTrend, hrTrend, hrBin: bin, avgBeat, morphWin, sig
   };
   // the steady stretches QTc may be graded on; ctxView picks the strict or the resting variant by context
