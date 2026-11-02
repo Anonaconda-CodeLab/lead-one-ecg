@@ -37,7 +37,7 @@ test('Android shim: saves run one at a time, so a finishing save never clears a 
   const log = []; let n = 0;
   const nativePromise = async (plugin, method, opts) => {
     if (method === 'pickSaveLocation') { const u = 'content://doc/' + (++n); log.push('pick ' + u); await new Promise(r => setTimeout(r, 5)); return { uri: u }; }
-    if (method === 'writeChunk') { log.push('write ' + opts.uri + (opts.last ? ' last' : '')); await new Promise(r => setTimeout(r, 10)); return {}; }
+    if (method === 'writeChunk') { log.push('write ' + opts.uri + (opts.last ? ' last' : '')); await new Promise(r => setTimeout(r, 10)); log.push('done ' + opts.uri); return {}; }
     return {};
   };
   const ctx = vm.createContext({ console, setTimeout, Promise, Uint8Array, DataView, ArrayBuffer, Error, String, Object, Math, navigator: {},
@@ -48,5 +48,8 @@ test('Android shim: saves run one at a time, so a finishing save never clears a 
   const big = 'x'.repeat(600 * 1024);   // three pieces
   const [a, b] = await Promise.all([ctx.N.saveFile('a.json', big), ctx.N.saveFile('b.json', 'y')]);
   assert.ok(a.saved && b.saved);
-  assert.deepEqual(log, ['pick content://doc/1', 'write content://doc/1', 'write content://doc/1', 'write content://doc/1 last', 'pick content://doc/2', 'write content://doc/2 last'], log.join(', '));
+  // each write must have finished ("done") before the next starts, and the first save's last write before the second pick
+  const d1 = 'done content://doc/1';
+  assert.deepEqual(log, ['pick content://doc/1', 'write content://doc/1', d1, 'write content://doc/1', d1, 'write content://doc/1 last', d1,
+    'pick content://doc/2', 'write content://doc/2 last', 'done content://doc/2'], log.join(', '));
 });
