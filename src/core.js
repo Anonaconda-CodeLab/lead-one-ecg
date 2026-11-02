@@ -635,7 +635,10 @@ const LTHR_ZONES = [['Z1 Recovery', 0, 0.85], ['Z2 Aerobic', 0.85, 0.90], ['Z3 T
 function zoneTime(A, ref, defs) {
   const zones = defs.map(([name, lo, hi]) => ({ name, lo, hi, bpmLo: Math.round(lo * ref), bpmHi: hi > 5 ? Infinity : Math.round(hi * ref), sec: 0 }));
   if (!(ref > 0)) return zones;
-  for (let k = 1; k < A.beats; k++) if (A.rrOk[k]) { const f = 60000 / A.rr[k] / ref; const z = zones.find(z => f >= z.lo && f < z.hi) || zones[zones.length - 1]; z.sec += A.rr[k] / 1000; }
+  // only normal-to-normal intervals: one that starts or ends at an ectopic beat, or a detection slip (far from the
+  // local rhythm), is a timing artefact, not heart rate, so it counts in no zone
+  const ok = k => A.nn ? A.nn[k] : A.rrOk[k] && !A.ect[k] && !A.ect[k - 1];
+  for (let k = 1; k < A.beats; k++) if (ok(k)) { const f = 60000 / A.rr[k] / ref; const z = zones.find(z => f >= z.lo && f < z.hi) || zones[zones.length - 1]; z.sec += A.rr[k] / 1000; }
   return zones;
 }
 /* QTc is graded only where a heart-rate correction can be trusted: stretches of at least 60 s with heart rate 50-100 bpm
@@ -643,6 +646,7 @@ function zoneTime(A, ref, defs) {
    and at higher rates no correction is reliable). restStart: in resting contexts the person was already at rest when
    Start was pressed, so the start of the recording counts as settled. Returns the medians over the beats in those
    stretches; null when there is no such stretch; { few: true } when there is one but too few measurable T waves. */
+const WEAK_QRS = 0.3;   // a beat whose QRS is smaller than this share of the recording's median is too weak to judge as ectopic
 const QTC_GATE = { lo: 50, hi: 100, settle: 150, minSec: 60, minBeats: 30 };
 function qtcSteady(A, restStart) {
   if (!A.qtcPts || !A.qtcPts.length) return null;
@@ -661,6 +665,25 @@ function qtcSteady(A, restStart) {
   if (pts.length < QTC_GATE.minBeats) return { few: true, qtc: NaN, qtcF: NaN, sec, beats: pts.length, spans: keep };
   return { qtc: median(pts.map(p => p.qtc)), qtcF: median(pts.map(p => p.qtcF)), qt: median(pts.map(p => p.qt)),
     hr: mean(s10.filter(p => inKeep(p.t)).map(p => p.v)), sec, beats: pts.length, spans: keep };
+}
+
+/* Ectopic beats from timing (rr, against the local median lmed) and QRS shape (corr, amp: against a local template).
+   Premature: clearly early, then a longer interval. Shape alone (normal timing) needs a clearly different QRS: a beat
+   that arrives on time is rarely ectopic, and movement or electrode noise changes the shape of ordinary beats; early
+   beats need less shape evidence. Not judged: noisy beats, and weak ones (QRS too small to time or shape reliably).
+   A beat that comes LATE and is followed by an early one, the two adding up to two ordinary intervals, is the same
+   rhythm with the R peak timed on the wrong part of the QRS: a detection slip, not an ectopic beat. */
+function classifyBeats({ nb, rr, rrOk, lmed, corr, amp, noise, weak }) {
+  const ect = new Uint8Array(nb), ectKind = new Array(nb).fill(null);
+  for (let k = 1; k < nb; k++) {
+    if (noise[k] || weak[k]) continue;
+    const lm = lmed[k], next = rrOk[k] && k + 1 < nb && rrOk[k + 1];
+    const prem = next && rr[k] < 0.8 * lm && rr[k + 1] > 1.08 * lm && (rr[k + 1] - rr[k]) > 0.3 * lm;
+    const slip = !prem && next && rr[k] > 1.1 * lm && Math.abs(rr[k] + rr[k + 1] - 2 * lm) < 0.1 * lm;
+    const morph = !slip && (prem ? (corr[k] < 0.8 || amp[k] < 0.5 || amp[k] > 2) : (corr[k] < 0.6 || amp[k] < 0.4 || amp[k] > 2.5));
+    if (prem || morph) { ect[k] = 1; ectKind[k] = morph ? (prem ? 'Premature, different shape' : 'Different shape') : 'Premature'; }
+  }
+  return { ect, ectKind };
 }
 
 /* ---------- full analysis ---------- */
@@ -695,6 +718,12 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   }
   const t = new Float64Array(nb); for (let k = 0; k < nb; k++) t[k] = rf[k] / FS;
   const noise = new Uint8Array(nb); for (let k = 0; k < nb; k++) noise[k] = noisyB[(r[k] / BL) | 0];
+  // a QRS shrunk to under 30 % of the recording's usual size (strap shifted or lost contact) is too small to judge its
+  // shape or time it precisely enough to call a beat early: extra beats are not judged there (heart rate still is)
+  const qrsPP = new Float64Array(nb), weak = new Uint8Array(nb);
+  for (let k = 0; k < nb; k++) { const c = r[k]; let mx = -Infinity, mn = Infinity; for (let i = Math.max(0, c - 6); i <= Math.min(n - 1, c + 8); i++) { if (sig[i] > mx) mx = sig[i]; if (sig[i] < mn) mn = sig[i]; } qrsPP[k] = mx - mn; }
+  const ppMed = median(Array.from(qrsPP)); let weakBeats = 0, weakSec = 0;
+  for (let k = 0; k < nb; k++) if (!noise[k] && qrsPP[k] < WEAK_QRS * ppMed) { weak[k] = 1; weakBeats++; if (k > 0) weakSec += (r[k] - r[k - 1]) / FS; }
   const rr = new Float64Array(nb).fill(NaN), rrOk = new Uint8Array(nb);
   for (let k = 1; k < nb; k++) { rr[k] = (rf[k] - rf[k - 1]) * 1000 / FS; rrOk[k] = !noise[k] && !noise[k - 1] && rr[k] < 6000 ? 1 : 0; }
   const okRR = []; for (let k = 1; k < nb; k++) if (rrOk[k]) okRR.push(rr[k]);
@@ -731,16 +760,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
       amp[k] = pl - ql > 0 ? (pb - qb) / (pl - ql) : 1;     // QRS peak-to-peak relative to the local template
     }
   }
-  const ect = new Uint8Array(nb), ectKind = new Array(nb).fill(null);
-  for (let k = 1; k < nb; k++) {
-    if (noise[k]) continue;
-    const lm = lmed[k];
-    const prem = rrOk[k] && k + 1 < nb && rrOk[k + 1] && rr[k] < 0.8 * lm && rr[k + 1] > 1.08 * lm && (rr[k + 1] - rr[k]) > 0.3 * lm;
-    // shape alone (normal timing) needs a clearly different QRS: a beat that arrives on time is rarely ectopic, and
-    // movement or electrode noise changes the shape of ordinary beats. Early beats need less shape evidence.
-    const morph = prem ? (corr[k] < 0.8 || amp[k] < 0.5 || amp[k] > 2) : (corr[k] < 0.6 || amp[k] < 0.4 || amp[k] > 2.5);
-    if (prem || morph) { ect[k] = 1; ectKind[k] = morph ? (prem ? 'Premature, different shape' : 'Different shape') : 'Premature'; }
-  }
+  const { ect, ectKind } = classifyBeats({ nb, rr, rrOk, lmed, corr, amp, noise, weak });
   // events (group ectopic beats within 3 s)
   const events = [];
   for (let k = 0; k < nb; k++) if (ect[k]) {
@@ -805,7 +825,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     { name: 'Anaerobic', lo: 0.8, hi: 0.9 }, { name: 'Maximum', lo: 0.9, hi: 10 }
   ];
   const zones = zoneDefs.map(z => ({ ...z, bpmLo: Math.round(z.lo * hrMax), bpmHi: Math.round(Math.min(z.hi, 1) * hrMax), sec: 0 }));
-  for (let k = 1; k < nb; k++) if (rrOk[k]) { const f = 60000 / rr[k] / hrMax; const z = zones.find(z => f >= z.lo && f < z.hi) || zones[4]; z.sec += rr[k] / 1000; }
+  for (let k = 1; k < nb; k++) if (nn[k]) { const f = 60000 / rr[k] / hrMax; const z = zones.find(z => f >= z.lo && f < z.hi) || zones[4]; z.sec += rr[k] / 1000; }
 
   progress(0.7, 'Estimating breathing and exercise response'); await tick();
   // breathing rate from ECG-derived respiration (R-amplitude modulation) + respiratory sinus arrhythmia
@@ -910,7 +930,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     fs: FS, n, dur, pol, gapSec: gapCount / FS, medRR,
     beats: nb, r, t, rr, rrOk, nn, ect, noise, events, pauses, longest,
     ectopicBeats: ect.reduce((a, b) => a + b, 0),
-    noisePct: 100 * noiseBeats / nb, noiseTimePct: 100 * noisyBlocks / noisyB.length,
+    noisePct: 100 * noiseBeats / nb, weakPct: 100 * weakBeats / nb, weakSec, noiseTimePct: 100 * noisyBlocks / noisyB.length,
     meanHR, meanNN, rmssd, sdnn, pnn50, pnn200, sd1, sd2,
     lnRmssd: Math.log(rmssd), fd: H.fd, hfPct: H.fd ? H.fd.hfPct : NaN, lfhf: H.fd ? H.fd.lfhf : NaN,
     h10: useH10 ? h10Series : null,

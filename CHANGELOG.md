@@ -11,6 +11,15 @@
   dependence was removed, while the level is graded separately.
 - ECG strips no longer print a heart rate over the interval that starts at an ectopic beat (it read like a 195 bpm
   spike). The report's maximum heart rate already leaves ectopic beats out.
+- **Fewer false extra beats:** when the strap shifts and the heartbeat spikes shrink, the app could time a beat on the
+  wrong part of the spike and call it an extra beat (one training session showed 81 instead of about 13). A late beat
+  followed by an early one is now recognised as a timing slip, and extra beats are not judged where the spikes are too
+  small; the report says for how long. The extra-beats card now says "beats".
+- Time in zones counts only normal beat-to-beat intervals, so extra beats and timing slips no longer add seconds to the
+  top zones.
+- **QTc on the short side:** from 330 ms is within the normal range, 320–329 ms borderline and below 320 ms outside it
+  (short QT is diagnosed at 320 ms or less, and a chest strap reads QT slightly short). A resting reading of 342 ms is
+  no longer flagged.
 - **LTHR test:** if heart rate was still climbing over the last 5 minutes, the threshold is still set but marked
   "effort did not level off". The training zones page explains why a threshold effort splits its time between Z4
   and Z5a.

@@ -26,7 +26,10 @@ A beat is flagged as ectopic when it is more than 20 % premature relative to the
 a compensatory interval (QRS correlation below 0.8 then also counts), or, if it arrives on time, only when its QRS is
 clearly different: correlation below 0.6, or peak-to-peak amplitude below 0.4 or above 2.5 times normal. Each beat is
 compared with a local template (median of up to 40 surrounding clean beats) over the QRS only (−46 to +62 ms), so the
-shifts in P, ST and T at high heart rates do not cause false flags. Beats within 3 s form one event; only consecutive
+shifts in P, ST and T at high heart rates do not cause false flags. Not flagged: a beat that comes late and is followed
+by an early one, the two adding up to two ordinary intervals (±10 %): that is the same rhythm with the R peak timed on
+the wrong part of the QRS. Not judged at all: beats whose QRS is under 30 % of the recording's median size (strap
+shifted or lost contact); the report says how long that lasted. Beats within 3 s form one event; only consecutive
 ectopic beats are called a couplet or run. Pauses are clean RR intervals longer than 2 s.
 
 ## Heart rate variability
@@ -130,7 +133,7 @@ assessed* where a population comparison would be misleading, e.g. HRV during exe
 |---|---|---|
 | RMSSD, SDNN (rest) | Pooled short-term norms (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) [3]; age and sex adjustments approximated from [4]; position factors (seated 0.85, standing 0.6 for RMSSD) | < 5th percentile outside; 5th–15th borderline; 15th–75th normal; > 75th favourable. SDNN graded only for recordings ≤ 20 min |
 | Resting heart rate | Conventional adult ranges; separate bands for sleep and standing | 40s–50s favourable at rest; > 100 or < 40 bpm (awake) outside |
-| QTc (Bazett, steady stretches at 50–100 bpm only; see Waveform measurements) | Men ≤ 430 ms normal, 431–450 borderline, > 450 prolonged; women ≤ 450, 451–470, > 470 [5]; < 350 ms short | ≥ 500 ms flagged for prompt review. Not assessed without a steady stretch |
+| QTc (Bazett, steady stretches at 50–100 bpm only; see Waveform measurements) | Men ≤ 430 ms normal, 431–450 borderline, > 450 prolonged; women ≤ 450, 451–470, > 470 [5]; 320–329 ms borderline short, < 320 ms short (ESC 2022 diagnoses short QT at ≤ 320 ms; the tangent T end reads QT slightly short, so 330–349 is not flagged) | ≥ 500 ms flagged for prompt review. Not assessed without a steady stretch |
 | QRS duration | ≤ 100 ms normal; 101–119 borderline; ≥ 120 ms wide | |
 | J point | −100 to +200 µV normal at rest (single chest lead) | Training: not graded (junctional depression is normal during exercise) unless below −200 µV; T-wave shape likewise unless < 70 % upright |
 | Heart-rate recovery (1 min) | Active: ≤ 12 bpm outside, 13–17 borderline [6]; passive: ≤ 18, 19–22 | Active ≥ 30, passive ≥ 40 favourable |

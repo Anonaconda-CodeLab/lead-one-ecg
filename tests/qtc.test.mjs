@@ -70,7 +70,7 @@ test('report: an ungraded QTc shows no reference range, no grade and says why; t
   const html = L.renderReport({ ...A, qtcSteady: null }, meta, { sex: 'M', dob: '1981-01-01' }, []);
   const row = html.match(/QTc \(Bazett\)<span[\s\S]*?<\/tr>/)[0], rowF = html.match(/QTc \(Fridericia\)<span[\s\S]*?<\/tr>/)[0];
   assert.ok(row.includes('n/a at this rate') && rowF.includes('n/a at this rate'), 'range replaced in both rows');
-  assert.ok(!/350 – 430/.test(row + rowF), 'no range printed beside the values');
+  assert.ok(!/330 – 430/.test(row + rowF), 'no range printed beside the values');
   assert.ok(row.includes('Not assessed (rate)'));
   assert.ok(html.includes('heart-rate corrections aren’t reliable'), 'reason given');
   assert.ok(html.includes('QTc (Bazett) over time'), 'trend chart says which correction it plots');
@@ -84,8 +84,8 @@ test('report: a graded QTc shows the graded Bazett value next to the range, Frid
   const html = L.renderReport(A, meta, { sex: 'M', dob: '1981-01-01' }, []);
   const V = L.ctxView(A, 'morning'); assert.ok(V.qtcSteady && isFinite(V.qtcSteady.qtc), 'steady stretch found');
   const row = html.match(/QTc \(Bazett\)<span[\s\S]*?<\/tr>/)[0], rowF = html.match(/QTc \(Fridericia\)<span[\s\S]*?<\/tr>/)[0];
-  assert.ok(row.includes('>' + Math.round(V.qtcSteady.qtc) + '<') && row.includes('350 – 430'), 'graded value beside the range');
-  assert.ok(rowF.includes('not graded') && !rowF.includes('350 – 430'), 'Fridericia secondary, no range');
+  assert.ok(row.includes('>' + Math.round(V.qtcSteady.qtc) + '<') && row.includes('330 – 430'), 'graded value beside the range');
+  assert.ok(rowF.includes('not graded') && !rowF.includes('330 – 430'), 'Fridericia secondary, no range');
 });
 
 test('ECG strips print no heart rate over an interval that starts at an ectopic beat', async () => {
@@ -105,4 +105,45 @@ test('LTHR: a heart rate still climbing over the last 5 minutes is flagged, a le
   assert.ok(up.noPlateau && Math.abs(up.slope5 - 2) < 0.2, `rising ${up.slope5}`);
   assert.ok(!flat.noPlateau && Math.abs(flat.slope5) < 0.2, `flat ${flat.slope5}`);
   assert.ok(up.valid, 'the threshold is still set');
+});
+
+test('short QTc: normal from 330 ms, borderline 320-329, outside below 320', () => {
+  const qs = v => ({ qtc: v, qtcF: v, hr: 56, sec: 120, beats: 110, spans: [] });
+  assert.equal(gradeQS(qs(342), 342).g, 'norm', '342 ms at rest is not flagged');
+  assert.equal(gradeQS(qs(330), 330).g, 'norm');
+  assert.equal(gradeQS(qs(325), 325).g, 'bord');
+  assert.equal(gradeQS(qs(315), 315).g, 'out');
+  assert.deepEqual(Array.from(R.qtc), [330, 430], 'the range shown matches the grading');
+});
+
+test('zones: intervals next to an ectopic beat count in no zone', () => {
+  const n = 601, t = [], rr = [], rrOk = new Uint8Array(n).fill(1), ect = new Uint8Array(n);
+  for (let k = 0; k < n; k++) { rr.push(k ? 400 : NaN); t.push(k * 0.4); }   // 150 bpm throughout
+  rr[300] = 300; rr[301] = 500; ect[300] = 1;                               // a premature beat and its pause
+  const z = L.zoneTime({ beats: n, t, rr, rrOk, ect, dur: 240 }, 160, L.LTHR_ZONES);
+  const top = z.slice(4).reduce((a, x) => a + x.sec, 0);
+  assert.equal(top, 0, 'the 300 ms interval (200 bpm) does not land in Z5');
+});
+
+test('ectopic beats: a late-then-early pair is a timing slip; a weak QRS is not judged; real ones still count', () => {
+  // 40 beats at 400 ms; beat 10 premature (300 then 500), beat 20 late-then-early (520 then 280) with an odd shape,
+  // beat 30 with a clearly different shape at normal timing
+  const nb = 40, rr = Array.from({ length: nb }, (_, k) => k ? 400 : NaN);
+  rr[10] = 300; rr[11] = 500; rr[20] = 520; rr[21] = 280;
+  const one = () => new Float64Array(nb).fill(1), corr = one(), amp = one();
+  corr[20] = 0.5; corr[30] = 0.4;
+  const base = { nb, rr, rrOk: new Uint8Array(nb).fill(1), lmed: new Float64Array(nb).fill(400), corr, amp, noise: new Uint8Array(nb), weak: new Uint8Array(nb) };
+  const { ect } = L.classifyBeats(base);
+  assert.deepEqual([10, 20, 30].map(k => ect[k]), [1, 0, 1], 'premature and odd-shaped beats flagged; the slip is not');
+  const weak = new Uint8Array(nb); weak[10] = weak[30] = 1;
+  const W = L.classifyBeats({ ...base, weak }).ect;
+  assert.deepEqual([10, 30].map(k => W[k]), [0, 0], 'nothing is judged where the QRS is too weak');
+});
+
+test('a weak stretch is measured and is not counted as noise', async () => {
+  const d = L.makeDemo(10, 7, 'rest'), raw = Int32Array.from(d.raw), s0 = 120 * L.FS, s1 = 240 * L.FS;
+  for (let i = s0; i < s1; i++) raw[i] = Math.round(raw[i] * 0.1);
+  const A = await L.analyze(raw, { age: 45 });
+  assert.ok(A.weakSec >= 100 && A.weakSec <= 130, `weak stretch measured (${A.weakSec})`);
+  assert.ok(A.noisePct < 5, 'a weak signal is not counted as noise');
 });
