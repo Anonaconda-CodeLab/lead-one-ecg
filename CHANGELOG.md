@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.8.3
+- **QTc is graded only where it can be trusted.** Above 100 bpm, or before the heart rate has settled after effort,
+  heart-rate corrections aren't reliable and a chest strap's T wave is hard to time exactly. QTc is now graded only on
+  steady stretches of at least a minute at 50–100 bpm, using Bazett (the correction the normal range was set with),
+  and that value is the one shown next to the range, with Fridericia beside it. Otherwise it shows **Not assessed
+  (rate)**, with the values but without the normal range, so a training session no longer gets a false "borderline"
+  flag. The results summary says so too. Reported by a user.
+- QTc trend chart labelled **QTc (Bazett)**; the rate-correction check explains that a flat cloud means the rate
+  dependence was removed, while the level is graded separately.
+- ECG strips no longer print a heart rate over the interval that starts at an ectopic beat (it read like a 195 bpm
+  spike). The report's maximum heart rate already leaves ectopic beats out.
+- **LTHR test:** if heart rate was still climbing over the last 5 minutes, the threshold is still set but marked
+  "effort did not level off". The training zones page explains why a threshold effort splits its time between Z4
+  and Z5a.
+- New thank-you line: "No ads, no tracking. If you find this app useful, please consider making a small donation to
+  help fund development. Thank you!"
+- Release and Android hardening from a security review: signing in a separate, approval-gated step; unused file
+  sharing removed; saving writes only to the place chosen in the save screen.
+
 ## 1.8.2
 - Saved files are named by date, time and recording type, like **2026-10-26_ECG_0712_morning** (.pdf for the report,
   .json for the recording file), so they list in date order and readings to compare are easy to spot.

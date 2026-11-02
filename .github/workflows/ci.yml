@@ -11,10 +11,14 @@ jobs:
       matrix:
         node: [18, 20, 22]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09   # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444   # v5.0.0
         with:
           node-version: ${{ matrix.node }}
       - run: npm test
-      - name: Check dist/index.html is up to date
-        run: git diff --exit-code -- dist/index.html || (echo "Run 'npm run build' and commit dist/index.html" && exit 1)
+      - name: Check dist/ is up to date (every file the website serves)
+        run: |
+          git diff --exit-code -- dist/ || { echo "::error::Run 'npm run build' and commit dist/"; exit 1; }
+          if [ -n "$(git ls-files --others --exclude-standard -- dist/)" ]; then git ls-files --others --exclude-standard -- dist/; echo "::error::Run 'npm run build' and commit the new files in dist/"; exit 1; fi

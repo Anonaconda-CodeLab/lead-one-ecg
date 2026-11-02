@@ -769,7 +769,7 @@ function historyEntry(A, meta) {
   return {
     id: meta.id || ('file-' + meta.start), start: meta.start, ctx: meta.ctx || '', pos: meta.pos || '', notes: meta.notes || '',
     dur: Math.round(A.dur - A.gapSec), hr: A.meanHR, rmssd: A.rmssd, ln: A.lnRmssd, sdnn: A.sdnn, pnn50: A.pnn50,
-    lfhf: A.lfhf, hfPct: A.hfPct, br: A.breath ? A.breath.median : null, brShare: A.breathShare, qtc: A.qtc,
+    lfhf: A.lfhf, hfPct: A.hfPct, br: A.breath ? A.breath.median : null, brShare: A.breathShare, qtc: A.qtcSteady && isFinite(A.qtcSteady.qtc) ? A.qtcSteady.qtc : null,   // graded QTc only
     peak: A.exercise ? A.exercise.peak20 : null, peak20: A.exercise ? A.exercise.peak20 : null, hrr60: A.exercise && A.exercise.end != null ? A.exercise.hrr60 : null,
     ect: A.ectopicBeats, beats: A.beats, src: A.hrvSource, trainType: meta.ctx === 'training' ? (meta.trainType || 'session') : '', recovery: meta.recovery || '',
     ...(meta.ctx === 'training' && meta.trainType === 'ramp' ? (r => ({ rampMax: r.max, rampPlateau: r.plateau && r.valid }))(rampTest(A, A.exercise)) : {}),

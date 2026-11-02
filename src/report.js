@@ -176,18 +176,23 @@ function poincareRR(A) {
   const lo = Math.floor((Math.min(...vals) - 100) / 200) * 200, hi = Math.ceil((Math.max(...vals) + 100) / 200) * 200;
   return scatter({ pts: normal.concat(ect), xr: [Math.max(200, lo), hi], yr: [Math.max(200, lo), hi], xLab: 'RR interval n (ms)', yLab: 'RR interval n+1 (ms)', identity: true, ellipse: { cx: A.meanNN, cy: A.meanNN, sd1: A.sd1, sd2: A.sd2 } });
 }
-function qtcChart(A, startMs, q = [340, 470]) {
+/* q = reference range, drawn only when QTc is graded; spans = the steady stretches the grade comes from */
+function qtcChart(A, startMs, q = null, spans = []) {
   const W = 186, H = 40, pts = thin(A.qtcPts, 2500); if (!pts.length) return '<p class="cap">QTc could not be measured reliably in this recording.</p>';
   const F = frame({ W, H, x0: 0, x1: A.dur, y0: 300, y1: 560, yTicks: [300, 350, 400, 450, 500, 550], startMs });
-  let s = `<rect x="${F.padL}" width="${F.iw}" y="${F.Y(q[1]).toFixed(2)}" height="${(F.Y(q[0]) - F.Y(q[1])).toFixed(2)}" fill="var(--p-ok-soft)" opacity=".6"/>`;
-  s += `<line x1="${F.padL}" x2="${W - F.padR}" y1="${F.Y(q[1])}" y2="${F.Y(q[1])}" stroke="var(--p-ok)" stroke-width="0.25" stroke-dasharray="1.2 0.8"/><text x="${W - F.padR - 1}" y="${F.Y(q[1]) - 1}" text-anchor="end" font-size="2.1" fill="var(--p-ok)">${q[1]} ms</text>`;
+  let s = '';
+  for (const sp of spans) s += `<rect x="${F.X(sp.t0).toFixed(2)}" width="${Math.max(0.3, F.X(sp.t1) - F.X(sp.t0)).toFixed(2)}" y="${F.padT}" height="${F.ih}" fill="var(--p-ink)" opacity=".05"/>`;
+  if (q) {
+    s += `<rect x="${F.padL}" width="${F.iw}" y="${F.Y(q[1]).toFixed(2)}" height="${(F.Y(q[0]) - F.Y(q[1])).toFixed(2)}" fill="var(--p-ok-soft)" opacity=".6"/>`;
+    s += `<line x1="${F.padL}" x2="${W - F.padR}" y1="${F.Y(q[1])}" y2="${F.Y(q[1])}" stroke="var(--p-ok)" stroke-width="0.25" stroke-dasharray="1.2 0.8"/><text x="${W - F.padR - 1}" y="${F.Y(q[1]) - 1}" text-anchor="end" font-size="2.1" fill="var(--p-ok)">${q[1]} ms</text>`;
+  }
   const cid = uid('q'); s += `<clipPath id="${cid}"><rect x="${F.padL}" y="${F.padT}" width="${F.iw}" height="${F.ih}"/></clipPath><g clip-path="url(#${cid})">`;
   for (const p of pts) s += `<circle cx="${F.X(p.t).toFixed(2)}" cy="${F.Y(p.qtc).toFixed(2)}" r="0.3" fill="var(--p-accent)" opacity=".28"/>`;
   let d = '', prev = null; for (const p of A.qtcTrend) { d += (prev && p.t - prev.t < 700 ? 'L' : 'M') + F.X(p.t).toFixed(2) + ' ' + F.Y(p.med).toFixed(2); prev = p; }
   s += `<path d="${d}" fill="none" stroke="var(--p-accent)" stroke-width="0.6"/></g>`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="QTc over time">${F.g}${s}</svg>`;
 }
-function rrQtc(A, q = [340, 470]) {
+function rrQtc(A, q = null) {
   const pts = thin(A.qtcPts, 3000).map(p => [p.rr, p.qtc, 0]);
   if (!pts.length) return '';
   const rv = pts.map(p => p[0]); const lo = Math.floor((Math.min(...rv) - 100) / 200) * 200, hi = Math.ceil((Math.max(...rv) + 100) / 200) * 200;
@@ -239,7 +244,8 @@ function stripSvg(A, startSample, opt = {}) {
   for (let k = k0; k < k1; k++) {
     const x = X(A.r[k]).toFixed(2);
     if (A.ect[k]) s += `<text x="${x}" y="3.3" text-anchor="middle" font-size="2.4" font-weight="700" fill="var(--p-warn)">E</text>`;
-    else if (k > 0 && isFinite(A.rr[k]) && !A.noise[k]) s += `<text x="${x}" y="3.3" text-anchor="middle" font-size="2.2" fill="var(--p-muted)" font-family="var(--f-mono)">${Math.round(60000 / A.rr[k])}</text>`;
+    // no rate over an interval that starts at an ectopic beat: it is a timing artefact, not the heart rate
+    else if (k > 0 && isFinite(A.rr[k]) && !A.noise[k] && !A.ect[k - 1]) s += `<text x="${x}" y="3.3" text-anchor="middle" font-size="2.2" fill="var(--p-muted)" font-family="var(--f-mono)">${Math.round(60000 / A.rr[k])}</text>`;
     if (k > 0 && A.rrOk[k] && A.rr[k] > 2000 && A.r[k - 1] >= s0) {
       const xa = X(A.r[k - 1]), xb = X(A.r[k]);
       s += `<path d="M${(xa + 1).toFixed(2)} ${top + gh - 1.2}H${(xb - 1).toFixed(2)}" stroke="var(--p-accent)" stroke-width="0.4" marker-end="none"/><rect x="${((xa + xb) / 2 - 5.5).toFixed(2)}" y="${top + gh - 4.6}" width="11" height="3.2" rx="0.6" fill="var(--p-bg)" stroke="var(--p-accent)" stroke-width="0.2"/><text x="${((xa + xb) / 2).toFixed(2)}" y="${top + gh - 2.2}" text-anchor="middle" font-size="2.3" font-weight="600" fill="var(--p-accent)">${(A.rr[k] / 1000).toFixed(2)} s</text>`;
@@ -284,6 +290,7 @@ function hrvNorms(age, sex, pos) {
 }
 /* QTc (Bazett) limits after Goldenberg et al. 2006: men ≤430 normal, 431–450 borderline, >450 prolonged;
    women ≤450 normal, 451–470 borderline, >470 prolonged; short QT below 350 / 330 ms. */
+const QTC_RATE_NOTE = 'Not assessed: above 100 bpm, or before the heart rate has settled, heart-rate corrections aren’t reliable and a chest strap’s T wave is hard to time exactly.';
 function qtcLimits(sex) { return sex === 'M' ? { norm: 430, bord: 450 } : sex === 'F' ? { norm: 450, bord: 470 } : { norm: 440, bord: 460 }; }
 function refsFor(age, sex, ctx, pos) {
   const a = age || 35;
@@ -566,15 +573,18 @@ function gradeAll(A, meta, R, X = null) {
             : `A steady effort: heart rate stayed within ±5 bpm of ${f(T.avg)} bpm for ${f(100 * T.within)} % of the block.` }); }
       if (X.tt === 'lthr' && X.lt) { const r = X.lt;
         add('lthr', { title: 'Threshold heart rate (LTHR)', short: 'threshold heart rate', value: r.valid ? f(r.lthr) + ' bpm' : 'Incomplete', g: 'na', what: 'The heart rate you can sustain for about an hour: your average over the last 20 minutes of a 30-minute all-out effort.',
-          text: r.valid ? `Your threshold heart rate is ${f(r.lthr)} bpm. Zones based on it are more accurate than percentages of maximum for hard training.` : 'The effort lasted less than 25 minutes, so the threshold could not be measured reliably. Warm up first, press Start as the effort begins, and hold the hardest pace you can for the full 30 minutes.' }); }
+          text: r.valid ? `Your threshold heart rate is ${f(r.lthr)} bpm. Zones based on it are more accurate than percentages of maximum for hard training.${r.noPlateau ? ` ''' + NP + '''` : ''}` : 'The effort lasted less than 25 minutes, so the threshold could not be measured reliably. Warm up first, press Start as the effort begins, and hold the hardest pace you can for the full 30 minutes.' }); }
     }
   }
-  // QTc
-  const qtcFrid = (ctx === 'training' || A.meanHR > 90) && isFinite(A.qtcF);
-  { const v = qtcFrid ? A.qtcF : A.qtc, L = R.qtcLim; let g = !isFinite(v) ? 'na' : v < 330 ? 'out' : v < 350 ? 'bord' : v <= L.norm ? 'norm' : v <= L.bord ? 'bord' : 'out';
+  // QTc: graded (Bazett, the correction the reference range was set with) only on steady stretches at 50-100 bpm
+  { const QS = A.qtcSteady, v = QS && isFinite(QS.qtc) ? QS.qtc : NaN, L = R.qtcLim, rate = !QS && isFinite(A.qtc);
+    let g = !isFinite(v) ? 'na' : v < 330 ? 'out' : v < 350 ? 'bord' : v <= L.norm ? 'norm' : v <= L.bord ? 'bord' : 'out';
     const urgent = v >= 500;
     const t = { na: 'Could not be measured reliably in this recording.', norm: 'Within the normal range.', bord: v < 350 ? 'Slightly shorter than typical. This is usually a measurement effect with a chest strap; a standard ECG can confirm.' : `Slightly longer than typical for ${sexW}. This may be a measurement limit of a chest strap, or due to certain medicines or low potassium or magnesium. Worth a standard ECG if it repeats.`, out: urgent ? 'Well above 500 ms. Chest straps can over-estimate QTc, but a value this high should be checked with a standard 12-lead ECG promptly. Arrange a medical review soon, and seek urgent care if you have fainting or palpitations.' : v < 330 ? 'Shorter than the normal range. This needs confirming with a standard 12-lead ECG; please mention it to a doctor.' : `Longer than the normal limit for ${sexW}. Chest straps can over-estimate QTc, so it needs confirming with a standard 12-lead ECG. Please discuss it with a doctor, especially if you take medicines known to affect the QT interval.` }[g];
-    add('qtc', { title: 'QTc (heart reset time)', short: 'QTc', value: f(v) + (qtcFrid ? ' ms (Fridericia)' : ' ms'), g, urgent, frid: qtcFrid, what: 'The time your heart’s main chambers take to electrically reset after each beat, adjusted for heart rate. Values that are too long can increase the risk of rhythm problems.', text: t + (qtcFrid ? ` Graded with the Fridericia correction, which is accurate at the higher heart rates of this recording (the Bazett value, ${f(A.qtc)} ms, over-corrects at fast rates).` : '') }); }
+    const how = isFinite(v) ? ` Graded on ${QS.sec >= 120 ? f(QS.sec / 60) + ' minutes' : f(QS.sec) + ' seconds'} of steady heart rate (about ${f(QS.hr)} bpm) with the Bazett correction, the one the normal range was set with; Fridericia gives ${f(QS.qtcF)} ms.` : '';
+    add('qtc', { title: 'QTc (heart reset time)', short: 'QTc', value: rate ? 'Not assessed (rate)' : f(v) + ' ms', g, urgent, rate, what: 'The time your heart’s main chambers take to electrically reset after each beat, adjusted for heart rate. Values that are too long can increase the risk of rhythm problems.',
+      text: rate ? `${QTC_RATE_NOTE} Over the whole recording (mean heart rate ${f(A.meanHR)} bpm) it measured ${f(A.qtc)} ms (Bazett) and ${f(A.qtcF)} ms (Fridericia); these are not compared with the normal range. For a graded QTc, record at rest, for example a morning reading.`
+        : QS && QS.few ? 'Too few clear T waves in the steady part of this recording to measure it reliably.' : t + how }); }
   // QRS
   { const v = A.qrs, g = !isFinite(v) ? 'na' : v >= 120 ? 'out' : v > 100 ? 'bord' : v < 50 ? 'bord' : 'norm';
     add('qrs', { title: 'QRS width', short: 'QRS width', value: f(v) + ' ms', g, what: 'How long the electrical signal takes to spread through the heart’s main pumping chambers.', text: { na: 'Could not be measured reliably.', norm: 'Normal conduction through the pumping chambers.', bord: v < 50 ? 'Unusually narrow, most likely a measurement effect.' : 'Slightly wide. Often harmless (a minor conduction variant), but a standard ECG can confirm.', out: 'Wide. This can indicate a bundle branch block. A chest strap cannot confirm it; please arrange a standard ECG.' }[g] }); }
@@ -648,7 +658,7 @@ function summaryCard(A, meta, G, OV, B, X, O) {
   const nE = A.ectopicBeats || 0, nP = (A.pauses || []).length, rh = worst(['ect', 'pause']);
   rows.push(row('Rhythm', nE || nP ? [nE ? nE + ' extra beat' + (nE > 1 ? 's' : '') : '', nP ? nP + ' pause' + (nP > 1 ? 's' : '') : ''].filter(Boolean).join(', ') : 'Regular', rh ? rh.g : 'na'));
   const sh = worst(['pr', 'qrs', 'qtc', 'j', 't']);
-  rows.push(row('ECG shape', sh && GRADE[sh.g].rank >= 2 ? 'Check ' + sh.short : 'As expected', sh ? sh.g : 'na'));
+  rows.push(row('ECG shape', sh && GRADE[sh.g].rank >= 2 ? 'Check ' + sh.short : 'As expected', sh ? sh.g : 'na', G.qtc && G.qtc.rate ? 'QTc not assessed (rate)' : ''));
   if (G.quality) rows.push(row('Signal quality', G.quality.value, G.quality.g));
   return `<div class="sum-card g-${GRADE[OV.g].cls}"><div class="sum-head">${esc(OV.head)}</div>${rows.join('')}</div>`;
 }
@@ -762,7 +772,12 @@ function dfaChart(r) {
 }
 
 /* ---------- page assembly ---------- */
-function ctxView(A, ctx) { return ctx === 'meditation' ? Object.assign({}, A, { breath: A.breathSlow, breathShare: A.breathShareSlow }) : A; }
+function ctxView(A, ctx) {
+  const V = ctx === 'meditation' ? Object.assign({}, A, { breath: A.breathSlow, breathShare: A.breathShareSlow }) : Object.assign({}, A);
+  // QTc steady stretches: in training the heart rate must settle within the recording; at rest the start counts as settled
+  if (A.qtcWin && !('qtcSteady' in A)) V.qtcSteady = ctx === 'training' ? A.qtcWin.strict : A.qtcWin.rest;
+  return V;
+}
 function renderReport(A, meta0, st, hist = []) {
   _uid = 0;
   const okKey = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k) ? k : '';
@@ -777,6 +792,12 @@ function renderReport(A, meta0, st, hist = []) {
   const O = X.ortho && X.ortho.valid ? X.ortho : null;
   A = Object.assign({}, A, { zones: X.zonesPct, hrMax: Math.round(X.WM.v) });
   const G = gradeAll(A, meta, R, X), OV = overallVerdict(G), gc = k => G[k] ? gchip(G[k].g) : '';
+  // QTc: the value graded is the value shown next to the range (Bazett on the steady stretches); without a grade the
+  // whole-recording values are shown and the range is left out, so nobody compares them with it
+  const QS = A.qtcSteady, qGraded = !!(QS && isFinite(QS.qtc)), qRate = !!(G.qtc && G.qtc.rate);
+  const qB = qGraded ? QS.qtc : A.qtc, qF = qGraded ? QS.qtcF : A.qtcF;
+  const qtcTile = unit => qRate ? kpi('QTc', fmt(A.qtc), 'ms', chip('info', 'Not assessed (rate)'), `Bazett · not graded at ${fmt(A.meanHR)} bpm`)
+    : kpi('QTc', fmt(qB), 'ms', gc('qtc'), 'Bazett · ref ' + R.qtc[0] + '–' + R.qtc[1] + unit);
   const gcol = g => g === 'out' ? 'var(--p-red)' : g === 'bord' ? 'var(--p-warn)' : g === 'na' ? 'var(--p-faint)' : 'var(--p-ok)';
   const clock = sec => new Date(startMs + sec * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   meta._clock = s => clock(s).slice(0, 5);
@@ -810,8 +831,9 @@ function renderReport(A, meta0, st, hist = []) {
     { gk: 'br', label: 'Breathing rate', key: A.breathSource === 'acc' ? 'chest movement' : 'ECG-derived', v: A.breath ? A.breath.median : NaN, d: 1, u: '/min', lo: isTraining ? null : 8, hi: isTraining ? null : 20, refNote: isMed ? 'slow breathing expected' : '' },
     { gk: 'coupling', label: 'Breathing-linked HRV', key: 'coupling', v: A.breathShare, d: 0, u: '%' },
     { gk: 'qrs', label: 'QRS duration', key: 'meanQRS', v: A.qrs, d: 0, u: 'ms', lo: 50, hi: 100 },
-    { gk: G.qtc && G.qtc.frid ? null : 'qtc', label: 'QTc (Bazett)', key: 'meanQTc', v: A.qtc, d: 0, u: 'ms', lo: R.qtc[0], hi: R.qtc[1], refNote: sex ? (sex === 'M' ? 'male' : 'female') : 'sex not set' },
-    { gk: G.qtc && G.qtc.frid ? 'qtc' : null, label: 'QTc (Fridericia)', key: 'QTcF', v: A.qtcF, d: 0, u: 'ms', lo: R.qtc[0], hi: R.qtc[1] },
+    { gk: 'qtc', label: 'QTc (Bazett)', key: qGraded ? 'steady stretches' : 'meanQTc', v: qB, d: 0, u: 'ms', lo: qGraded ? R.qtc[0] : null, hi: qGraded ? R.qtc[1] : null,
+      refNote: qGraded ? (sex ? (sex === 'M' ? 'male' : 'female') : 'sex not set') : qRate ? 'n/a at this rate' : '', naTxt: qRate ? 'Not assessed (rate)' : '' },
+    { label: 'QTc (Fridericia)', key: 'QTcF', v: qF, d: 0, u: 'ms', refNote: qGraded ? 'secondary · not graded' : qRate ? 'n/a at this rate' : '' },
     { gk: 't', label: 'Upright T waves', key: 'meanTPositive', v: A.tPosPct, d: 0, u: '%', lo: 90, hi: 100, max: 100 },
     { gk: 'j', label: 'J-point level', key: 'meanJPoint', v: A.jAmp, d: 0, u: 'µV', lo: -100, hi: 200, floor0: false },
     { label: 'Systolic amplitude', key: 'meanSystole', v: A.sysAmp, d: 0, u: 'µV', lo: 60, hi: 2600 },
@@ -844,9 +866,9 @@ function renderReport(A, meta0, st, hist = []) {
     const peakTile = kpi('Peak heart rate', fmt(E.peak20), 'bpm', chip('info', fmt(100 * E.peak20 / W.v) + ' % of max'), '20-s mean at ' + clock(E.peak20T || 0));
     const first = X.tt === 'ramp' && X.ramp ? kpi('Measured max HR', X.ramp.valid ? fmt(X.ramp.max) : '—', X.ramp.valid ? 'bpm' : '', X.ramp.valid ? chip(X.ramp.plateau ? 'in' : 'info', X.ramp.plateau ? 'Plateau: true max' : 'No plateau: a floor') : chip('info', 'Test incomplete'), `${X.ramp.completed} steps of 3 min`)
       : X.tt === 'dfa' && X.dfa ? kpi('Aerobic threshold', X.dfa.valid ? fmt(X.dfa.vt1) : '—', X.dfa.valid ? 'bpm' : '', X.dfa.valid ? chip('info', 'DFA α1 = 0.75') : chip('info', 'Not determined'), isFinite(X.dfa.vt2) ? `anaerobic (α1 0.5) ${fmt(X.dfa.vt2)} bpm` : 'HRVT1 from beat-to-beat variation')
-      : X.tt === 'lthr' && X.lt ? kpi('Threshold HR (LTHR)', X.lt.valid ? fmt(X.lt.lthr) : '—', X.lt.valid ? 'bpm' : '', X.lt.valid ? chip('info', 'Last 20 min of 30') : chip('info', 'Test too short'), `effort ${fmt(X.lt.effortMin)} min`)
+      : X.tt === 'lthr' && X.lt ? kpi('Threshold HR (LTHR)', X.lt.valid ? fmt(X.lt.lthr) : '—', X.lt.valid ? 'bpm' : '', X.lt.valid ? chip('info', X.lt.noPlateau ? 'Effort did not level off' : 'Last 20 min of 30') : chip('info', 'Test too short'), `effort ${fmt(X.lt.effortMin)} min`)
       : kpi('Time ≥ 80 % max', durShort(hi80).split(' ')[0], durShort(hi80).split(' ').slice(1).join(' '), chip('info', 'Anaerobic + maximum'), '≥ ' + A.zones[3].bpmLo + ' bpm');
-    tiles = [first, peakTile, recTile, maxTile, kpi('QTc', fmt(G.qtc && G.qtc.frid ? A.qtcF : A.qtc), 'ms', gc('qtc'), (G.qtc && G.qtc.frid ? 'Fridericia' : 'Bazett') + ' · ref ' + R.qtc[0] + '–' + R.qtc[1]), rhythmTile];
+    tiles = [first, peakTile, recTile, maxTile, qtcTile(''), rhythmTile];
   } else if (meta.ctx === 'ortho') {
     const usual = (k, d = 0) => B[k] ? 'usual ' + fmt(B[k].m, d) : '';
     tiles = O ? [
@@ -863,7 +885,7 @@ function renderReport(A, meta0, st, hist = []) {
       kpi('Breathing-linked HRV', fmt(A.breathShare), '%', gc('coupling'), 'power at breathing frequency'),
       kpi('RMSSD', fmt(A.rmssd, 1), 'ms', bChip(A.rmssd, 'rmssd') || chip('info', 'Not judged in practice'), srcTxt),
       kpi('Mean heart rate', fmt(A.meanHR), 'bpm', gc('hr'), 'range ' + fmt(A.minHR.v) + '–' + fmt(A.maxHR.v)),
-      kpi('QTc', fmt(G.qtc && G.qtc.frid ? A.qtcF : A.qtc), 'ms', gc('qtc'), (G.qtc && G.qtc.frid ? 'Fridericia' : 'Bazett') + ' · ref ' + R.qtc[0] + '–' + R.qtc[1]),
+      qtcTile(''),
       rhythmTile];
   } else {
     tiles = [
@@ -871,7 +893,7 @@ function renderReport(A, meta0, st, hist = []) {
       kpi('RMSSD', fmt(A.rmssd, 1), 'ms', gc('rmssd') + ' ' + bChip(A.rmssd, 'rmssd'), hrvRef ? 'population ' + hrvRef[0] + '–' + hrvRef[1] + ' ms' : srcTxt),
       kpi('SDNN', fmt(A.sdnn, 1), 'ms', gc('sdnn'), 'ln RMSSD ' + fmt(A.lnRmssd, 2)),
       kpi('Breathing rate', A.breath ? fmt(A.breath.median, 1) : '—', '/min', A.breath ? gc('br') : chip('info', 'Not estimated'), A.breathSource === 'acc' ? 'measured from chest movement' : 'ECG-derived estimate'),
-      kpi('QTc', fmt(G.qtc && G.qtc.frid ? A.qtcF : A.qtc), 'ms', gc('qtc'), (G.qtc && G.qtc.frid ? 'Fridericia' : 'Bazett') + ' · ref ' + R.qtc[0] + '–' + R.qtc[1] + ' ms'),
+      qtcTile(' ms'),
       rhythmTile];
   }
   const baseCharts = B.pts && B.pts.length >= 2 ? (isTraining ? `<div class="cols2"><div class="fig"><div class="cap">Peak heart rate, recent ${esc(CTX.training.short.toLowerCase())} sessions</div>${trendChart(B, 'peak', 'bpm')}</div><div class="fig"><div class="cap">1-minute recovery (bpm)</div>${trendChart(B, 'hrr60', 'bpm')}</div></div>`
@@ -934,7 +956,8 @@ function renderReport(A, meta0, st, hist = []) {
     if (X.tt === 'lthr' && X.lt) { const r = X.lt;
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
         <div class="panel"><h3>Result</h3>${kvT('Threshold heart rate (LTHR)', r.valid ? fmt(r.lthr) + ' bpm' : '—', 'mean heart rate over the last 20 minutes of the effort')}${kvT('Window used', clock(r.from) + ' – ' + clock(r.end), r.cover < 0.995 ? `signal for ${fmt(20 * r.cover)} of the 20 minutes; gaps are left out` : '')}${kvT('Effort duration', fmt(r.effortMin) + ' min', r.short ? 'shorter than the 25 minutes needed' : r.onset > 30 ? `from ${clock(r.onset)}, when heart rate first reached effort level` : '')}
-        <p class="note-p" style="margin:0">${r.valid ? 'This threshold now sets your LTHR zones in later training reports.' : 'Not valid: warm up first, press Start as the 30-minute effort begins, hold the hardest pace you can for the full 30 minutes, and tap Start recovery when you finish.'}</p></div>`; }
+${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fmt(Math.abs(r.slope5), 1) + ' bpm/min', r.noPlateau ? 'effort did not level off: threshold less certain' : 'heart rate levelled off') : ''}
+        <p class="note-p" style="margin:0">${r.valid ? 'This threshold now sets your LTHR zones in later training reports.' + (r.noPlateau ? ' Heart rate was still climbing at the end, so treat it with some caution and repeat the test, holding an even effort from the start, to confirm it.' : '') : 'Not valid: warm up first, press Start as the 30-minute effort begins, hold the hardest pace you can for the full 30 minutes, and tap Start recovery when you finish.'}</p></div>`; }
     let dfaAfter = '';
     if (X.dfa && (X.tt === 'dfa' ? X.dfa.pts.length >= 12 : X.dfa.valid)) { const r = X.dfa;   // a ramp test shows DFA thresholds only when they were found
       const dfaSec = `<div class="sec-h"><h2>DFA α1 thresholds</h2><span>2-minute windows every 10 s · ${r.src === 'strap' ? 'strap beat intervals' : 'ECG beats'}</span></div>
@@ -980,7 +1003,7 @@ function renderReport(A, meta0, st, hist = []) {
     page(`
       <div class="sec-h"><h2>Training zones</h2><span>Time in each zone during this recording</span></div>
       ${plain('Zones divide effort into bands. Threshold (LTHR) zones come from a 30-minute test and are the most accurate for hard training; zones based on maximum heart rate are shown alongside for comparison.')}
-      ${X.zonesL ? `<h3 class="zh">Threshold zones · LTHR ${fmt(X.LR.lthr)} bpm (test on ${dShort(X.LR.start)})</h3><table class="ev"><thead><tr><th>Zone</th><th>% LTHR</th><th>Heart rate</th><th>Time</th></tr></thead><tbody>${zRows(X.zonesL)}</tbody></table>` : '<p class="note-p">No threshold zones yet: complete an LTHR 30-minute test to add them.</p>'}
+      ${X.zonesL ? `<h3 class="zh">Threshold zones · LTHR ${fmt(X.LR.lthr)} bpm (test on ${dShort(X.LR.start)})</h3><table class="ev"><thead><tr><th>Zone</th><th>% LTHR</th><th>Heart rate</th><th>Time</th></tr></thead><tbody>${zRows(X.zonesL)}</tbody></table><p class="note-p">Z4 runs up to your threshold; Z5a covers the first 3 % above it (${X.zonesL[4].bpmLo}–${X.zonesL[4].bpmHi} bpm). A threshold test or a hard steady effort held right at LTHR therefore splits its time between Z4 and Z5a, so time in Z5a on such a day is expected.</p>` : '<p class="note-p">No threshold zones yet: complete an LTHR 30-minute test to add them.</p>'}
       <h3 class="zh">Zones by maximum heart rate · working max ${fmt(W.v)} bpm (${esc(W.label.toLowerCase())})</h3>
       <table class="ev"><thead><tr><th>Zone</th><th>% max</th><th>Heart rate</th><th>Time</th></tr></thead><tbody>${zRows(X.zonesPct)}</tbody></table>`);
   }
@@ -998,7 +1021,7 @@ function renderReport(A, meta0, st, hist = []) {
     <div class="sec-h"><h2>All measurements</h2><span>Green band = normal range · dot = this recording</span></div>
     ${plain('Every value measured in this recording, with its normal range. The coloured dot shows where your value sits: green is within or better than normal, amber is borderline, red is outside the normal range. Values without a grade are shown for completeness and are explained in the clinical pages.')}
     <table class="mt"><thead><tr><th>Measurement</th><th style="text-align:right">Value</th><th>Position in interval</th><th>Normal range</th><th>Assessment</th></tr></thead><tbody>
-      ${M.map(m => `<tr class="${m.g === 'out' ? 'red' : m.g === 'bord' ? 'out' : ''}"><td>${m.label}<span class="key">${m.key}</span></td><td class="val">${fmt(m.v, m.d)}<small>${m.u}</small></td><td class="rbar">${rangeBar(m.v, m.lo, m.hi, m)}</td><td class="ref">${m.lo != null ? fmt(m.lo) + ' – ' + fmt(m.hi) + (m.u && m.u !== '/min' ? ' ' + m.u : m.u) + (m.refNote ? ' · ' + m.refNote : '') : (m.refNote || '—')}</td><td>${m.g !== 'na' ? gchip(m.g) : '<span class="note-p">—</span>'}</td></tr>`).join('')}
+      ${M.map(m => `<tr class="${m.g === 'out' ? 'red' : m.g === 'bord' ? 'out' : ''}"><td>${m.label}<span class="key">${m.key}</span></td><td class="val">${fmt(m.v, m.d)}<small>${m.u}</small></td><td class="rbar">${rangeBar(m.v, m.lo, m.hi, m)}</td><td class="ref">${m.lo != null ? fmt(m.lo) + ' – ' + fmt(m.hi) + (m.u && m.u !== '/min' ? ' ' + m.u : m.u) + (m.refNote ? ' · ' + m.refNote : '') : (m.refNote || '—')}</td><td>${m.g !== 'na' ? gchip(m.g) : `<span class="note-p">${m.naTxt || '—'}</span>`}</td></tr>`).join('')}
     </tbody></table>
     <p class="note-p">Reference intervals: heart rate by context and position; RMSSD approximate, by age${R.ageKnown ? '' : ' (age not set, 35 assumed)'} and position, applied only to resting contexts; QTc upper limit ${R.qtc[1]} ms (${sex === 'M' ? 'male' : sex === 'F' ? 'female' : 'sex not set; combined limit'}); other intervals follow the Polar ECG Analysis app. HRV values are calculated from ${srcTxt}${A.hrvSource === 'h10' ? `; ${fmt(A.h10Artifacts)} of ${fmt(A.h10Total)} intervals were removed as artifacts or ectopic beats. ECG-derived RMSSD for comparison: ${fmt(A.ecgRmssd, 1)} ms` : ''}.</p>`);
 
@@ -1061,17 +1084,19 @@ function renderReport(A, meta0, st, hist = []) {
       <div class="panel"><h3>Waveform measurements</h3>
         ${kv('QRS duration', fmt(A.qrs) + ' ms', 'reference 50–100 ms')}
         ${kv('QT (median)', fmt(A.qt) + ' ms')}
-        ${kv('QTc Bazett', fmt(A.qtc) + ' ms', 'QT / √RR · reference ' + R.qtc[0] + '–' + R.qtc[1] + ' ms', status(A.qtc, R.qtc[0], R.qtc[1]) !== 'in')}
-        ${kv('QTc Fridericia', fmt(A.qtcF) + ' ms', 'QT / ∛RR · ' + (A.meanHR > 90 ? 'preferred at this heart rate' : 'less rate-dependent'))}
+        ${qGraded ? kv('QTc Bazett', fmt(qB) + ' ms', `QT / √RR · steady stretches (${fmt(QS.hr)} bpm) · reference ${R.qtc[0]}–${R.qtc[1]} ms`, G.qtc.g === 'bord' || G.qtc.g === 'out')
+          : kv('QTc Bazett', fmt(qB) + ' ms', 'QT / √RR · ' + (qRate ? `not assessed at this heart rate (${fmt(A.meanHR)} bpm)` : 'not assessed'))}
+        ${kv('QTc Fridericia', fmt(qF) + ' ms', 'QT / ∛RR · ' + (qGraded ? 'secondary, not graded' : qRate ? 'not assessed at this heart rate' : 'not assessed'))}
         ${kv('Upright T waves', fmt(A.tPosPct) + ' %', 'reference 90–100 %', status(A.tPosPct, 90, 100) !== 'in')}
         ${kv('J-point level', fmt(A.jAmp) + ' µV', 'relative to the PR segment')}
         ${kv('R-wave amplitude', fmt(A.rAmp) + ' µV')}
         ${kv('T-wave amplitude', fmt(A.tAmp) + ' µV')}
-        ${kv('Systolic amplitude', fmt(A.sysAmp) + ' µV', 'mean |signal|, QRS onset to T end')}</div>
+        ${kv('Systolic amplitude', fmt(A.sysAmp) + ' µV', 'mean |signal|, QRS onset to T end')}
+        ${qRate ? `<p class="note-p" style="margin:1mm 0 0">${QTC_RATE_NOTE}</p>` : ''}</div>
     </div>
-    <div class="fig"><div class="sec-h"><h2>QTc over time</h2><span>Points = individual beats · line = ${A.dur <= 7200 ? '1' : '5'}-minute median · green = reference</span></div>${qtcChart(A, startMs, R.qtc)}</div>
+    <div class="fig"><div class="sec-h"><h2>QTc (Bazett) over time</h2><span>Points = individual beats · line = ${A.dur <= 7200 ? '1' : '5'}-minute median · ${qGraded ? 'green = reference · shaded = steady stretches graded' : 'no reference shown: not assessed at this heart rate'}</span></div>${qtcChart(A, startMs, qGraded ? R.qtc : null, qGraded ? QS.spans : [])}</div>
     <div class="cols2">
-      <div class="fig"><div class="sec-h"><h2>RR interval vs QTc</h2><span>Rate-correction check</span></div>${rrQtc(A, R.qtc)}<div class="cap">A flat cloud indicates that the correction formula suits this heart-rate range. Bazett over-corrects at high heart rates.</div></div>
+      <div class="fig"><div class="sec-h"><h2>RR interval vs QTc</h2><span>Rate-correction check</span></div>${rrQtc(A, qGraded ? R.qtc : null)}<div class="cap">A flat cloud indicates that the correction formula suits this heart-rate range: the rate dependence has been removed. The level is graded separately, only in steady stretches below 100 bpm. Bazett over-corrects at high heart rates.</div></div>
       <div class="fig"><div class="sec-h"><h2>Waveform trend</h2><span>5-minute averaged beats</span></div>
         ${mw.length ? `<table class="ev"><thead><tr><th>Start</th><th>RR</th><th>QRS</th><th>QTc</th><th>T</th></tr></thead><tbody>${thin(mw, 10).map(m => `<tr><td class="m">${clock(m.t0).slice(0, 5)}</td><td class="m">${fmt(m.rr)}</td><td class="m">${m.qrsOk === false ? '—' : fmt(m.qrs)}</td><td class="m">${fmt(m.qt / Math.sqrt(m.rr / 1000))}</td><td class="m">${fmt(m.tAmp)}</td></tr>`).join('')}</tbody></table>` : '<p class="cap">Insufficient clean beats.</p>'}</div>
     </div>`);
@@ -1114,8 +1139,8 @@ function renderReport(A, meta0, st, hist = []) {
       <p><b>Ectopic beats.</b> Flagged when a beat is more than 20 % premature and followed by a compensatory interval, or, if it arrives on time, only when its QRS clearly differs from the surrounding beats (local template; correlation below 0.6 or abnormal amplitude). Beats within 3 s form one event; only consecutive ectopic beats count as a run.</p>
       <p><b>HRV.</b> Time-domain indices follow Task Force (1996) definitions. Spectral analysis: 4 Hz resampling, linear detrending, Hann window, 5-minute segments; LF 0.04–0.15 Hz, HF 0.15–0.40 Hz. Strap intervals deviating more than 20 % from the local median are removed.</p>
       <p><b>Breathing.</b> Measured from the strap’s accelerometer (chest wall movement, 12.5 Hz after averaging): spectral peak of the three axes in 60-s windows, 3–42 breaths/min; windows with body movement or no clear rhythm are rejected. If fewer than 40 % of windows are usable, breathing is estimated instead from R-wave amplitude modulation and respiratory sinus arrhythmia (6–42/min at rest). Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.</p>
-      <p><b>Waveform.</b> Beats averaged in 5-minute blocks and upsampled; QRS onset by slope threshold, QRS end by following each QRS wave until its slope levels off (either polarity; not measured if no clear end), T end by the tangent method. QTc is the median of per-beat values.</p>
-      <p><b>Grading.</b> HRV norms are approximate, based on Nunan et al. 2010 (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) adjusted for age, sex and position after Voss et al. 2015: below the 5th percentile = outside normal range, 5th–15th = borderline, above the 75th = favourable. QTc limits follow Goldenberg et al. 2006 (men ≤ 430 ms normal, 431–450 borderline; women ≤ 450, 451–470). Heart-rate recovery: 12 bpm or less at 1 minute is outside the normal range (Cole et al. 1999).</p>
+      <p><b>Waveform.</b> Beats averaged in 5-minute blocks and upsampled; QRS onset by slope threshold, QRS end by following each QRS wave until its slope levels off (either polarity; not measured if no clear end), T end by the tangent method. QTc is the median of per-beat values; it is graded only on steady stretches (at least 60 s at 50–100 bpm, after 150 s in that range; at rest the start of the recording counts as settled), using Bazett, and is otherwise shown without a grade or reference range.</p>
+      <p><b>Grading.</b> HRV norms are approximate, based on Nunan et al. 2010 (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) adjusted for age, sex and position after Voss et al. 2015: below the 5th percentile = outside normal range, 5th–15th = borderline, above the 75th = favourable. QTc limits follow Goldenberg et al. 2006 (men ≤ 430 ms normal, 431–450 borderline; women ≤ 450, 451–470), applied to the Bazett value from steady stretches. Heart-rate recovery: 12 bpm or less at 1 minute is outside the normal range (Cole et al. 1999).</p>
       <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. DFA α1 (detrended fluctuation analysis, box sizes 4–16 beats) is computed in 2-min windows every 10 s from the strap's beat intervals (artifacts removed; windows with over 5 % artifacts excluded); a line fitted to α1 against heart rate on its falling part gives HRVT1 at α1 = 0.75 and HRVT2 at 0.5 (Rogers et al. 2021). LTHR is the mean heart rate of the last 20 min of a 30-min time trial (gaps excluded; at least 80 % coverage); the effort is timed from when heart rate first reaches 90 % of that value. Threshold zones follow Friel. Session maximum and minimum heart rate are taken from a 5-beat running median of normal beats, so a single stray interval cannot set them.</p>
       <p><b>Personal baseline.</b> Readings with the same context and position from the previous 30 days (minimum 5). Usual range: mean ± 1 SD of ln RMSSD; heart rate mean ± 1 SD. Exercise recovery is the fall from the 10-s peak heart rate at 60 and 120 s.</p>
     </div>

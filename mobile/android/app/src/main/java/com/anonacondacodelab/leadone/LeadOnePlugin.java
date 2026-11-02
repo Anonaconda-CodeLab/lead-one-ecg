@@ -73,11 +73,16 @@ public class LeadOnePlugin extends Plugin {
         JSObject r = new JSObject();
         Uri uri = result.getData() != null ? result.getData().getData() : null;
         if (result.getResultCode() != Activity.RESULT_OK || uri == null) { r.put("uri", ""); call.resolve(r); return; }
+        saveUri = uri;   // the only address writeChunk will write to
         r.put("uri", uri.toString());
         call.resolve(r);
     }
 
     private OutputStream openFile;   // stays open from the first piece to the last, so every storage provider works
+    /* The address the person chose in the save screen. writeChunk writes there and nowhere else, so the page can't make
+       the app overwrite another file (its own files, say) even if script were ever injected into it. Cleared when the
+       file is finished or a write fails, so each save needs its own trip through the save screen. */
+    private Uri saveUri;
 
     @PluginMethod
     public void writeChunk(PluginCall call) {
@@ -85,15 +90,18 @@ public class LeadOnePlugin extends Plugin {
         boolean first = Boolean.TRUE.equals(call.getBoolean("first", false)), last = Boolean.TRUE.equals(call.getBoolean("last", false));
         try {
             if (first) {
-                if (openFile != null) { try { openFile.close(); } catch (Exception ignored) {} }
-                openFile = getContext().getContentResolver().openOutputStream(Uri.parse(u), "wt");
+                if (openFile != null) { try { openFile.close(); } catch (Exception ignored) {} openFile = null; }
+                Uri target = Uri.parse(u);
+                if (saveUri == null || !saveUri.equals(target) || !"content".equals(target.getScheme())) throw new Exception("not the place chosen in the save screen");
+                openFile = getContext().getContentResolver().openOutputStream(target, "wt");
             }
             if (openFile == null) throw new Exception("could not open the file");
             openFile.write(call.getString("text", "").getBytes(StandardCharsets.UTF_8));
-            if (last) { openFile.close(); openFile = null; }
+            if (last) { openFile.close(); openFile = null; saveUri = null; }
             call.resolve();
         } catch (Exception e) {
             if (openFile != null) { try { openFile.close(); } catch (Exception ignored) {} openFile = null; }
+            saveUri = null;
             call.reject(e.getMessage() != null ? e.getMessage() : "write failed");
         }
     }

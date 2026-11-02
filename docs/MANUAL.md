@@ -165,6 +165,12 @@ Each result gets a grade:
   concern, see a doctor; do not wait for the app to confirm it.
 - **Not assessed**: could not be measured reliably, or does not apply (for example, average heart rate during exercise).
 
+**QTc (the heart's reset time) is graded only at rest.** Above 100 bpm, or before your heart rate has settled after
+effort, the corrections for heart rate aren't reliable and the strap's T wave is hard to time exactly. So QTc is graded
+only on stretches of at least a minute at 50–100 bpm, once your heart rate has been in that range for a few minutes. In a
+training recording it usually shows *Not assessed (rate)*, with the values but without the normal range. For a graded
+QTc, make a resting reading, such as a morning baseline.
+
 One borderline value does not make the whole report borderline; the overall verdict looks at all results together.
 
 **About chest-strap ECGs.** The H10 records one view of the heart (one "lead"), while a hospital ECG uses twelve.

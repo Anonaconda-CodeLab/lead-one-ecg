@@ -1,0 +1,71 @@
+# CodeRabbit settings for Lead One ECG: reviews pull requests into main (the same shape as Rounds' and Unmarked's)
+language: en-GB
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+  # built output, fonts, icons and Android tooling: not our code, or generated from it
+  path_filters:
+    - "!dist/**"
+    - "!src/fonts/**"
+    - "!mobile/package-lock.json"
+    - "!mobile/android/gradle/wrapper/gradle-wrapper.jar"
+    - "!mobile/android/gradlew"
+    - "!mobile/android/gradlew.bat"
+    - "!mobile/android/app/src/main/res/mipmap-*/**"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.woff2"
+  path_instructions:
+    - path: "**"
+      instructions: |
+        Lead One ECG records single-lead ECG from a Polar H10 chest strap over Bluetooth and produces an HRV and ECG
+        report, entirely on the device. By design it has no network access: the page's Content Security Policy has
+        connect-src 'none', and the Android app has no INTERNET permission. Recordings and history are health data
+        and stay on the device unless the person saves or exports them. It is a wellness tool, not a medical device.
+        Focus on: anything that could send data off the device; untrusted text (names, notes, file names, imported
+        recordings and history files) reaching the page unescaped; parsing of imported files that could crash, hang
+        or run out of memory; and report wording or grading that could falsely alarm or falsely reassure.
+    - path: "src/core.js"
+      instructions: |
+        Signal processing and analysis: filters, beat detection, ectopic classification, HRV, waveform measurement
+        (QRS, QT, T end), exercise tests, and the Bluetooth (PMD) frame decoder. Check array bounds, division by zero
+        or empty arrays producing NaN that is then shown as a number, and that the PMD decoder stays inside the frame.
+        QTc is graded only on steady stretches at 50-100 bpm (qtcSteady); keep that gate intact.
+    - path: "src/report.js"
+      instructions: |
+        Builds the report HTML from the analysis. Every value that can come from a file or the user must go through
+        esc() or be a number. Check that a grade, its displayed value and its reference range always agree (the value
+        graded is the value shown beside the range), and that ungraded values are never shown next to a range.
+    - path: "src/app.js"
+      instructions: |
+        Recording, storage (IndexedDB), file import and export, history. Imported files are untrusted: check the size
+        limits, format checks and the clean* functions, and that nothing unescaped reaches innerHTML.
+    - path: "src/native.js"
+      instructions: |
+        Bridge to the Android app (Bluetooth through Capacitor, saving files, printing). Check error handling and that
+        nothing here needs or uses the network.
+    - path: "mobile/**/*.java"
+      instructions: |
+        Android plugin and recording service: check what is exported, that files are written only to the place the
+        person chose in the save screen, wake-lock limits, and that nothing needs or uses internet access.
+    - path: "build.mjs"
+      instructions: |
+        Builds the single-file page, the Android download page and their HTTP headers. Check the Content Security
+        Policy and headers stay strict and that nothing external is loaded.
+    - path: "tests/**"
+      instructions: |
+        Tests run on synthetic ECG and beat data. Check that each test would actually fail if the behaviour it
+        describes broke.
+    - path: ".github/workflows/**"
+      instructions: |
+        Release pipeline using the studio's signing key. Three jobs: build (read-only, unsigned APK, no secrets),
+        sign (read-only, runs no repository code, in the protected "signing" environment that holds the key and
+        needs the owner's approval), publish (the only job with contents: write). Actions are pinned to exact
+        commits. Check secret handling, permissions and supply-chain risks.

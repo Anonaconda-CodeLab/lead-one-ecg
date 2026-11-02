@@ -67,10 +67,10 @@ function md(text) {
 }
 // gentle donation card on the home screen, shown at a few reading milestones only (see app.js)
 const donate = kofi ? `<div id="donateCard" class="card donate" hidden>
-      <p><b>Enjoying Lead One?</b><br><span class="dev-meta">You've made <span id="donateN">20</span> readings. The app is free, with no ads or tracking. If it's useful to you, a coffee helps keep it going.</span></p>
+      <p><b>Enjoying Lead One?</b><br><span class="dev-meta">You've made <span id="donateN">20</span> readings. No ads, no tracking. If you find this app useful, please consider making a small donation to help fund development. Thank you!</span></p>
       <div class="acts"><a id="btnDonate" class="btn coffee" href="${kofi}" rel="noopener noreferrer">☕ Support on Ko-fi</a><button id="btnDonateLater" class="btn">Not now</button></div>
     </div>` : '';
-const thanks = kofi ? `<p class="thanks">If you find this app useful, please consider <a href="${kofi}" rel="noopener noreferrer">a small donation</a>. It's made by one person, with no ads or tracking. Thank you!</p>` : '';
+const thanks = kofi ? `<p class="thanks">No ads, no tracking. If you find this app useful, please consider <a href="${kofi}" rel="noopener noreferrer">making a small donation</a> to help fund development. Thank you!</p>` : '';
 const manual = md(readFileSync(join(root, 'docs', 'MANUAL.md'), 'utf8'));
 const b64 = f => readFileSync(join(root, 'src', 'fonts', f)).toString('base64');
 const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION|APP_URL|APP_HOST)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about).replace('{{DONATE}}', donate).replace('{{THANKS}}', thanks).replace('{{MANUAL}}', () => manual);

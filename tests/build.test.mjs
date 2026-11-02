@@ -62,6 +62,8 @@ test('donation card is quiet: hidden by default, milestone-based, link isolated'
   assert.match(h, /<div id="donateCard" class="card donate" hidden>/);
   assert.match(h, /id="btnDonate"[^>]*href="https:\/\/ko-fi\.com\/[^"]+" rel="noopener noreferrer"/);
   assert.match(h, /const DONATE_AT = \[20, 50, 100\]/);
+  assert.ok(h.includes('No ads, no tracking. If you find this app useful, please consider <a href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">making a small donation</a> to help fund development. Thank you!'), 'studio donation line (27 Oct 2026)');
+  assert.ok(!/made by one person/i.test(h), 'old wording gone');
 });
 
 test('sample reports never use the personal profile', () => {
@@ -74,6 +76,14 @@ test('Android app: no internet permission, native layer inactive in browsers', a
   const m = readFileSync(new URL('../mobile/android/app/src/main/AndroidManifest.xml', import.meta.url), 'utf8');
   assert.match(m, /android\.permission\.INTERNET" tools:node="remove"/);
   assert.ok(!/<uses-permission android:name="android\.permission\.INTERNET" \/>/.test(m));
+  assert.ok(!/<provider\b|FileProvider/.test(m), 'no FileProvider: nothing in the app shares files by link');
+  const gw = readFileSync(new URL('../mobile/android/gradle/wrapper/gradle-wrapper.properties', import.meta.url), 'utf8');
+  assert.match(gw, /^distributionSha256Sum=[0-9a-f]{64}$/m, 'the Gradle download is checked against a known hash');
+  const j = readFileSync(new URL('../mobile/android/app/src/main/java/com/anonacondacodelab/leadone/LeadOnePlugin.java', import.meta.url), 'utf8');
+  const wc = j.slice(j.indexOf('public void writeChunk'), j.indexOf('public void print'));
+  assert.match(j, /saveUri = uri;/, 'the save screen sets the one address that may be written');
+  assert.match(wc, /saveUri == null \|\| !saveUri\.equals\(target\)/, 'writeChunk refuses any other address');
+  assert.ok((wc.match(/saveUri = null/g) || []).length >= 2, 'cleared after the last piece and after a failure');
   const h = distHtml();
   assert.match(h, /const NATIVE = !!\(window\.Capacitor && typeof window\.Capacitor\.isNativePlatform === 'function'/);
 });
@@ -111,6 +121,36 @@ test('launch: source link, contact, update button and the Android page', async (
   assert.ok(a.includes(`var latest = '${v}'`) && a.includes('releases/latest') && a.includes('keepandroidopen.org') && a.includes('Obtainium'));
   assert.match(a, /default-src 'none'/);
   assert.ok(r('dist/sitemap.xml').includes('/android.html'));
-  const w = r('.github/workflows/android.yml');
-  assert.ok(w.includes("tags: ['v*']") && w.includes('Published fingerprint') === false && w.includes('the published fingerprint is'), 'tag releases check the signing key');
+});
+
+test('release workflow: three jobs; only publish can write, only sign sees the key, no tag trigger', async () => {
+  const { readFileSync } = await import('node:fs');
+  const w = readFileSync(new URL('../.github/workflows/android.yml', import.meta.url), 'utf8');
+  const job = name => { const m = w.match(new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n  [a-z]+:\\n|$)`)); assert.ok(m, name + ' job'); return m[1]; };
+  const build = job('build'), sign = job('sign'), publish = job('publish');
+  assert.equal((w.match(/contents: write/g) || []).length, 1, 'contents: write appears once');
+  assert.match(publish, /contents: write/);
+  for (const j of [build, sign]) assert.match(j, /contents: read/);
+  assert.ok(!/secrets\./.test(build) && !/secrets\./.test(publish), 'the signing key is used in the sign job only');
+  assert.match(sign, /secrets\.LEADONE_KEYSTORE_B64/);
+  assert.match(sign, /\n    environment: signing(\s+#.*)?\n/, 'the sign job uses the protected signing environment');
+  assert.ok(sign.includes("to the 'signing' environment"), 'the missing-key message points to the signing environment');
+  assert.ok(!/repository secrets/i.test(w), 'help text never points to repository secrets');
+  for (const j of [build, publish]) assert.ok(!/environment:/.test(j), 'only the sign job uses an environment');
+  assert.match(build, /persist-credentials: false/);
+  assert.match(build, /retention-days: 30/, 'the unsigned APK outlives a late approval');
+  assert.match(sign, /tr -d '\[:space:\]'/, 'all whitespace is stripped from the stored key');
+  assert.ok(sign.includes('the published fingerprint is'), 'the APK must carry the published signing key');
+  assert.ok(!/tags:/.test(w.split('jobs:')[0]), 'no tag trigger');
+  assert.match(publish, /android-test/);
+  assert.match(w, /LeadOne-ECG-\$VER\.apk/);
+});
+
+test('workflows: every action is pinned to a full commit (a moved tag cannot change what runs)', async () => {
+  const { readFileSync } = await import('node:fs');
+  for (const f of ['.github/workflows/android.yml', '.github/workflows/ci.yml']) {
+    const uses = [...readFileSync(new URL('../' + f, import.meta.url), 'utf8').matchAll(/uses:\s*(\S+)/g)].map(m => m[1]);
+    assert.ok(uses.length > 0, f);
+    for (const u of uses) assert.match(u, /^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/, `${f}: ${u}`);
+  }
 });

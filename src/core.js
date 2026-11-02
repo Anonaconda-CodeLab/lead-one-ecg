@@ -567,7 +567,13 @@ function lthrTest(A, ER) {
   // the effort begins when heart rate first reaches 90 % of the threshold; Start may have been pressed a little early
   const s20 = rollingHR(A, 20, 1, B), on = isFinite(m.v) ? s20.find(q => q.t < from && q.v >= 0.9 * m.v) : null;
   const onset = on ? Math.max(0, on.t - 10) : 0, eff = end - onset;
-  return { lthr: m.v, from, end, onset, effortMin: eff / 60, cover: m.cover, valid: eff >= 25 * 60 && m.cover > 0.8 && isFinite(m.v), short: eff < 25 * 60 };
+  // plateau check: least-squares slope of heart rate over the final 5 minutes; still climbing by more than 1 bpm a
+  // minute means the effort never levelled off, so the threshold is kept but flagged as less certain
+  let sx = 0, sy = 0, sxx = 0, sxy = 0, nb = 0;
+  for (let i = lowerBound(B.T, end - 300), i1 = lowerBound(B.T, end); i < i1; i++) { const x = (B.T[i] - end) / 60, y = 60000 / B.R[i]; sx += x; sy += y; sxx += x * x; sxy += x * y; nb++; }
+  const slope5 = nb >= 60 && nb * sxx - sx * sx > 0 ? (nb * sxy - sx * sy) / (nb * sxx - sx * sx) : NaN;
+  return { lthr: m.v, from, end, onset, effortMin: eff / 60, cover: m.cover, valid: eff >= 25 * 60 && m.cover > 0.8 && isFinite(m.v), short: eff < 25 * 60,
+    slope5, noPlateau: slope5 > 1 };
 }
 /* interval training: the hard efforts and the recoveries between them, from 10-s heart rate up to the end of exercise.
    An effort is a stretch above 60 % of the way from the session's low (10th percentile) to its high (98th percentile),
@@ -631,6 +637,30 @@ function zoneTime(A, ref, defs) {
   if (!(ref > 0)) return zones;
   for (let k = 1; k < A.beats; k++) if (A.rrOk[k]) { const f = 60000 / A.rr[k] / ref; const z = zones.find(z => f >= z.lo && f < z.hi) || zones[zones.length - 1]; z.sec += A.rr[k] / 1000; }
   return zones;
+}
+/* QTc is graded only where a heart-rate correction can be trusted: stretches of at least 60 s with heart rate 50-100 bpm
+   that had already stayed in that range for 150 s (QT takes about two minutes to catch up with a change in heart rate,
+   and at higher rates no correction is reliable). restStart: in resting contexts the person was already at rest when
+   Start was pressed, so the start of the recording counts as settled. Returns the medians over the beats in those
+   stretches; null when there is no such stretch; { few: true } when there is one but too few measurable T waves. */
+const QTC_GATE = { lo: 50, hi: 100, settle: 150, minSec: 60, minBeats: 30 };
+function qtcSteady(A, restStart) {
+  if (!A.qtcPts || !A.qtcPts.length) return null;
+  const B = cleanBeats(A), s10 = rollingHR(A, 10, 1, B), spans = [];
+  let runStart = null, prevT = -Infinity, cur = null;
+  for (const p of s10) {
+    const ok = p.v >= QTC_GATE.lo && p.v <= QTC_GATE.hi, gap = p.t - prevT > 1.5; prevT = p.t;
+    if (!ok) { runStart = null; cur = null; continue; }
+    if (runStart == null || gap) { runStart = p.t; cur = null; }
+    if (!(p.t - runStart >= QTC_GATE.settle || (restStart && runStart <= 10))) continue;
+    if (cur) cur.t1 = p.t; else { cur = { t0: p.t, t1: p.t }; spans.push(cur); }
+  }
+  const keep = spans.filter(s => s.t1 - s.t0 + 1 >= QTC_GATE.minSec); if (!keep.length) return null;
+  const inKeep = t => keep.some(s => t >= s.t0 - 0.5 && t <= s.t1 + 0.5);
+  const pts = A.qtcPts.filter(p => inKeep(p.t)), sec = keep.reduce((a, s) => a + s.t1 - s.t0 + 1, 0);
+  if (pts.length < QTC_GATE.minBeats) return { few: true, qtc: NaN, qtcF: NaN, sec, beats: pts.length, spans: keep };
+  return { qtc: median(pts.map(p => p.qtc)), qtcF: median(pts.map(p => p.qtcF)), qt: median(pts.map(p => p.qt)),
+    hr: mean(s10.filter(p => inKeep(p.t)).map(p => p.v)), sec, beats: pts.length, spans: keep };
 }
 
 /* ---------- full analysis ---------- */
@@ -876,7 +906,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
 
   const noiseBeats = noise.reduce((a, b) => a + b, 0);
   let noisyBlocks = 0; for (const v of noisyB) noisyBlocks += v;
-  return {
+  const out = {
     fs: FS, n, dur, pol, gapSec: gapCount / FS, medRR,
     beats: nb, r, t, rr, rrOk, nn, ect, noise, events, pauses, longest,
     ectopicBeats: ect.reduce((a, b) => a + b, 0),
@@ -899,6 +929,9 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     tPosPct: tTot ? 100 * tPos / tTot : NaN,
     qtcPts, qtcTrend, hrTrend, hrBin: bin, avgBeat, morphWin, sig
   };
+  // the steady stretches QTc may be graded on; ctxView picks the strict or the resting variant by context
+  out.qtcWin = { strict: qtcSteady(out, false), rest: qtcSteady(out, true) };
+  return out;
 }
 
 /* ---------- Polar Measurement Data (PMD) frames ---------- */

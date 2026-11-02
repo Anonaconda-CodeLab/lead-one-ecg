@@ -20,10 +20,10 @@ test('a single borderline value does not make the overall verdict borderline', a
 });
 
 test('QTc limits depend on sex', async () => {
-  const A = await base(), meta = { ctx: 'rest', pos: 'lying', gap: 0 };
-  assert.equal(L.gradeAll({ ...A, qtc: 445 }, meta, L.refsFor(50, 'M', 'rest', 'lying')).qtc.g, 'bord');
-  assert.equal(L.gradeAll({ ...A, qtc: 445 }, meta, L.refsFor(50, 'F', 'rest', 'lying')).qtc.g, 'norm');
-  const g = L.gradeAll({ ...A, qtc: 520 }, meta, L.refsFor(50, 'F', 'rest', 'lying')).qtc;
+  const A = await base(), meta = { ctx: 'rest', pos: 'lying', gap: 0 }, qs = v => ({ qtc: v, qtcF: v, hr: 60, sec: 300, beats: 300, spans: [] });
+  assert.equal(L.gradeAll({ ...A, qtcSteady: qs(445) }, meta, L.refsFor(50, 'M', 'rest', 'lying')).qtc.g, 'bord');
+  assert.equal(L.gradeAll({ ...A, qtcSteady: qs(445) }, meta, L.refsFor(50, 'F', 'rest', 'lying')).qtc.g, 'norm');
+  const g = L.gradeAll({ ...A, qtcSteady: qs(520) }, meta, L.refsFor(50, 'F', 'rest', 'lying')).qtc;
   assert.equal(g.g, 'out'); assert.ok(g.urgent);
 });
 

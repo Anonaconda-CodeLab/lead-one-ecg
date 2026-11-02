@@ -101,11 +101,11 @@ test('end of exercise is where the final fall begins, not the top of the last ef
   assert.ok(E.hrr60 > 25, `recovery measured from the real stop (${E.hrr60})`);
 });
 
-test('exercise is not graded against resting waveform norms, and QTc uses Fridericia', async () => {
+test('exercise is not graded against resting waveform norms, and QTc is not graded at exercise heart rates', async () => {
   const A = await run('intervals', 35), R = L.refsFor(58, 'M', 'training', 'walking');
-  const G = L.gradeAll({ ...A, jAmp: -106, tPosPct: 89, qtc: 425, qtcF: 376, meanHR: 133 }, { ctx: 'training', pos: 'walking', recovery: 'active', gap: 0 }, R);
+  const G = L.gradeAll({ ...A, jAmp: -106, tPosPct: 89, qtc: 401, qtcF: 341, meanHR: 156, qtcSteady: null }, { ctx: 'training', pos: 'walking', recovery: 'active', gap: 0 }, R);
   assert.equal(G.j.g, 'na'); assert.equal(G.t.g, 'na');
-  assert.equal(G.qtc.g, 'norm'); assert.ok(G.qtc.frid);
+  assert.equal(G.qtc.g, 'na'); assert.ok(G.qtc.rate); assert.equal(G.qtc.value, 'Not assessed (rate)');
   const G2 = L.gradeAll({ ...A, jAmp: -230 }, { ctx: 'training', pos: 'walking', gap: 0 }, R);
   assert.equal(G2.j.g, 'bord');
 });

@@ -55,9 +55,21 @@ following the QRS limb by limb from the main peak (either polarity): a limb ends
 maximum QRS slope, and a further large deflection within 40 ms (or a limb ending well beyond the baseline, as at the
 bottom of an S wave) continues the QRS. If no end is found within 120 ms of the peak, QRS width is reported as not
 measurable rather than given a fixed value; this matters during exercise, when a raised, sloping ST segment can run
-straight into the T wave. T end by the tangent method on the T-wave down-slope. QT is measured per beat; QTc is the median of per-beat Bazett values, with
-Fridericia shown for comparison. A single chest lead is not equivalent to a 12-lead ECG; waveform findings should be
+straight into the T wave. T end by the tangent method on the T-wave down-slope. QT is measured per beat and corrected per beat with Bazett (QT/√RR)
+and Fridericia (QT/∛RR). A single chest lead is not equivalent to a 12-lead ECG; waveform findings should be
 confirmed clinically.
+
+**When QTc is graded.** Heart-rate corrections are reliable only at moderate heart rates, QT takes about two minutes to
+catch up with a change in heart rate, and a chest strap's T wave is hard to time exactly under load. So QTc is graded only
+on *steady stretches*: at least 60 s in which the 10-s heart rate stayed between 50 and 100 bpm and had already been in
+that range for the preceding 150 s. In resting contexts the person was already at rest when Start was pressed, so the
+start of the recording counts as settled; in training the heart rate must settle within the recording. The graded value
+is the median Bazett QTc of the beats in those stretches (Bazett is the correction the reference limits were set with;
+at these rates the two corrections differ little), and that is the value shown beside the reference range; Fridericia
+is shown as a secondary value. With no steady stretch (for example a training session above 100 bpm throughout) QTc is
+*not assessed*: the whole-recording Bazett and Fridericia values are shown without a grade and without the reference
+range, with the reason. The trend chart and the RR–QTc scatter plot Bazett values; the scatter's flatness shows whether
+the correction removed the rate dependence, not whether the level is normal.
 
 ## Training
 ### End of exercise and recovery
@@ -104,7 +116,9 @@ The recording screen shows α1 live over the last 2 minutes, updated every 10 s.
 30-minute time trial; lactate-threshold heart rate = mean heart rate over the last 20 minutes before the end of exercise
 (valid if the effort lasted at least 25 minutes and the window has signal for at least 80 % of its length; Bluetooth gaps
 are left out). The effort is timed from the moment the 20-s heart rate first reaches 90 % of that mean, so pressing Start a
-few minutes early does not lengthen it. Threshold zones follow Friel: Z1 < 85 %, Z2 85–89 %, Z3 90–94 %,
+few minutes early does not lengthen it. Plateau check: if the least-squares slope of heart rate over the final 5 minutes
+exceeds 1 bpm per minute, the threshold is still set but marked "effort did not level off" and less certain. Threshold
+zones follow Friel: Z1 < 85 %, Z2 85–89 %, Z3 90–94 %,
 Z4 95–99 %, Z5a 100–102 %, Z5b 103–106 %, Z5c > 106 % of LTHR [11]. Training reports show LTHR zones first (from the most
 recent valid test) and zones by working maximum (50–60/60–70/70–80/80–90/90+ %) alongside.
 
@@ -116,7 +130,7 @@ assessed* where a population comparison would be misleading, e.g. HRV during exe
 |---|---|---|
 | RMSSD, SDNN (rest) | Pooled short-term norms (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) [3]; age and sex adjustments approximated from [4]; position factors (seated 0.85, standing 0.6 for RMSSD) | < 5th percentile outside; 5th–15th borderline; 15th–75th normal; > 75th favourable. SDNN graded only for recordings ≤ 20 min |
 | Resting heart rate | Conventional adult ranges; separate bands for sleep and standing | 40s–50s favourable at rest; > 100 or < 40 bpm (awake) outside |
-| QTc (Bazett; Fridericia during training or when mean HR > 90 bpm) | Men ≤ 430 ms normal, 431–450 borderline, > 450 prolonged; women ≤ 450, 451–470, > 470 [5]; < 350 ms short | ≥ 500 ms flagged for prompt review |
+| QTc (Bazett, steady stretches at 50–100 bpm only; see Waveform measurements) | Men ≤ 430 ms normal, 431–450 borderline, > 450 prolonged; women ≤ 450, 451–470, > 470 [5]; < 350 ms short | ≥ 500 ms flagged for prompt review. Not assessed without a steady stretch |
 | QRS duration | ≤ 100 ms normal; 101–119 borderline; ≥ 120 ms wide | |
 | J point | −100 to +200 µV normal at rest (single chest lead) | Training: not graded (junctional depression is normal during exercise) unless below −200 µV; T-wave shape likewise unless < 70 % upright |
 | Heart-rate recovery (1 min) | Active: ≤ 12 bpm outside, 13–17 borderline [6]; passive: ≤ 18, 19–22 | Active ≥ 30, passive ≥ 40 favourable |

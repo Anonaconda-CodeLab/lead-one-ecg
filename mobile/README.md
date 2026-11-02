@@ -15,8 +15,8 @@ The app has **no internet permission** (it is removed in the manifest and the bu
 
 ## Building
 
-GitHub builds the APK on every change (`.github/workflows/android.yml`) and publishes it as the `android-test`
-pre-release. To build locally you need Node 22, JDK 21 and the Android SDK:
+GitHub builds the APK on every change to `main` (`.github/workflows/android.yml`) and, once the owner approves the
+signing step, publishes it as the `android-test` pre-release. To build locally you need Node 22, JDK 21 and the Android SDK:
 
 ```
 node build.mjs                      # in the repository root
@@ -40,8 +40,16 @@ history and recordings first, uninstall the official app, then install yours.
 
 ## Releases
 
-Pushing a version tag (`git tag v1.8.0 && git push origin v1.8.0`, matching `package.json`), or running the *Android APK*
-workflow by hand with **release** ticked (it then creates the tag), builds the APK, checks that
-it has no internet permission and that it is signed with the published key (`certSha256` in `../build.mjs`), and
-publishes a GitHub release with the APK, its SHA-256 checksum and the changelog entry. The source code of that exact
-version is attached to every release by GitHub.
+Releases are made by running the *Android APK* workflow by hand on `main` with **release** ticked (Actions → Android
+APK → Run workflow, or `gh workflow run android.yml --ref main -f release=true`). Pushing a tag does nothing: the
+workflow creates the `v<version>` tag itself, from `package.json`. It works in three separate jobs:
+
+1. **Build** (read-only access): builds the web app and an *unsigned* APK. npm and Gradle never see the signing key,
+   its password or a token that could write to the repository.
+2. **Sign** (read-only access): signs that APK with the studio's key using `apksigner`, then checks that it has no
+   internet permission and that it is signed with the published key (`certSha256` in `../build.mjs`). The key is kept
+   in the protected `signing` environment, so every signed build, test builds included, waits for the owner's approval.
+3. **Publish** (the only job that can write): publishes the GitHub release with the APK, its SHA-256 checksum and the
+   changelog entry, or on an ordinary push to `main` the `android-test` pre-release.
+
+The source code of that exact version is attached to every release by GitHub.
