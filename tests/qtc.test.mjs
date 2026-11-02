@@ -159,3 +159,31 @@ test('T-wave direction is judged on averaged beats: small noisy T waves read upr
   const B = await L.analyze(inv, { age: 45 });
   assert.ok(B.tPosPct <= 10, `inverted T waves are still found (${B.tPosPct})`);
 });
+
+test('report: an LTHR test that did not level off says so in plain words, with no placeholder text', async () => {
+  const d = L.makeDemo(36, 5, 'lthr'), A = await L.analyze(d.raw, { age: 40 });
+  const meta = { id: 'l', start: Date.UTC(2026, 9, 30, 0, 27), ctx: 'training', pos: 'walking', trainType: 'lthr', recovery: 'passive', gap: 0 };
+  const end = L.lthrTest(A, A.exercise).end, rr = Float64Array.from(A.rr);
+  for (let k = 1; k < A.beats; k++) if (A.t[k] > end - 300 && A.t[k] <= end) rr[k] = 60000 / (60000 / rr[k] + 3 * (A.t[k] - (end - 300)) / 60);
+  const A3 = { ...A, rr };
+  assert.ok(L.lthrTest(A3, A3.exercise).noPlateau, 'heart rate climbs over the last 5 minutes');
+  const html = L.renderReport(A3, meta, { sex: 'M', dob: '1981-01-01' }, []);
+  assert.ok(html.includes('Heart rate was still climbing over the last 5 minutes'), 'card wording');
+  assert.ok(html.includes('Effort did not level off'), 'tile stamp');
+  assert.ok(!html.includes("'''") && !/\bNP\b/.test(html), 'no placeholder text');
+});
+
+test('report: a QTc that could not be graded is never shown beside the range', async () => {
+  const d = L.makeDemo(7, 7, 'rest'), A = await L.analyze(d.raw, { age: 45, rr: d.rr });
+  const meta = { id: 'f', start: Date.UTC(2026, 10, 2, 6, 0), ctx: 'morning', pos: 'seated', gap: 0 };
+  const html = L.renderReport({ ...A, qtcSteady: { few: true, qtc: NaN, qtcF: NaN, sec: 120, beats: 10, spans: [] } }, meta, { sex: 'M', dob: '1981-01-01' }, []);
+  const tile = html.match(/<div class="l">QTc<\/div>[\s\S]*?<div class="s">([^<]*)<\/div>/);
+  assert.ok(tile && tile[1].includes('not graded') && !tile[1].includes('ref'), tile && tile[1]);
+  const row = html.match(/QTc \(Bazett\)<span[\s\S]*?<\/tr>/)[0];
+  assert.ok(!/330 – 430/.test(row), 'no range in the table either');
+});
+
+test('the not-assessed note names the 50-100 bpm window', () => {
+  const G = L.gradeAll({ ...demo, qtc: 380, qtcSteady: null, meanHR: 46 }, { ctx: 'sleep', pos: 'lying', gap: 0 }, L.refsFor(45, 'M', 'sleep', 'lying')).qtc;
+  assert.ok(G.text.includes('50–100 bpm') && G.text.includes('below 50 bpm'), G.text);
+});

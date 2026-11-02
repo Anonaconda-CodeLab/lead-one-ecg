@@ -32,3 +32,21 @@ test('Android shim: Bluetooth requests run one at a time, and a busy refusal is 
   assert.ok(!log.some(l => l.startsWith('refused')), 'no request overlapped another: ' + log.join(', '));
   assert.equal(log.filter(l => l.startsWith('end')).length, 4, 'all four requests finished');
 });
+
+test('Android shim: saves run one at a time, so a finishing save never clears a newer one', async () => {
+  const log = []; let n = 0;
+  const nativePromise = async (plugin, method, opts) => {
+    if (method === 'pickSaveLocation') { const u = 'content://doc/' + (++n); log.push('pick ' + u); await new Promise(r => setTimeout(r, 5)); return { uri: u }; }
+    if (method === 'writeChunk') { log.push('write ' + opts.uri + (opts.last ? ' last' : '')); await new Promise(r => setTimeout(r, 10)); return {}; }
+    return {};
+  };
+  const ctx = vm.createContext({ console, setTimeout, Promise, Uint8Array, DataView, ArrayBuffer, Error, String, Object, Math, navigator: {},
+    document: { documentElement: { classList: { add() {} } }, getElementById: () => null, body: { dataset: {} }, addEventListener() {} },
+    window: { Capacitor: { isNativePlatform: () => true, nativePromise, addListener: () => ({ remove() {} }) } } });
+  ctx.window.navigator = ctx.navigator;
+  vm.runInContext(readFileSync(new URL('../src/native.js', import.meta.url), 'utf8') + ';globalThis.N = LeadOneNative;', ctx);
+  const big = 'x'.repeat(600 * 1024);   // three pieces
+  const [a, b] = await Promise.all([ctx.N.saveFile('a.json', big), ctx.N.saveFile('b.json', 'y')]);
+  assert.ok(a.saved && b.saved);
+  assert.deepEqual(log, ['pick content://doc/1', 'write content://doc/1', 'write content://doc/1', 'write content://doc/1 last', 'pick content://doc/2', 'write content://doc/2 last'], log.join(', '));
+});

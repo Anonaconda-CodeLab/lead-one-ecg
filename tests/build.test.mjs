@@ -86,6 +86,8 @@ test('Android app: no internet permission, native layer inactive in browsers', a
   assert.match(j, /saveUri = uri;/, 'the save screen sets the one address that may be written');
   assert.match(wc, /saveUri == null \|\| !saveUri\.equals\(target\)/, 'writeChunk refuses any other address');
   assert.ok((wc.match(/saveUri = null/g) || []).length >= 2, 'cleared after the last piece and after a failure');
+  const guardAt = wc.search(/saveUri == null \|\| !saveUri\.equals\(target\)/), openAt = wc.indexOf('openOutputStream(');
+  assert.ok(guardAt > 0 && openAt > guardAt && wc.indexOf('openOutputStream(') === wc.lastIndexOf('openOutputStream('), 'the address is checked before any file is opened (opening with "wt" empties it)');
   const h = distHtml();
   assert.match(h, /const NATIVE = !!\(window\.Capacitor && typeof window\.Capacitor\.isNativePlatform === 'function'/);
 });

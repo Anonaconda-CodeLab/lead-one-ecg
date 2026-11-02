@@ -6,14 +6,20 @@
 const NATIVE = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 const nativeCall = (plugin, method, opts) => window.Capacitor.nativePromise(plugin, method, opts || {});
 const nativeOn = (plugin, event, cb) => window.Capacitor.addListener(plugin, event, cb);
+let saveQueue = Promise.resolve();
 const LeadOneNative = NATIVE ? {
-  async saveFile(name, text, mime) {   // pick the place first (name only), then write in 256 KB pieces
-    const r = await nativeCall('LeadOne', 'pickSaveLocation', { name, mime: mime || 'application/json' });
-    if (!r || !r.uri) return { saved: false };
-    const N = 256 * 1024;
-    for (let i = 0; i === 0 || i < text.length; i += N)
-      await nativeCall('LeadOne', 'writeChunk', { uri: r.uri, text: text.slice(i, i + N), first: i === 0, last: i + N >= text.length });
-    return { saved: true };
+  // pick the place first (name only), then write in 256 KB pieces. Saves run one at a time: the native side keeps one
+  // chosen address and one open file, so a second save must not start until the first has finished.
+  saveFile(name, text, mime) {
+    const run = async () => {
+      const r = await nativeCall('LeadOne', 'pickSaveLocation', { name, mime: mime || 'application/json' });
+      if (!r || !r.uri) return { saved: false };
+      const N = 256 * 1024;
+      for (let i = 0; i === 0 || i < text.length; i += N)
+        await nativeCall('LeadOne', 'writeChunk', { uri: r.uri, text: text.slice(i, i + N), first: i === 0, last: i + N >= text.length });
+      return { saved: true };
+    };
+    const p = saveQueue.then(run, run); saveQueue = p.catch(() => {}); return p;
   },
   print: name => nativeCall('LeadOne', 'print', { name }),
   keepScreenOn: on => nativeCall('LeadOne', 'keepScreenOn', { on: !!on }).catch(() => {}),

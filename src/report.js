@@ -291,7 +291,7 @@ function hrvNorms(age, sex, pos) {
 /* QTc (Bazett) limits after Goldenberg et al. 2006: men ≤430 normal, 431–450 borderline, >450 prolonged;
    women ≤450 normal, 451–470 borderline, >470 prolonged; short side: from 330 ms normal, 320-329 borderline, below 320 outside (short QT is diagnosed at 320 ms or
    less, ESC 2022; a chest strap's tangent T end reads QT slightly short, so values just under 350 are not flagged). */
-const QTC_RATE_NOTE = 'Not assessed: above 100 bpm, or before the heart rate has settled, heart-rate corrections aren’t reliable and a chest strap’s T wave is hard to time exactly.';
+const QTC_RATE_NOTE = 'Not assessed: QTc is graded only on steady stretches at 50–100 bpm. Above 100 bpm, below 50 bpm, or before the heart rate has settled, heart-rate corrections aren’t reliable and a chest strap’s T wave is hard to time exactly.';
 function qtcLimits(sex) { return sex === 'M' ? { norm: 430, bord: 450 } : sex === 'F' ? { norm: 450, bord: 470 } : { norm: 440, bord: 460 }; }
 function refsFor(age, sex, ctx, pos) {
   const a = age || 35;
@@ -574,7 +574,7 @@ function gradeAll(A, meta, R, X = null) {
             : `A steady effort: heart rate stayed within ±5 bpm of ${f(T.avg)} bpm for ${f(100 * T.within)} % of the block.` }); }
       if (X.tt === 'lthr' && X.lt) { const r = X.lt;
         add('lthr', { title: 'Threshold heart rate (LTHR)', short: 'threshold heart rate', value: r.valid ? f(r.lthr) + ' bpm' : 'Incomplete', g: 'na', what: 'The heart rate you can sustain for about an hour: your average over the last 20 minutes of a 30-minute all-out effort.',
-          text: r.valid ? `Your threshold heart rate is ${f(r.lthr)} bpm. Zones based on it are more accurate than percentages of maximum for hard training.${r.noPlateau ? ` ''' + NP + '''` : ''}` : 'The effort lasted less than 25 minutes, so the threshold could not be measured reliably. Warm up first, press Start as the effort begins, and hold the hardest pace you can for the full 30 minutes.' }); }
+          text: r.valid ? `Your threshold heart rate is ${f(r.lthr)} bpm. Zones based on it are more accurate than percentages of maximum for hard training.${r.noPlateau ? ` Heart rate was still climbing over the last 5 minutes (+${f(r.slope5, 1)} bpm a minute), so the effort did not level off and this threshold is less certain. It still sets your zones; repeat the test, holding an even effort from the start, to confirm it.` : ''}` : 'The effort lasted less than 25 minutes, so the threshold could not be measured reliably. Warm up first, press Start as the effort begins, and hold the hardest pace you can for the full 30 minutes.' }); }
     }
   }
   // QTc: graded (Bazett, the correction the reference range was set with) only on steady stretches at 50-100 bpm
@@ -800,6 +800,7 @@ function renderReport(A, meta0, st, hist = []) {
   const QS = A.qtcSteady, qGraded = !!(QS && isFinite(QS.qtc)), qRate = !!(G.qtc && G.qtc.rate);
   const qB = qGraded ? QS.qtc : A.qtc, qF = qGraded ? QS.qtcF : A.qtcF;
   const qtcTile = unit => qRate ? kpi('QTc', fmt(A.qtc), 'ms', chip('info', 'Not assessed (rate)'), `Bazett · not graded at ${fmt(A.meanHR)} bpm`)
+    : !qGraded ? kpi('QTc', fmt(qB), 'ms', gc('qtc'), 'Bazett · not graded')
     : kpi('QTc', fmt(qB), 'ms', gc('qtc'), 'Bazett · ref ' + R.qtc[0] + '–' + R.qtc[1] + unit);
   const gcol = g => g === 'out' ? 'var(--p-red)' : g === 'bord' ? 'var(--p-warn)' : g === 'na' ? 'var(--p-faint)' : 'var(--p-ok)';
   const clock = sec => new Date(startMs + sec * 1000).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
