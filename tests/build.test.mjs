@@ -90,6 +90,18 @@ test('Android app: no internet permission, native layer inactive in browsers', a
   assert.match(h, /const NATIVE = !!\(window\.Capacitor && typeof window\.Capacitor\.isNativePlatform === 'function'/);
 });
 
+test('web version points to the Android app; the Android app hides those links', async () => {
+  const { readFileSync } = await import('node:fs');
+  const h = distHtml(), css = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+  const home = h.slice(h.indexOf('id="scrHome"'), h.indexOf('</section>', h.indexOf('id="scrHome"')));
+  assert.ok(home.includes('<p class="android-link web-only"><a href="/android.html">Also available as an Android app →</a></p>'), 'home-screen link');
+  assert.ok(home.indexOf('class="thanks"') < home.indexOf('android-link'), 'under the thank-you line');
+  assert.match(h, /Source code<\/a><a class="btn web-only" href="\/android\.html">Android app<\/a>/, 'About: next to Source code');
+  assert.match(css, /\.native \.web-only\{display:none\}/, 'hidden in the Android app');
+  assert.match(css, /html:not\(\.native\) \.native-only\{display:none\}/, 'Android-only buttons hidden on the web, whatever their own display');
+  for (const m of h.matchAll(/<a\b[^>]*android\.html[^>]*>/g)) assert.ok(!/target=/.test(m[0]), 'same tab');
+});
+
 test('link previews: canonical, Open Graph image, robots.txt and sitemap.xml', async () => {
   const { readFileSync } = await import('node:fs');
   const html = readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8');

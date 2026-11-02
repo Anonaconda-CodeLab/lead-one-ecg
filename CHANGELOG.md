@@ -23,6 +23,9 @@
 - **LTHR test:** if heart rate was still climbing over the last 5 minutes, the threshold is still set but marked
   "effort did not level off". The training zones page explains why a threshold effort splits its time between Z4
   and Z5a.
+- The web version points to the Android app: a quiet "Also available as an Android app →" link at the bottom of the
+  start screen, and an **Android app** button in About (neither shows in the Android app itself). **Check for
+  updates** in About now shows only in the Android app, as intended.
 - New thank-you line: "No ads, no tracking. If you find this app useful, please consider making a small donation to
   help fund development. Thank you!"
 - Release and Android hardening from a security review: signing in a separate, approval-gated step; unused file

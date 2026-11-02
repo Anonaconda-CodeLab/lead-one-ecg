@@ -310,7 +310,7 @@ table.mt td.rbar{width:36mm}
 .notes-p b{font-size:6.8pt;letter-spacing:.09em;text-transform:uppercase;color:var(--p-teal);margin-right:1.4mm}
 .past .meta i{display:block;font-style:normal;color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
 
-a.btn{text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+a.btn{text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:var(--fg)}
 a.btn.coffee{background:#72a4f2;border-color:#5a8fe0;color:#10213f}
 .bignum{font-family:var(--f-mono);font-size:22pt;font-weight:500;line-height:1.05;letter-spacing:-.02em}
 .bignum small{font-family:var(--f-sans);font-size:8pt;color:var(--p-muted);margin-left:1mm}
@@ -332,7 +332,10 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 
 /* Android app: browser guidance does not apply */
 .native .browser-req{display:none}
-.native-only{display:none} .native .native-only{display:revert}
+html:not(.native) .native-only{display:none}   /* the Android app only (beats a.btn's display) */
+.native .web-only{display:none}   /* the web version only: hidden in the Android app */
+.android-link{font-size:14px;line-height:1.5;margin:0 4px 6px;text-align:center}
+.android-link a{color:var(--muted);text-underline-offset:3px}
 
 /* live DFA alpha1 during the DFA test */
 .a1-live{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 16px;margin-top:10px}

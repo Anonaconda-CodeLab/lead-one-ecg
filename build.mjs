@@ -34,7 +34,7 @@ const about = `<div class="card" id="aboutCard">
       <div><div class="dev-name">About ${APP.APP_NAME}</div><div class="dev-meta">Version ${APP.VERSION}${BUILD ? ` · build ${BUILD}` : ''} · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       ${contact ? `<p class="dev-meta" style="margin:0">Questions or problems: <a href="mailto:${contact}">${contact}</a>. A description or a screenshot is usually enough; please don't send recordings or reports unless you are happy to share them, because they contain your health data.</p>` : ''}
-      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button>${appUrl ? `<a class="btn native-only" href="${appUrl}/android.html?v=${APP.VERSION}" rel="noopener noreferrer">Check for updates</a>` : ''}${repo ? `<a class="btn" href="${repo}" rel="noopener noreferrer">Source code</a>` : ''}${kofi ? `<a class="btn coffee" href="${kofi}" rel="noopener noreferrer">☕ Support on Ko-fi</a>` : ''}</div>
+      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button>${appUrl ? `<a class="btn native-only" href="${appUrl}/android.html?v=${APP.VERSION}" rel="noopener noreferrer">Check for updates</a>` : ''}${repo ? `<a class="btn" href="${repo}" rel="noopener noreferrer">Source code</a>` : ''}<a class="btn web-only" href="/android.html">Android app</a>${kofi ? `<a class="btn coffee" href="${kofi}" rel="noopener noreferrer">☕ Support on Ko-fi</a>` : ''}</div>
     </div>`;
 
 const src = f => readFileSync(join(root, 'src', f), 'utf8');
@@ -71,9 +71,11 @@ const donate = kofi ? `<div id="donateCard" class="card donate" hidden>
       <div class="acts"><a id="btnDonate" class="btn coffee" href="${kofi}" rel="noopener noreferrer">☕ Support on Ko-fi</a><button id="btnDonateLater" class="btn">Not now</button></div>
     </div>` : '';
 const thanks = kofi ? `<p class="thanks">No ads, no tracking. If you find this app useful, please consider <a href="${kofi}" rel="noopener noreferrer">making a small donation</a> to help fund development. Thank you!</p>` : '';
+// web version only (hidden in the Android app): a quiet pointer to the Android download page
+const androidLink = `<p class="android-link web-only"><a href="/android.html">Also available as an Android app →</a></p>`;
 const manual = md(readFileSync(join(root, 'docs', 'MANUAL.md'), 'utf8'));
 const b64 = f => readFileSync(join(root, 'src', 'fonts', f)).toString('base64');
-const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION|APP_URL|APP_HOST)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about).replace('{{DONATE}}', donate).replace('{{THANKS}}', thanks).replace('{{MANUAL}}', () => manual);
+const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION|APP_URL|APP_HOST)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about).replace('{{DONATE}}', donate).replace('{{THANKS}}', thanks).replace('{{ANDROID}}', androidLink).replace('{{MANUAL}}', () => manual);
 
 const fonts = `@font-face{font-family:"Instrument Sans";font-style:normal;font-display:swap;font-weight:400 700;font-stretch:75% 100%;src:url(data:font/woff2;base64,${b64('InstrumentSans-latin-variable.woff2')}) format("woff2-variations")}
 @font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:400;src:url(data:font/woff2;base64,${b64('IBMPlexMono-latin-400.woff2')}) format("woff2")}

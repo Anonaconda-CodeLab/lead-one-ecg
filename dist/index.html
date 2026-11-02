@@ -339,7 +339,7 @@ table.mt td.rbar{width:36mm}
 .notes-p b{font-size:6.8pt;letter-spacing:.09em;text-transform:uppercase;color:var(--p-teal);margin-right:1.4mm}
 .past .meta i{display:block;font-style:normal;color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
 
-a.btn{text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+a.btn{text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:var(--fg)}
 a.btn.coffee{background:#72a4f2;border-color:#5a8fe0;color:#10213f}
 .bignum{font-family:var(--f-mono);font-size:22pt;font-weight:500;line-height:1.05;letter-spacing:-.02em}
 .bignum small{font-family:var(--f-sans);font-size:8pt;color:var(--p-muted);margin-left:1mm}
@@ -361,7 +361,10 @@ h3.zh{margin:1mm 0 0;font-size:8.6pt;font-weight:700}
 
 /* Android app: browser guidance does not apply */
 .native .browser-req{display:none}
-.native-only{display:none} .native .native-only{display:revert}
+html:not(.native) .native-only{display:none}   /* the Android app only (beats a.btn's display) */
+.native .web-only{display:none}   /* the web version only: hidden in the Android app */
+.android-link{font-size:14px;line-height:1.5;margin:0 4px 6px;text-align:center}
+.android-link a{color:var(--muted);text-underline-offset:3px}
 
 /* live DFA alpha1 during the DFA test */
 .a1-live{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 16px;margin-top:10px}
@@ -478,7 +481,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.8.3 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <p class="dev-meta" style="margin:0">Questions or problems: <a href="mailto:hello@anonacondacodelab.com">hello@anonacondacodelab.com</a>. A description or a screenshot is usually enough; please don't send recordings or reports unless you are happy to share them, because they contain your health data.</p>
-      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.3" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">Source code</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
+      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.3" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">Source code</a><a class="btn web-only" href="/android.html">Android app</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
   </section>
 
@@ -648,6 +651,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
     </div>
     <p class="wellness-line"><b>For general wellness and education only. Not a medical device.</b> It cannot diagnose or rule out any condition. If you feel unwell, call your local emergency number; do not stop to record.</p>
     <p class="thanks">No ads, no tracking. If you find this app useful, please consider <a href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">making a small donation</a> to help fund development. Thank you!</p>
+    <p class="android-link web-only"><a href="/android.html">Also available as an Android app →</a></p>
   </section>
 
   <!-- RECORDING -->
