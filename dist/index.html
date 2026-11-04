@@ -509,7 +509,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <h2>Putting on the strap</h2>
 <ol><li>Moisten the two electrode areas on the inside of the strap with water.</li><li>Clip the sensor on and fasten the strap snugly just below the chest muscles, with the Polar logo upright.</li><li><b>Close every other app that uses the strap</b> (Polar Beat, Polar Flow, Elite HRV, ECG Logger and so on). The H10 sends its ECG to only one app at a time.</li></ol>
 <h2>Making a recording</h2>
-<ol><li>Tap <b>Connect H10</b> and choose your strap from the list. The dot turns green when it is connected.</li><li>Optionally choose a <b>recording context</b> (Morning baseline, Orthostatic test, Training, Evening, Meditation, Sleep, General rest, Spot check) and a <b>body position</b> (Lying, Seated, Standing, Walking / moving). These matter more than they look: see <i>Your personal baseline</i> below.<ul><li><b>Orthostatic test</b>: a 6-minute recovery check, best on waking. Lie on your back and keep still. After 3 minutes the app beeps and vibrates: stand up straight away and stand still, without leaning, until it stops by itself at 6 minutes. The report shows your lying heart rate, the peak on standing, how far heart rate stays raised, and lying and standing HRV. After 3 tests it compares each one with your usual values: a higher lying heart rate, a larger rise or lower lying HRV than usual can mean you haven't recovered from training, illness, poor sleep or stress.</li><li><b>Spot check</b>: for when something felt off, such as a flutter or a skipped beat. Record for at least 2 minutes, ideally while you still feel it, and describe what you felt in the notes. The report lists any extra beats and pauses and compares the reading with your General rest readings. It cannot tell what caused how you felt and cannot rule anything out. <b>If you have chest pain or pressure, fainting, severe shortness of breath, or a racing heartbeat that won't settle, call emergency services instead of recording.</b></li></ul></li><li>Optionally add <b>session notes</b> (up to 200 characters), such as &quot;after lunch&quot; or &quot;slept 5 hours&quot;.</li><li>Optionally turn on <b>Auto-stop</b> and choose a duration (1, 2 or 2.5 minutes, then in 5-minute steps). With Auto-stop off, the recording runs until you stop it, up to 8 hours.</li><li>Tap <b>Start</b>.</li></ol>
+<ol><li>Tap <b>Connect H10</b> and choose your strap from the list. The dot turns green when it is connected.</li><li>Optionally choose a <b>recording context</b> (Morning baseline, Orthostatic test, Training, Evening, Meditation, Sleep, General rest, Spot check) and a <b>body position</b> (Lying, Seated, Standing, Walking / moving). These matter more than they look: see <i>Your personal baseline</i> below.<ul><li><b>Orthostatic test</b>: a 6-minute recovery check, best on waking. Lie on your back and keep still. After 3 minutes the app beeps and vibrates: stand up straight away and stand still, without leaning, until it stops by itself at 6 minutes. The report shows your lying heart rate, the peak on standing, how far heart rate stays raised, and lying and standing HRV. After 3 tests it compares each one with your usual values: a higher lying heart rate, a larger rise or lower lying HRV than usual can mean you haven't recovered from training, illness, poor sleep or stress.</li><li><b>Spot check</b>: for when something felt off, such as a flutter or a skipped beat. Record for at least 2 minutes, ideally while you still feel it, and describe what you felt in the notes. The report lists any extra beats and pauses and compares the reading with your General rest readings. It cannot tell what caused how you felt and cannot rule anything out. <b>If you have chest pain or pressure, fainting, severe shortness of breath, or a racing heartbeat that won't settle, call emergency services instead of recording.</b></li></ul></li><li>Optionally add <b>session notes</b> (up to 200 characters), such as &quot;after lunch&quot; or &quot;slept 5 hours&quot;.</li><li>Optionally turn on <b>Auto-stop</b> and choose a duration (1, 2 or 2.5 minutes, then in 5-minute steps). With Auto-stop off, the recording runs until you stop it, up to 8 hours. Auto-stop isn't offered for <b>Training</b> (a training recording runs until you stop it, up to 8 hours) or the <b>Orthostatic test</b> (it stops itself after 6 minutes); your setting is kept for the other contexts.</li><li>Tap <b>Start</b>.</li></ol>
 <p>While recording you will see the elapsed time, heart rate, signal quality, strap battery, breathing rate (after about 30 seconds) and a live ECG trace.</p>
 <ul><li><b>Pause</b> stops counting without ending the recording. Paused time is left out of the analysis.</li><li><b>Dim screen</b> darkens the screen for long recordings; tap to wake it. Keep the app open in the foreground.</li><li><b>Hold to stop</b>: press and hold the button until it fills. Holding prevents accidental stops.</li><li>If Bluetooth drops, the app reconnects by itself and marks the gap in the report.</li><li>Data is saved every minute. If the phone or browser closes unexpectedly, the next time you open the app it offers to <b>Analyze recording</b> for the part that was saved.</li></ul>
 <p>When the recording ends, tap <b>View report</b>. You can also <b>Save recording file</b> to keep the raw ECG.</p>
@@ -3271,7 +3271,11 @@ const CTX_HINTS = {
 function showTrainOpts() {
   $('#ctxHint').hidden = !CTX_HINTS[S.ctx]; $('#ctxHint').textContent = CTX_HINTS[S.ctx] || '';
   $('#posField').hidden = !!(CTX[S.ctx] && CTX[S.ctx].noPos);
-  $('.setup .auto').hidden = $('#autoHint').hidden = S.ctx === 'ortho';   // the test stops itself after 6 minutes
+  // auto-stop doesn't apply to the orthostatic test (it stops itself after 6 minutes) or to training (it runs until the
+  // person stops it); the switch is hidden for both, and the saved setting is kept for the other contexts
+  $('.setup .auto').hidden = S.ctx === 'ortho' || S.ctx === 'training';
+  $('#autoHint').hidden = S.ctx === 'ortho';
+  $('#autoHint').textContent = autoHintText();
   $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || '';
   $('#planField').hidden = S.ttSel !== 'intervals';
 }
@@ -3287,12 +3291,19 @@ function initHomeSetup() {
   buildChips($('#posChips'), POS_CHIPS, S.pos, v => { S.pos = v; patchSettings({ lastPos: v }); });
   $('#autoOn').checked = !!st.autoOn; S.autoMinSel = AUTO_STEPS.includes(+st.autoMin) ? +st.autoMin : 5; updateAuto();
 }
+/* minutes of recorded time after which the recording stops by itself (0 = only by hand or at the 8-hour limit) */
+function autoStopFor(ctx, on, min) { return ctx === 'ortho' ? 6 : ctx === 'training' ? 0 : on ? min : 0; }
 const AUTO_STEPS = [1, 2, 2.5]; for (let m = 5; m <= 480; m += 5) AUTO_STEPS.push(m);
 const minTxt = m => (m === 1 ? '1 minute' : m + ' minutes');
+const TRAIN_AUTO_HINT = 'Training recordings run until you stop them (maximum 8 hours).';
+function autoHintText() {
+  if (S.ctx === 'training') return TRAIN_AUTO_HINT;
+  return $('#autoOn').checked ? `The recording stops automatically after ${minTxt(S.autoMinSel)} of recorded time. Paused time is not counted.` : 'Off: the recording continues until you stop it (maximum 8 hours).';
+}
 function updateAuto() {
   const on = $('#autoOn').checked; $('#autoStepper').classList.toggle('off', !on);
   $('#autoVal').textContent = S.autoMinSel + ' min';
-  $('#autoHint').textContent = on ? `The recording stops automatically after ${minTxt(S.autoMinSel)} of recorded time. Paused time is not counted.` : 'Off: the recording continues until you stop it (maximum 8 hours).';
+  $('#autoHint').textContent = autoHintText();
   patchSettings({ autoOn: on, autoMin: S.autoMinSel });
 }
 $('#autoOn').onchange = updateAuto;
@@ -3627,7 +3638,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
   Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
-  S.autoMin = S.ctx === 'ortho' ? 6 : $('#autoOn').checked ? S.autoMinSel : 0;   // the orthostatic test is 3 min lying + 3 min standing
+  // the orthostatic test is 3 min lying + 3 min standing; training runs until stopped (the 8-hour limit still applies)
+  S.autoMin = autoStopFor(S.ctx, $('#autoOn').checked, S.autoMinSel);
   S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
   S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;

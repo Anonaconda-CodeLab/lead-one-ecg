@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+- Auto-stop no longer applies to **Training**: the switch is hidden and training recordings run until you stop them
+  (maximum 8 hours), so a short auto-stop set for morning readings can't cut a session short. Your auto-stop setting is
+  kept for the other contexts.
+
 ## 1.8.3
 - **QTc is graded only where it can be trusted.** Above 100 bpm, or before the heart rate has settled after effort,
   heart-rate corrections aren't reliable and a chest strap's T wave is hard to time exactly. QTc is now graded only on

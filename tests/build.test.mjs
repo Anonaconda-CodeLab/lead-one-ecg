@@ -170,3 +170,20 @@ test('workflows: every action is pinned to a full commit (a moved tag cannot cha
     for (const u of uses) assert.match(u, /^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/, `${f}: ${u}`);
   }
 });
+
+test('auto-stop does not apply to training: switch hidden, fixed hint, saved setting kept, 8-hour limit kept', () => {
+  const h = distHtml();
+  const src = h.match(/function autoStopFor\(ctx, on, min\) \{[^\n]*\}/);
+  assert.ok(src, 'autoStopFor in the built page');
+  const autoStopFor = new Function('return ' + src[0])();
+  assert.equal(autoStopFor('training', true, 30), 0, 'training ignores a saved auto-stop');
+  assert.equal(autoStopFor('training', false, 30), 0);
+  assert.equal(autoStopFor('ortho', false, 30), 6, 'the orthostatic test still stops at 6 minutes');
+  assert.equal(autoStopFor('morning', true, 5), 5, 'other contexts keep the saved setting');
+  assert.equal(autoStopFor('rest', false, 5), 0);
+  assert.ok(h.includes("$('.setup .auto').hidden = S.ctx === 'ortho' || S.ctx === 'training';"), 'switch hidden for training');
+  assert.ok(h.includes("'Training recordings run until you stop them (maximum 8 hours).'"), 'training hint');
+  assert.match(h, /S\.total >= MAX_SAMPLES\) stopRecording\('limit'\)|stopRecording\('limit'\)/, 'the 8-hour limit still stops every recording');
+  const setUpd = h.slice(h.indexOf('function updateAuto()'), h.indexOf("$('#autoOn').onchange"));
+  assert.ok(/patchSettings\(\{ autoOn: on, autoMin: S\.autoMinSel \}\)/.test(setUpd), 'the setting is saved only from the switch itself');
+});

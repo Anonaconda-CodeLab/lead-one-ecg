@@ -90,7 +90,9 @@ the reports is optional. You can change all of this later with the **settings ic
      won't settle, call emergency services instead of recording.**
 3. Optionally add **session notes** (up to 200 characters), such as "after lunch" or "slept 5 hours".
 4. Optionally turn on **Auto-stop** and choose a duration (1, 2 or 2.5 minutes, then in 5-minute steps). With Auto-stop off,
-   the recording runs until you stop it, up to 8 hours.
+   the recording runs until you stop it, up to 8 hours. Auto-stop isn't offered for **Training** (a training recording
+   runs until you stop it, up to 8 hours) or the **Orthostatic test** (it stops itself after 6 minutes); your setting
+   is kept for the other contexts.
 5. Tap **Start**.
 
 While recording you will see the elapsed time, heart rate, signal quality, strap battery, breathing rate (after about

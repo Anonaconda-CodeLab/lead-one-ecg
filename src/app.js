@@ -155,7 +155,11 @@ const CTX_HINTS = {
 function showTrainOpts() {
   $('#ctxHint').hidden = !CTX_HINTS[S.ctx]; $('#ctxHint').textContent = CTX_HINTS[S.ctx] || '';
   $('#posField').hidden = !!(CTX[S.ctx] && CTX[S.ctx].noPos);
-  $('.setup .auto').hidden = $('#autoHint').hidden = S.ctx === 'ortho';   // the test stops itself after 6 minutes
+  // auto-stop doesn't apply to the orthostatic test (it stops itself after 6 minutes) or to training (it runs until the
+  // person stops it); the switch is hidden for both, and the saved setting is kept for the other contexts
+  $('.setup .auto').hidden = S.ctx === 'ortho' || S.ctx === 'training';
+  $('#autoHint').hidden = S.ctx === 'ortho';
+  $('#autoHint').textContent = autoHintText();
   $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || '';
   $('#planField').hidden = S.ttSel !== 'intervals';
 }
@@ -171,12 +175,19 @@ function initHomeSetup() {
   buildChips($('#posChips'), POS_CHIPS, S.pos, v => { S.pos = v; patchSettings({ lastPos: v }); });
   $('#autoOn').checked = !!st.autoOn; S.autoMinSel = AUTO_STEPS.includes(+st.autoMin) ? +st.autoMin : 5; updateAuto();
 }
+/* minutes of recorded time after which the recording stops by itself (0 = only by hand or at the 8-hour limit) */
+function autoStopFor(ctx, on, min) { return ctx === 'ortho' ? 6 : ctx === 'training' ? 0 : on ? min : 0; }
 const AUTO_STEPS = [1, 2, 2.5]; for (let m = 5; m <= 480; m += 5) AUTO_STEPS.push(m);
 const minTxt = m => (m === 1 ? '1 minute' : m + ' minutes');
+const TRAIN_AUTO_HINT = 'Training recordings run until you stop them (maximum 8 hours).';
+function autoHintText() {
+  if (S.ctx === 'training') return TRAIN_AUTO_HINT;
+  return $('#autoOn').checked ? `The recording stops automatically after ${minTxt(S.autoMinSel)} of recorded time. Paused time is not counted.` : 'Off: the recording continues until you stop it (maximum 8 hours).';
+}
 function updateAuto() {
   const on = $('#autoOn').checked; $('#autoStepper').classList.toggle('off', !on);
   $('#autoVal').textContent = S.autoMinSel + ' min';
-  $('#autoHint').textContent = on ? `The recording stops automatically after ${minTxt(S.autoMinSel)} of recorded time. Paused time is not counted.` : 'Off: the recording continues until you stop it (maximum 8 hours).';
+  $('#autoHint').textContent = autoHintText();
   patchSettings({ autoOn: on, autoMin: S.autoMinSel });
 }
 $('#autoOn').onchange = updateAuto;
@@ -511,7 +522,8 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
   Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
-  S.autoMin = S.ctx === 'ortho' ? 6 : $('#autoOn').checked ? S.autoMinSel : 0;   // the orthostatic test is 3 min lying + 3 min standing
+  // the orthostatic test is 3 min lying + 3 min standing; training runs until stopped (the 8-hour limit still applies)
+  S.autoMin = autoStopFor(S.ctx, $('#autoOn').checked, S.autoMinSel);
   S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
   S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
