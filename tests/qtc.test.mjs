@@ -187,3 +187,31 @@ test('the not-assessed note names the 50-100 bpm window', () => {
   const G = L.gradeAll({ ...demo, qtc: 380, qtcSteady: null, meanHR: 46 }, { ctx: 'sleep', pos: 'lying', gap: 0 }, L.refsFor(45, 'M', 'sleep', 'lying')).qtc;
   assert.ok(G.text.includes('50–100 bpm') && G.text.includes('below 50 bpm'), G.text);
 });
+
+/* beats at a steady rate, with optional overrides: { t, rr, rrOk, ect, nn } */
+function beatsAt(bpm, sec) { const t = [0], rr = [NaN]; const r = 60000 / bpm; while (t[t.length - 1] < sec) { t.push(t[t.length - 1] + r / 1000); rr.push(r); }
+  const n = t.length; return { t, rr, rrOk: new Uint8Array(n).fill(1).map((v, i) => i ? 1 : 0), ect: new Uint8Array(n), nn: new Uint8Array(n).fill(1).map((v, i) => i ? 1 : 0) }; }
+
+test('lost signal: erratic ECG with missed beats in the strap log is lost; real extra beats are not', () => {
+  // 3 minutes at 164 bpm; 100-140 s: the ECG timing goes erratic and the strap log misses beats
+  const B = beatsAt(164, 180), strap = B.t.slice(1).map((t, i) => [t, B.rr[i + 1]]);
+  for (let k = 1; k < B.t.length; k++) if (B.t[k] > 100 && B.t[k] < 140 && k % 3 === 0) { B.rr[k] *= 1.6; B.ect[k] = 1; }
+  for (const x of strap) if (x[0] > 100 && x[0] < 140 && Math.round(x[0] * 10) % 7 === 0) x[1] *= 2;   // missed beats
+  const lost = L.lostSpans(B.t, B.rr, B.rrOk, B.ect, strap);
+  assert.equal(lost.length, 1); assert.ok(lost[0].t0 <= 105 && lost[0].t1 >= 135, JSON.stringify(lost));
+  // the same erratic ECG with a complete strap log (real extra beats: the strap sees them too, nothing goes missing)
+  const strapOk = B.t.slice(1).map((t, i) => [t, B.rr[i + 1]]);
+  assert.equal(L.lostSpans(B.t, B.rr, B.rrOk, B.ect, strapOk).length, 0, 'real ectopy is not lost signal');
+  // a clean recording has nothing lost
+  const C = beatsAt(150, 180); assert.equal(L.lostSpans(C.t, C.rr, C.rrOk, C.ect, C.t.slice(1).map((t, i) => [t, C.rr[i + 1]])).length, 0);
+});
+
+test('a 4 s gap at 165 bpm is a signal gap, not a pause; at 60 bpm it is still a pause', () => {
+  for (const [bpm, isGap] of [[165, true], [60, false]]) {
+    const B = beatsAt(bpm, 120), k = Math.floor(B.t.length / 2);
+    B.rr[k] = 4250; for (let j = k; j < B.t.length; j++) B.t[j] += 4.25 - 60 / bpm;
+    const { pauses, gaps, longest } = L.splitPauses(B.t, B.rr, B.rrOk, B.nn);
+    assert.equal(gaps.length, isGap ? 1 : 0, bpm + ' bpm'); assert.equal(pauses.length, isGap ? 0 : 1, bpm + ' bpm');
+    assert.equal(longest.v, isGap ? 60000 / bpm : 4250, 'a signal gap is not the longest pause');
+  }
+});

@@ -698,6 +698,46 @@ function classifyBeats({ nb, rr, rrOk, lmed, corr, amp, noise, weak }) {
   return { ect, ectKind };
 }
 
+/* Gaps over 2 s between beats. One with the heart rate above 100 bpm on both sides is the signal dropping out (strap
+   contact), not the heart pausing: it is listed as a signal gap and not graded. Pauses at ordinary rates are graded. */
+function splitPauses(t, rr, rrOk, nn) {
+  const nb = t.length, pauses = [], gaps = []; let longest = { v: 0, k: 0 };
+  const sideHR = (k, dir) => { const v = []; for (let j = k + dir; j > 0 && j < nb && v.length < 8 && Math.abs(j - k) < 30; j += dir) if (nn[j]) v.push(rr[j]); return v.length >= 4 ? 60000 / median(v) : NaN; };
+  for (let k = 1; k < nb; k++) if (rrOk[k]) {
+    if (rr[k] > 2000) { const p = { k, ms: rr[k], time: t[k - 1] }; if (sideHR(k - 1, -1) > 100 && sideHR(k, 1) > 100) { gaps.push(p); continue; } pauses.push(p); }
+    if (rr[k] > longest.v) longest = { v: rr[k], k };
+  }
+  return { pauses, gaps, longest };
+}
+/* Stretches where the strap lost contact. Two things together: the ECG beat timing turns erratic (a quarter or more of
+   the beats in 20 s off the local rhythm or flagged), and beats go missing: the strap's own beat log has two or more
+   intervals of about double length (missed beats), or, without the strap's log, the ECG finds under 75 % of the beats
+   the surrounding heart rate predicts. Real extra beats never remove beats, so they are not caught by this. 20-s blocks
+   every 10 s; flagged blocks are merged and widened by 5 s. */
+function lostSpans(t, rr, rrOk, ect, strap) {
+  const nb = t.length, dur = nb ? t[nb - 1] : 0, out = [];
+  const st = strap && strap.length > 50 ? strap.filter(x => x[1] > 0) : null, stT = st ? st.map(x => x[0]) : null;
+  const med = a => a.length ? median(a) : NaN, flagged = [];
+  for (let t0 = 0; t0 + 20 <= dur + 10; t0 += 10) {
+    const k0 = lowerBound(t, t0), k1 = lowerBound(t, t0 + 20); if (k1 - k0 < 8) continue;
+    const vals = []; for (let k = k0; k < k1; k++) if (rrOk[k]) vals.push(rr[k]);
+    const lm = med(vals); if (!isFinite(lm)) continue;
+    let irr = 0; for (let k = k0; k < k1; k++) if (ect[k] || !rrOk[k] || Math.abs(rr[k] - lm) > 0.25 * lm) irr++;
+    if (irr / (k1 - k0) < 0.25) continue;
+    let missing = false;
+    if (st) {
+      const sv = st.slice(lowerBound(stT, t0), lowerBound(stT, t0 + 20)).map(x => x[1]), slm = med(sv);
+      missing = sv.filter(v => v > 1.7 * slm).length >= 2;
+    } else {
+      const around = []; for (let k = lowerBound(t, t0 - 60); k < nb && t[k] < t0 + 80; k++) if ((t[k] < t0 || t[k] >= t0 + 20) && rrOk[k] && !ect[k]) around.push(rr[k]);
+      const exp = around.length >= 20 ? 20000 / median(around) : NaN; missing = isFinite(exp) && (k1 - k0) < 0.75 * exp;
+    }
+    if (missing) flagged.push([t0, t0 + 20]);
+  }
+  for (const [a, b] of flagged) { const last = out[out.length - 1]; if (last && a - 5 <= last.t1) last.t1 = Math.min(dur, b + 5); else out.push({ t0: Math.max(0, a - 5), t1: Math.min(dur, b + 5) }); }
+  return out;
+}
+
 /* ---------- full analysis ---------- */
 async function analyze(raw, opts = {}, progress = () => {}) {
   const tick = () => new Promise(res => setTimeout(res, 0));
@@ -773,6 +813,13 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     }
   }
   const { ect, ectKind } = classifyBeats({ nb, rr, rrOk, lmed, corr, amp, noise, weak });
+  // stretches where the strap lost contact: those beats are left out like noise (no extra beats, pauses or averages)
+  const lost = lostSpans(t, rr, rrOk, ect, opts.rr);
+  let lostSec = 0;
+  for (const sp of lost) {
+    lostSec += sp.t1 - sp.t0;
+    for (let k = lowerBound(t, sp.t0); k < nb && t[k] <= sp.t1; k++) { noise[k] = 1; rrOk[k] = 0; if (k + 1 < nb) rrOk[k + 1] = 0; ect[k] = 0; ectKind[k] = null; }
+  }
   // events (group ectopic beats within 3 s)
   const events = [];
   for (let k = 0; k < nb; k++) if (ect[k]) {
@@ -827,8 +874,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
     if (!lo1 || h < lo1.v) lo1 = { v: h, t0: s0, t1: s0 + 60 };
   }
   // pauses (> 2 s) on clean intervals
-  const pauses = []; let longest = { v: 0, k: 0 };
-  for (let k = 1; k < nb; k++) if (rrOk[k]) { if (rr[k] > longest.v) longest = { v: rr[k], k }; if (rr[k] > 2000) pauses.push({ k, ms: rr[k], time: t[k - 1] }); }
+  const { pauses, gaps, longest } = splitPauses(t, rr, rrOk, nn);
 
   // zones
   const age = opts.age || 35, hrMax = 220 - age;
@@ -941,7 +987,7 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   let noisyBlocks = 0; for (const v of noisyB) noisyBlocks += v;
   const out = {
     fs: FS, n, dur, pol, gapSec: gapCount / FS, medRR,
-    beats: nb, r, t, rr, rrOk, nn, ect, noise, events, pauses, longest,
+    beats: nb, r, t, rr, rrOk, nn, ect, noise, events, pauses, gaps, lost, lostSec, longest,
     ectopicBeats: ect.reduce((a, b) => a + b, 0),
     noisePct: 100 * noiseBeats / nb, weakPct: 100 * weakBeats / nb, weakSec, noiseTimePct: 100 * noisyBlocks / noisyB.length,
     meanHR, meanNN, rmssd, sdnn, pnn50, pnn200, sd1, sd2,
