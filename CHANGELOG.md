@@ -1,6 +1,19 @@
 # Changelog
 
 ## Unreleased
+- **Lost strap contact is recognised:** when the strap loses contact mid-session, beats go missing and the timing turns
+  erratic. That stretch is now left out of extra beats, pauses and averages, and the report says when it happened. A
+  4 Nov ramp test had shown 157 extra beats and a 4-second "pause" with "reviewed by a doctor soon"; now 7 extra beats,
+  no pause, and a note that contact was lost at 08:51–08:55.
+- A gap of over 2 seconds with your heart rate above 100 bpm on both sides is shown as a signal gap, not graded as a
+  pause.
+- **Ramp test:** a step whose last 30 seconds fall in lost signal uses its latest clean 30 seconds or is marked "strap
+  lost contact", instead of showing a wrong average (one step had read 129 bpm instead of about 162). Marked steps are
+  left out of the plateau check, and a new chart shows heart rate through the steps with each step's value.
+- **DFA-α1 thresholds** are fitted to the falling part of the curve only, so the flat stretches at easy and hard effort no
+  longer push both thresholds too high (4 Nov: 150 and 156 bpm instead of 153 and 160). When the two are within 8 bpm,
+  the anaerobic threshold is shown as approximate.
+- Interval plans: the hint says a warm-up before round 1 is fine.
 - Auto-stop no longer applies to **Training**: the switch is hidden and training recordings run until you stop them
   (maximum 8 hours), so a short auto-stop set for morning readings can't cut a session short. Your auto-stop setting is
   kept for the other contexts.

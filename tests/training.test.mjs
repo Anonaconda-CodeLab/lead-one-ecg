@@ -202,3 +202,19 @@ test('orthostatic and spot-check reports', async () => {
   const s = L.renderReport(B, { start, ctx: 'spot', pos: 'seated' }, st, []);
   assert.ok(s.includes('call emergency services now') && s.includes('cannot rule anything out'), 'spot-check safety wording');
 });
+
+test('ramp test: a step whose last 30 s hit lost signal uses its last clean 30 s or is not measured, and is marked', async () => {
+  const d = L.makeDemo(25, 7, 'ramp'), A0 = await L.analyze(d.raw, { age: 40, rr: d.rr });
+  const base = L.rampTest(A0, A0.exercise);
+  // contact lost over the end of step 3 (8:40-9:00) and the whole of step 4 (9:00-12:00)
+  const A = { ...A0, lost: [{ t0: 520, t1: 720 }] };
+  const r = L.rampTest(A, A.exercise), s3 = r.steps[2], s4 = r.steps[3];
+  assert.equal(s3.flag, 'moved'); assert.ok(s3.w1 <= 520 && s3.w1 - s3.w0 === 30 && isFinite(s3.hr), JSON.stringify(s3));
+  assert.equal(s4.flag, 'lost'); assert.ok(!isFinite(s4.hr));
+  assert.equal(r.completed, base.completed, 'completed steps still counted');
+  assert.equal(r.steps.filter(s => !s.flag).length, base.steps.length - 2, 'only the two affected steps are marked');
+  const meta = { id: 'r', start: Date.UTC(2026, 10, 4, 1, 34), ctx: 'training', pos: 'seated', trainType: 'ramp', recovery: 'passive', gap: 0 };
+  const html = L.renderReport({ ...A }, meta, { sex: 'M', dob: '1981-01-01' }, []);
+  assert.ok(html.includes('strap lost contact') && html.includes('left out of the plateau check'), 'marked in the report');
+  assert.ok(html.includes('Heart rate through the steps'), 'heart-rate trace shown');
+});

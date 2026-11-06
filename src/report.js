@@ -192,6 +192,24 @@ function qtcChart(A, startMs, q = null, spans = []) {
   s += `<path d="${d}" fill="none" stroke="var(--p-accent)" stroke-width="0.6"/></g>`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="QTc over time">${F.g}${s}</svg>`;
 }
+/* ramp test: 10-s heart rate with the steps behind it; each step's value drawn over the 30 s it comes from, lost signal
+   shaded, so a step whose value doesn't match the trace is visible at a glance */
+function rampChart(A, r, startMs) {
+  const W = 186, H = 46, end = Math.min(A.dur, r.fail + 30), hr = rollingHR(A, 10, 2).filter(p => p.t <= end);
+  if (hr.length < 10) return '';
+  const vals = hr.map(p => p.v).concat(r.steps.map(st => st.hr).filter(isFinite));
+  const y0 = Math.floor((Math.min(...vals) - 5) / 10) * 10, y1 = Math.ceil((Math.max(...vals) + 5) / 10) * 10;
+  const ticks = []; for (let v = y0; v <= y1; v += y1 - y0 > 60 ? 20 : 10) ticks.push(v);
+  const F = frame({ W, H, x0: 0, x1: end, y0, y1, yTicks: ticks, startMs });
+  let s = '';
+  r.steps.forEach((st, i) => { if (i % 2) s += `<rect x="${F.X(st.t0).toFixed(2)}" width="${(F.X(st.t1) - F.X(st.t0)).toFixed(2)}" y="${F.padT}" height="${F.ih}" fill="var(--p-ink)" opacity=".04"/>`;
+    s += `<text x="${((F.X(st.t0) + F.X(st.t1)) / 2).toFixed(2)}" y="${F.padT + 2.6}" text-anchor="middle" font-size="2" fill="var(--p-muted)">${st.n}</text>`; });
+  for (const sp of A.lost || []) if (sp.t0 < end) s += `<rect x="${F.X(sp.t0).toFixed(2)}" width="${(F.X(Math.min(sp.t1, end)) - F.X(sp.t0)).toFixed(2)}" y="${F.padT}" height="${F.ih}" fill="var(--p-warn)" opacity=".16"/><text x="${((F.X(sp.t0) + F.X(Math.min(sp.t1, end))) / 2).toFixed(2)}" y="${F.padT + F.ih - 1.5}" text-anchor="middle" font-size="2" fill="var(--p-warn)">contact lost</text>`;
+  let d = '', prev = null; for (const p of hr) { d += (prev && p.t - prev.t < 8 ? 'L' : 'M') + F.X(p.t).toFixed(2) + ' ' + F.Y(p.v).toFixed(2); prev = p; }
+  s += `<path d="${d}" fill="none" stroke="var(--p-accent)" stroke-width="0.5"/>`;
+  for (const st of r.steps) if (isFinite(st.hr)) s += `<line x1="${F.X(st.w0).toFixed(2)}" x2="${F.X(st.w1).toFixed(2)}" y1="${F.Y(st.hr).toFixed(2)}" y2="${F.Y(st.hr).toFixed(2)}" stroke="${st.flag ? 'var(--p-warn)' : 'var(--p-ink)'}" stroke-width="1.1" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Heart rate during the ramp test, with each step's value">${F.g}${s}</svg>`;
+}
 function rrQtc(A, q = null) {
   const pts = thin(A.qtcPts, 3000).map(p => [p.rr, p.qtc, 0]);
   if (!pts.length) return '';
@@ -957,9 +975,10 @@ function renderReport(A, meta0, st, hist = []) {
     let tests = '';
     if (X.tt === 'ramp' && X.ramp) { const r = X.ramp;
       tests = `<div class="sec-h"><h2>Max HR ramp test</h2><span>3-minute steps to failure</span></div>
-        <div class="cols2"><div><table class="ev"><thead><tr><th>Step</th><th>Elapsed</th><th>HR, last 30 s</th></tr></thead><tbody>${thin(r.steps, 14).map(st => `<tr><td class="m">${st.n}${st.done ? '' : ' (stopped)'}</td><td class="m">${mmss(st.t0)}–${mmss(st.t1)}</td><td class="m">${fmt(st.hr)} bpm</td></tr>`).join('')}</tbody></table></div>
+        <div class="cols2"><div><table class="ev"><thead><tr><th>Step</th><th>Elapsed</th><th>HR, last 30 s</th></tr></thead><tbody>${thin(r.steps, 14).map(st => `<tr><td class="m">${st.n}${st.done ? '' : ' (stopped)'}</td><td class="m">${mmss(st.t0)}–${mmss(st.t1)}</td><td class="m">${st.flag === 'lost' ? '— <span class="note-p">strap lost contact</span>' : fmt(st.hr) + ' bpm' + (st.flag ? ` <span class="note-p">${mmss(st.w0)}–${mmss(st.w1)}*</span>` : '')}</td></tr>`).join('')}</tbody></table>${r.steps.some(st => st.flag) ? `<p class="note-p" style="margin:1mm 0 0">${r.steps.some(st => st.flag === 'moved') ? '* The strap lost contact in this step’s last 30 s, so its latest clean 30 s are used. ' : ''}Marked steps are left out of the plateau check.</p>` : ''}</div>
         <div class="panel"><h3>Result</h3>${kvT('Steps completed', fmt(r.completed))}${kvT('Failure point', clock(r.fail), r.failSrc === 'marked' ? 'marked with Start recovery' : r.failSrc === 'auto' ? 'detected automatically' : 'end of recording')}${kvT('Measured maximum', isFinite(r.max) ? fmt(r.max) + ' bpm' : '—', 'highest 20-s heart rate before failure')}${kvT('Heart-rate plateau', r.plateau ? 'Yes' : 'No', r.plateau ? 'levelled off: true maximum reached' : 'still rising: the true maximum is higher')}
-        <p class="note-p" style="margin:0">${!r.valid ? 'Test not valid: fewer than three steps were completed.' : r.plateau ? 'The measured maximum is used as your working maximum without a margin.' : 'Without a plateau, this value is a floor; the +2 % margin applies.'}</p></div></div>`; }
+        <p class="note-p" style="margin:0">${!r.valid ? 'Test not valid: fewer than three steps were completed.' : r.plateau ? 'The measured maximum is used as your working maximum without a margin.' : 'Without a plateau, this value is a floor; the +2 % margin applies.'}</p></div></div>
+        <div class="fig"><div class="sec-h"><h2>Heart rate through the steps</h2><span>Line = 10-s heart rate · bars = each step’s value, over the 30 s it comes from${(A.lost || []).length ? ' · shaded = strap lost contact' : ''}</span></div>${rampChart(A, r, startMs)}</div>`; }
     if (X.tt === 'lthr' && X.lt) { const r = X.lt;
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
         <div class="panel"><h3>Result</h3>${kvT('Threshold heart rate (LTHR)', r.valid ? fmt(r.lthr) + ' bpm' : '—', 'mean heart rate over the last 20 minutes of the effort')}${kvT('Window used', clock(r.from) + ' – ' + clock(r.end), r.cover < 0.995 ? `signal for ${fmt(20 * r.cover)} of the 20 minutes; gaps are left out` : '')}${kvT('Effort duration', fmt(r.effortMin) + ' min', r.short ? 'shorter than the 25 minutes needed' : r.onset > 30 ? `from ${clock(r.onset)}, when heart rate first reached effort level` : '')}

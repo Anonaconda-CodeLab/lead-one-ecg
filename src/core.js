@@ -447,15 +447,24 @@ function exerciseResponse(A, recMark) {
 function rampTest(A, ER, step = 180) {
   const B = cleanBeats(A), s20 = rollingHR(A, 20, 1, B);
   const fail = ER && ER.end != null ? ER.end : (s20.length ? s20[s20.length - 1].t + 10 : A.dur);
+  // a step's heart rate is the mean of its last 30 s. Where the strap lost contact in those 30 s, the latest clean 30 s
+  // of the same step are used instead ('moved'), or, with none, the step is not measured ('lost'); either way the step
+  // is marked in the report and left out of the plateau check, so a corrupted step can't pass as a real one
+  const lost = A.lost || [], lostIn = (a, b) => lost.reduce((s, sp) => s + Math.max(0, Math.min(b, sp.t1) - Math.max(a, sp.t0)), 0);
   const steps = [];
   for (let k = 0; k * step < fail - 5; k++) {
     const t0 = k * step, t1 = Math.min((k + 1) * step, fail), done = (k + 1) * step <= fail + 5;
-    steps.push({ n: k + 1, t0, t1, done, hr: meanHRBetween(B, Math.max(t0, t1 - 30), t1).v });
+    let w0 = Math.max(t0, t1 - 30), w1 = t1, flag = '';
+    if (lostIn(w0, w1) > 0) {
+      flag = 'lost';
+      for (let e = t1 - 5; e - 30 >= t0 - 1e-6; e -= 5) if (lostIn(e - 30, e) === 0) { w0 = e - 30; w1 = e; flag = 'moved'; break; }
+    }
+    steps.push({ n: k + 1, t0, t1, done, w0, w1, flag, hr: flag === 'lost' ? NaN : meanHRBetween(B, w0, w1).v });
   }
   const pre = s20.filter(p => p.t <= fail + 5), mx = pre.length ? pre.reduce((a, b) => b.v > a.v ? b : a) : null;
-  const comp = steps.filter(s => s.done && isFinite(s.hr)), ref = comp.filter(s => s.t1 <= fail - 60).pop();
+  const comp = steps.filter(s => s.done && isFinite(s.hr) && !s.flag), ref = comp.filter(s => s.t1 <= fail - 60).pop();
   const plateau = !!(mx && comp.length >= 3 && ref && mx.v - ref.hr <= 2);
-  return { steps, fail, failSrc: ER && ER.end != null ? ER.src : 'end', completed: comp.length, max: mx ? mx.v : NaN, maxT: mx ? mx.t : NaN,
+  return { steps, fail, failSrc: ER && ER.end != null ? ER.src : 'end', completed: steps.filter(s => s.done).length, flagged: steps.filter(s => s.flag).length, max: mx ? mx.v : NaN, maxT: mx ? mx.t : NaN,
     plateau, valid: comp.length >= 3 && !!mx };
 }
 /* DFA alpha1: short-term fractal scaling of beat intervals (detrended fluctuation analysis, box sizes 4-16 beats).

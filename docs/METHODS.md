@@ -17,6 +17,12 @@ aligned to the ECG timeline (gaps padded, clock drift corrected to within 1 s).
 ## Signal conditioning and beat detection
 - Zero-phase filtering: 0.5 Hz high-pass, 40 Hz low-pass, 50 Hz notch.
 - Two-second segments with flat signal, clipping or high-frequency (muscle) noise are classed as artifact.
+- **Lost contact:** 20-s blocks (every 10 s) where a quarter or more of the ECG beats are off the local rhythm or flagged
+  and beats go missing (two or more intervals over 1.7× the local median in the strap's own beat log, or, without it,
+  fewer than 75 % of the beats the surrounding heart rate predicts) are classed as lost signal, widened by 5 s. Genuine
+  extra beats don't remove beats, so they are not caught. Lost beats are left out like artifact.
+- A gap over 2 s with heart rate above 100 bpm on both sides is a signal gap (strap contact), listed but not graded as a
+  pause.
 - QRS detection: Pan–Tompkins-type energy detector (band-pass 8–20 Hz, derivative, squaring, 150 ms integration) with
   adaptive thresholds and search-back for missed beats [1]. R peaks are refined on the conditioned signal and timed to
   sub-sample precision by parabolic interpolation.
@@ -105,7 +111,9 @@ stopping) and the share of the total fall to the floor reached in the first minu
 3-minute steps from the start of the recording with audio/vibration cues; the user increases the load at each step until
 failure and taps Start recovery. Failure is the marked or detected end of exercise. Measured maximum = highest 20-s mean
 before failure. A plateau is declared when it is within 2 bpm of the heart rate at the end of the last step completed at
-least a minute before failure (at least three steps required).
+least a minute before failure (at least three steps required). Each step's heart rate is the mean of its last 30 s; where
+the strap lost contact in those 30 s, the latest clean 30 s of that step are used, or the step is not measured. Such
+steps are marked and left out of the plateau check. The report plots the 10-s heart rate with each step's value.
 
 ### DFA-α1 thresholds
 Detrended fluctuation analysis [14] of the beat intervals (the strap's 1-ms intervals when recorded, otherwise ECG normal
@@ -113,8 +121,10 @@ beats): the series is mean-centred and integrated, split into boxes of 4–16 be
 is detrended with a straight line, and α1 is the slope of log fluctuation against log box size. It is computed over 2-minute
 windows every 10 s up to the end of exercise; windows with fewer than 90 beats or more than 5 % artifacts (strap intervals
 outside 300–2500 ms or more than 20 % from the local median, or ectopic beats) are left out. After a 5-window running median,
-a straight line is fitted to α1 against heart rate from the highest α1 in the first 60 % of the test onward (α1 between
-0.2 and 1.5). HRVT1 is the heart rate where the line crosses 0.75 [12] and HRVT2 where it crosses 0.5 [13], reported only
+a straight line is fitted to α1 against heart rate over the falling part only: from the last window still at 1.0 or above
+(or near the starting level, if lower) after the highest α1 in the first 60 % of the test, to the first window within
+0.1 of the lowest α1 (α1 between 0.2 and 1.5). The flat stretches at easy and hard effort would otherwise pull the line
+and place both thresholds too high. HRVT2 within 8 bpm of HRVT1 is shown as approximate. HRVT1 is the heart rate where the line crosses 0.75 [12] and HRVT2 where it crosses 0.5 [13], reported only
 when α1 actually reached those levels, the line falls (r² ≥ 0.3), and the crossing lies within the observed heart-rate range.
 The recording screen shows α1 live over the last 2 minutes, updated every 10 s.
 
