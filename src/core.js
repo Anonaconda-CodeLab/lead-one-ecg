@@ -502,7 +502,12 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
     const x = B.V.slice(i0, i1), a1 = dfaAlpha1(x), hr = 60000 * n / x.reduce((a, b) => a + b, 0);
     if (isFinite(a1)) pts.push({ t: t1 - WIN / 2, a1, hr, art, ok: art <= 0.05 });
   }
-  const ok = pts.filter(p => p.ok), out = { pts, src: B.src, end, valid: false, vt1: NaN, vt2: NaN, fit: null, reason: '' };
+  return dfaFit(pts, B.src, end);
+}
+/* thresholds from α1 windows ({ t, a1, hr, art, ok }), in time order */
+function dfaFromPoints(pts) { return dfaFit(pts.map(p => ({ art: 0, ok: true, ...p })), 'test', pts.length ? pts[pts.length - 1].t : 0); }
+function dfaFit(pts, src, end) {
+  const ok = pts.filter(p => p.ok), out = { pts, src, end, valid: false, vt1: NaN, vt2: NaN, fit: null, reason: '' };
   out.artPct = pts.length ? 100 * pts.reduce((a, p) => a + p.art, 0) / pts.length : NaN;
   if (ok.length < 12) { out.reason = pts.length < 12 ? 'short' : 'artifacts'; return out; }
   const sm = ok.map((p, i) => median(ok.slice(Math.max(0, i - 2), i + 3).map(q => q.a1)));   // 5-window running median
@@ -510,7 +515,14 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
   // fit the falling part: from the highest (smoothed) alpha1 in the first 60 % of the test to the end
   const firstPart = Math.max(1, Math.floor(0.6 * sm.length)); let top = 0;
   for (let i = 1; i < firstPart; i++) if (sm[i] > sm[top]) top = i;
-  const use = ok.slice(top).filter(p => p.a1 >= 0.2 && p.a1 <= 1.5);
+  /* fit only the part that is actually falling. α1 against heart rate is flat at easy effort, falls, then flattens again
+     near its floor at hard effort; a straight line through the flat ends is pulled by them and places both thresholds
+     too high. The falling part runs from the last window still at 1.0 or above (or near the starting level, if that is
+     lower) to the first window within 0.1 of the floor. */
+  let fEnd = sm.length - 1; for (let i = top; i < sm.length; i++) if (sm[i] <= out.minA1 + 0.1) { fEnd = i; break; }
+  let fStart = top; const hi = Math.min(1.0, out.startA1 - 0.05); for (let i = fEnd; i >= top; i--) if (sm[i] >= hi) { fStart = i; break; }
+  let use = ok.slice(fStart, fEnd + 1).filter(p => p.a1 >= 0.2 && p.a1 <= 1.5);
+  if (use.length < 8) use = ok.slice(top).filter(p => p.a1 >= 0.2 && p.a1 <= 1.5);   // too few: the whole fall, as before
   if (use.length < 8) { out.reason = 'flat'; return out; }
   const mh = use.reduce((a, p) => a + p.hr, 0) / use.length, ma = use.reduce((a, p) => a + p.a1, 0) / use.length;
   let sxy = 0, sxx = 0, syy = 0; for (const p of use) { sxy += (p.hr - mh) * (p.a1 - ma); sxx += (p.hr - mh) ** 2; syy += (p.a1 - ma) ** 2; }
@@ -522,7 +534,7 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
   else if (out.minA1 > 0.8) out.reason = 'notHard';
   else { const v1 = at(0.75); if (inRange(v1)) { out.vt1 = v1; out.valid = true; } else out.reason = 'flat'; }
   if (out.valid && out.minA1 <= 0.55) { const v2 = at(0.5); if (inRange(v2) && v2 > out.vt1) out.vt2 = v2; }
-  // α1 that collapses within a step puts both thresholds close together; the straight-line fit then spreads them apart
+  // α1 that collapses within a step puts both thresholds within a few beats of each other: the second is then soft
   out.steep = out.valid && isFinite(out.vt2) && out.vt2 - out.vt1 < 8;
   return out;
 }

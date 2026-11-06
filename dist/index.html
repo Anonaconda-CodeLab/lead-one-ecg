@@ -599,7 +599,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
         <div class="field"><label>Training type</label><div class="chips" id="ttChips" role="radiogroup" aria-label="Training type"></div></div>
 <div class="field" id="planField" hidden><label>Interval plan</label><div class="chips" id="planChips" role="radiogroup" aria-label="Interval plan"></div>
           <div class="plan-custom" id="planCustom" hidden><label>Work <input id="pW" inputmode="numeric" maxlength="4"> s</label><label>Rest <input id="pR" inputmode="numeric" maxlength="4"> s</label><label>Rounds <input id="pN" inputmode="numeric" maxlength="2"></label></div>
-          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. Tap <b>Start recovery</b> as the last work round ends: the rounds are lined up to that moment.</small></div>
+          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. Tap <b>Start recovery</b> as the last work round ends: the rounds are lined up to that moment, so a warm-up before round 1 (recorded or not) is fine.</small></div>
         <div class="field"><label>Recovery after exercise</label><div class="chips" id="recChips" role="radiogroup" aria-label="Recovery type"></div></div>
         <p class="dev-meta" id="ttHint" style="margin:0"></p>
       </div>
@@ -711,7 +711,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <div id="trainOpts2" hidden><div class="field"><label>Training type</label><div class="chips" id="ttChips2"></div></div>
 <div class="field" id="planField2" hidden><label>Interval plan</label><div class="chips" id="planChips2" role="radiogroup" aria-label="Interval plan"></div>
           <div class="plan-custom" id="planCustom2" hidden><label>Work <input id="pW2" inputmode="numeric" maxlength="4"> s</label><label>Rest <input id="pR2" inputmode="numeric" maxlength="4"> s</label><label>Rounds <input id="pN2" inputmode="numeric" maxlength="2"></label></div>
-          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. Tap <b>Start recovery</b> as the last work round ends: the rounds are lined up to that moment.</small></div>
+          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. Tap <b>Start recovery</b> as the last work round ends: the rounds are lined up to that moment, so a warm-up before round 1 (recorded or not) is fine.</small></div>
         <div class="field"><label>Recovery after exercise</label><div class="chips" id="recChips2"></div></div></div>
       <div class="field"><label for="notesIn2">Session notes</label><textarea id="notesIn2" maxlength="200" rows="2"></textarea><small class="count" id="notesCount2">0 / 200</small></div>
       <div class="acts-row"><button id="btnDetailsSave" class="btn primary">Update report</button><button id="btnDetailsCancel" class="btn">Cancel</button></div>
@@ -1229,7 +1229,12 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
     const x = B.V.slice(i0, i1), a1 = dfaAlpha1(x), hr = 60000 * n / x.reduce((a, b) => a + b, 0);
     if (isFinite(a1)) pts.push({ t: t1 - WIN / 2, a1, hr, art, ok: art <= 0.05 });
   }
-  const ok = pts.filter(p => p.ok), out = { pts, src: B.src, end, valid: false, vt1: NaN, vt2: NaN, fit: null, reason: '' };
+  return dfaFit(pts, B.src, end);
+}
+/* thresholds from α1 windows ({ t, a1, hr, art, ok }), in time order */
+function dfaFromPoints(pts) { return dfaFit(pts.map(p => ({ art: 0, ok: true, ...p })), 'test', pts.length ? pts[pts.length - 1].t : 0); }
+function dfaFit(pts, src, end) {
+  const ok = pts.filter(p => p.ok), out = { pts, src, end, valid: false, vt1: NaN, vt2: NaN, fit: null, reason: '' };
   out.artPct = pts.length ? 100 * pts.reduce((a, p) => a + p.art, 0) / pts.length : NaN;
   if (ok.length < 12) { out.reason = pts.length < 12 ? 'short' : 'artifacts'; return out; }
   const sm = ok.map((p, i) => median(ok.slice(Math.max(0, i - 2), i + 3).map(q => q.a1)));   // 5-window running median
@@ -1237,7 +1242,14 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
   // fit the falling part: from the highest (smoothed) alpha1 in the first 60 % of the test to the end
   const firstPart = Math.max(1, Math.floor(0.6 * sm.length)); let top = 0;
   for (let i = 1; i < firstPart; i++) if (sm[i] > sm[top]) top = i;
-  const use = ok.slice(top).filter(p => p.a1 >= 0.2 && p.a1 <= 1.5);
+  /* fit only the part that is actually falling. α1 against heart rate is flat at easy effort, falls, then flattens again
+     near its floor at hard effort; a straight line through the flat ends is pulled by them and places both thresholds
+     too high. The falling part runs from the last window still at 1.0 or above (or near the starting level, if that is
+     lower) to the first window within 0.1 of the floor. */
+  let fEnd = sm.length - 1; for (let i = top; i < sm.length; i++) if (sm[i] <= out.minA1 + 0.1) { fEnd = i; break; }
+  let fStart = top; const hi = Math.min(1.0, out.startA1 - 0.05); for (let i = fEnd; i >= top; i--) if (sm[i] >= hi) { fStart = i; break; }
+  let use = ok.slice(fStart, fEnd + 1).filter(p => p.a1 >= 0.2 && p.a1 <= 1.5);
+  if (use.length < 8) use = ok.slice(top).filter(p => p.a1 >= 0.2 && p.a1 <= 1.5);   // too few: the whole fall, as before
   if (use.length < 8) { out.reason = 'flat'; return out; }
   const mh = use.reduce((a, p) => a + p.hr, 0) / use.length, ma = use.reduce((a, p) => a + p.a1, 0) / use.length;
   let sxy = 0, sxx = 0, syy = 0; for (const p of use) { sxy += (p.hr - mh) * (p.a1 - ma); sxx += (p.hr - mh) ** 2; syy += (p.a1 - ma) ** 2; }
@@ -1249,7 +1261,7 @@ function dfaTest(A, ER, WIN = 120, STEP = 10) {
   else if (out.minA1 > 0.8) out.reason = 'notHard';
   else { const v1 = at(0.75); if (inRange(v1)) { out.vt1 = v1; out.valid = true; } else out.reason = 'flat'; }
   if (out.valid && out.minA1 <= 0.55) { const v2 = at(0.5); if (inRange(v2) && v2 > out.vt1) out.vt2 = v2; }
-  // α1 that collapses within a step puts both thresholds close together; the straight-line fit then spreads them apart
+  // α1 that collapses within a step puts both thresholds within a few beats of each other: the second is then soft
   out.steep = out.valid && isFinite(out.vt2) && out.vt2 - out.vt1 < 8;
   return out;
 }
@@ -2578,7 +2590,7 @@ function dfaChart(r) {
   for (const [v, lab] of [[0.75, 'aerobic 0.75'], [0.5, 'anaerobic 0.5']]) g += `<line x1="${F.X(x0)}" x2="${F.X(x1)}" y1="${F.Y(v).toFixed(2)}" y2="${F.Y(v).toFixed(2)}" stroke="var(--p-teal)" stroke-width="0.35" stroke-dasharray="1.2 0.8"/><text x="${(F.X(x1) - 0.6).toFixed(2)}" y="${(F.Y(v) - 0.8).toFixed(2)}" text-anchor="end" font-size="2.1" fill="var(--p-teal)">${lab}</text>`;
   for (const p of ok) g += `<circle cx="${F.X(p.hr).toFixed(2)}" cy="${F.Y(Math.min(y1, p.a1)).toFixed(2)}" r="0.55" fill="var(--p-accent)" opacity=".55"/>`;
   if (r.fit && r.fit.b < 0) { const a = r.fit.a, b = r.fit.b, h0 = Math.max(x0, r.fit.hrLo), h1 = Math.min(x1, r.fit.hrHi); g += `<line x1="${F.X(h0).toFixed(2)}" y1="${F.Y(a + b * h0).toFixed(2)}" x2="${F.X(h1).toFixed(2)}" y2="${F.Y(a + b * h1).toFixed(2)}" stroke="var(--p-ink)" stroke-width="0.45"/>`; }
-  for (const [v, y, lab] of [[r.vt1, 0.75, 'HRVT1'], [r.vt2, 0.5, 'HRVT2']]) if (isFinite(v)) g += `<line x1="${F.X(v).toFixed(2)}" x2="${F.X(v).toFixed(2)}" y1="${F.Y(y).toFixed(2)}" y2="${F.padT + F.ih}" stroke="var(--p-ink)" stroke-width="0.3" stroke-dasharray="0.8 0.6"/><circle cx="${F.X(v).toFixed(2)}" cy="${F.Y(y).toFixed(2)}" r="1" fill="var(--p-ink)"/><text x="${(F.X(v) + 1.4).toFixed(2)}" y="${(F.Y(y) + 3.6).toFixed(2)}" font-size="2.3" font-weight="600" fill="var(--p-ink)" stroke="var(--p-bg)" stroke-width="0.9" paint-order="stroke" stroke-linejoin="round">${lab} ${fmt(v)}</text>`;
+  for (const [v, y, lab] of [[r.vt1, 0.75, 'HRVT1'], [r.vt2, 0.5, r.steep ? 'HRVT2 ≈' : 'HRVT2']]) if (isFinite(v)) g += `<line x1="${F.X(v).toFixed(2)}" x2="${F.X(v).toFixed(2)}" y1="${F.Y(y).toFixed(2)}" y2="${F.padT + F.ih}" stroke="var(--p-ink)" stroke-width="0.3" stroke-dasharray="0.8 0.6"/><circle cx="${F.X(v).toFixed(2)}" cy="${F.Y(y).toFixed(2)}" r="1" fill="var(--p-ink)"/><text x="${(F.X(v) + 1.4).toFixed(2)}" y="${(F.Y(y) + 3.6).toFixed(2)}" font-size="2.3" font-weight="600" fill="var(--p-ink)" stroke="var(--p-bg)" stroke-width="0.9" paint-order="stroke" stroke-linejoin="round">${lab} ${fmt(v)}</text>`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="DFA alpha1 against heart rate">${F.g}${g}</svg>`;
 }
 
@@ -2677,7 +2689,7 @@ function renderReport(A, meta0, st, hist = []) {
     const maxTile = kpi('Working max HR', fmt(W.v), 'bpm', W.highMax ? chip('info', 'High-max individual') : chip('info', W.src === 'tanaka' ? 'Age estimate' : W.src === 'ramp' ? 'Ramp test' : 'Your data + 2 %'), `age formulas ${fmt(W.AF.lo)}–${fmt(W.AF.hi)}`);
     const peakTile = kpi('Peak heart rate', fmt(E.peak20), 'bpm', chip('info', fmt(100 * E.peak20 / W.v) + ' % of max'), '20-s mean at ' + clock(E.peak20T || 0));
     const first = X.tt === 'ramp' && X.ramp ? kpi('Measured max HR', X.ramp.valid ? fmt(X.ramp.max) : '—', X.ramp.valid ? 'bpm' : '', X.ramp.valid ? chip(X.ramp.plateau ? 'in' : 'info', X.ramp.plateau ? 'Plateau: true max' : 'No plateau: a floor') : chip('info', 'Test incomplete'), `${X.ramp.completed} steps of 3 min`)
-      : X.tt === 'dfa' && X.dfa ? kpi('Aerobic threshold', X.dfa.valid ? fmt(X.dfa.vt1) : '—', X.dfa.valid ? 'bpm' : '', X.dfa.valid ? chip('info', 'DFA α1 = 0.75') : chip('info', 'Not determined'), isFinite(X.dfa.vt2) ? `anaerobic (α1 0.5) ${fmt(X.dfa.vt2)} bpm` : 'HRVT1 from beat-to-beat variation')
+      : X.tt === 'dfa' && X.dfa ? kpi('Aerobic threshold', X.dfa.valid ? fmt(X.dfa.vt1) : '—', X.dfa.valid ? 'bpm' : '', X.dfa.valid ? chip('info', 'DFA α1 = 0.75') : chip('info', 'Not determined'), isFinite(X.dfa.vt2) ? `anaerobic (α1 0.5) ${X.dfa.steep ? '≈ ' : ''}${fmt(X.dfa.vt2)} bpm${X.dfa.steep ? ', approximate' : ''}` : 'HRVT1 from beat-to-beat variation')
       : X.tt === 'lthr' && X.lt ? kpi('Threshold HR (LTHR)', X.lt.valid ? fmt(X.lt.lthr) : '—', X.lt.valid ? 'bpm' : '', X.lt.valid ? chip('info', X.lt.noPlateau ? 'Effort did not level off' : 'Last 20 min of 30') : chip('info', 'Test too short'), `effort ${fmt(X.lt.effortMin)} min`)
       : kpi('Time ≥ 80 % max', durShort(hi80).split(' ')[0], durShort(hi80).split(' ').slice(1).join(' '), chip('info', 'Anaerobic + maximum'), '≥ ' + A.zones[3].bpmLo + ' bpm');
     tiles = [first, peakTile, recTile, maxTile, qtcTile(''), rhythmTile];
@@ -2774,7 +2786,7 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
     if (X.dfa && (X.tt === 'dfa' ? X.dfa.pts.length >= 12 : X.dfa.valid)) { const r = X.dfa;   // a ramp test shows DFA thresholds only when they were found
       const dfaSec = `<div class="sec-h"><h2>DFA α1 thresholds</h2><span>2-minute windows every 10 s · ${r.src === 'strap' ? 'strap beat intervals' : 'ECG beats'}</span></div>
         <div class="cols2"><div>${dfaChart(r)}</div>
-        <div class="panel"><h3>Result</h3>${kvT('Aerobic threshold (HRVT1)', r.valid ? fmt(r.vt1) + ' bpm' : '—', 'heart rate where α1 = 0.75')}${kvT('Anaerobic threshold (HRVT2)', isFinite(r.vt2) ? fmt(r.vt2) + ' bpm' : '—', isFinite(r.vt2) ? 'heart rate where α1 = 0.5' : 'α1 did not reach 0.5')}${kvT('α1 at easy effort', isFinite(r.startA1) ? r.startA1.toFixed(2) : '—', 'about 1.0 or higher is expected')}${kvT('Lowest α1', isFinite(r.minA1) ? r.minA1.toFixed(2) : '—')}${r.fit ? kvT('Fit', 'r² ' + r.fit.r2.toFixed(2), r.fit.n + ' windows on the falling part') : ''}${kvT('Artifacts', fmt(r.artPct, 1) + ' %', 'windows over 5 % are left out')}
+        <div class="panel"><h3>Result</h3>${kvT('Aerobic threshold (HRVT1)', r.valid ? fmt(r.vt1) + ' bpm' : '—', 'heart rate where α1 = 0.75')}${kvT('Anaerobic threshold (HRVT2)', isFinite(r.vt2) ? (r.steep ? '≈ ' : '') + fmt(r.vt2) + ' bpm' : '—', isFinite(r.vt2) ? (r.steep ? 'approximate: α1 fell steeply, so it sits close to HRVT1' : 'heart rate where α1 = 0.5') : 'α1 did not reach 0.5')}${kvT('α1 at easy effort', isFinite(r.startA1) ? r.startA1.toFixed(2) : '—', 'about 1.0 or higher is expected')}${kvT('Lowest α1', isFinite(r.minA1) ? r.minA1.toFixed(2) : '—')}${r.fit ? kvT('Fit', 'r² ' + r.fit.r2.toFixed(2), r.fit.n + ' windows on the falling part') : ''}${kvT('Artifacts', fmt(r.artPct, 1) + ' %', 'windows over 5 % are left out')}
         <p class="note-p" style="margin:0">${r.valid ? (X.tt === 'ramp' ? 'Estimated from the ramp test. A dedicated DFA-α1 test, stopped once α1 is below 0.5, gives the same result without going to exhaustion.' : 'Thresholds from α1 agree with laboratory gas-exchange thresholds within a few beats per minute in most studies, best in cycling with smooth effort. Repeat the test every 6–8 weeks.') + (r.steep ? ' <b>DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.</b> Smaller steps around this heart rate next time will separate them more clearly.' : '') : DFA_WHY[r.reason] || DFA_WHY.flat}</p></div></div>`;
       if (X.tt === 'dfa') tests = dfaSec; else dfaAfter = dfaSec; }
     if (X.tt === 'intervals' && X.plan) { const P = X.plan;

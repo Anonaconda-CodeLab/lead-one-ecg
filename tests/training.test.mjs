@@ -152,6 +152,17 @@ test('DFA-alpha1 test: thresholds from strap intervals and from ECG agree', asyn
   near(res[0].vt1, res[1].vt1, 3, 'strap vs ECG');
 });
 
+test('DFA-alpha1: the fit uses only the falling part, so flat ends do not pull the thresholds up', () => {
+  // α1 flat at 1.3 up to 146 bpm, falling to 0.35 by 158 bpm, then flat at 0.35 up to 166 bpm (like 4 Nov 2026)
+  const pts = []; let t = 60;
+  const a1At = hr => hr <= 146 ? 1.3 : hr >= 158 ? 0.35 : 1.3 - 0.95 * (hr - 146) / 12;
+  for (let hr = 115; hr <= 166; hr += 0.25, t += 10) pts.push({ t, hr, a1: a1At(hr) });
+  const r = L.dfaFromPoints(pts);
+  const exp1 = 146 + 12 * (1.3 - 0.75) / 0.95, exp2 = 146 + 12 * (1.3 - 0.5) / 0.95;   // 152.9 and 156.1
+  near(r.vt1, exp1, 1.2, 'HRVT1'); near(r.vt2, exp2, 1.2, 'HRVT2');
+  assert.ok(r.steep, 'thresholds within 8 bpm are flagged as approximate');
+});
+
 test('DFA-alpha1 test: no threshold from a resting recording', async () => {
   const d = L.makeDemo(10, 2, 'rest');
   const A = await L.analyze(d.raw, { age: 50, rr: d.rr });
