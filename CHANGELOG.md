@@ -14,6 +14,11 @@
   longer push both thresholds too high (4 Nov: 150 and 156 bpm instead of 153 and 160). When the two are within 8 bpm,
   the anaerobic threshold is shown as approximate.
 - Interval plans: the hint says a warm-up before round 1 is fine.
+- **Recovery cut short:** if the recording stops less than a minute after Start recovery, the report now says "Cut short"
+  with how many seconds were recorded and why it stopped (Stop held, auto-stop), instead of "not measured" or "ended
+  while you were still exercising", and no longer shows a "recovery floor" taken from those few seconds. The Recording
+  complete screen says so straight away. Holding **Stop** in the first 2 minutes after Start recovery now asks you to hold
+  it again, so a stray hold can't cut the recovery short. Why a recording stopped is saved with it.
 - Auto-stop no longer applies to **Training**: the switch is hidden and training recordings run until you stop them
   (maximum 8 hours), so a short auto-stop set for morning readings can't cut a session short. Your auto-stop setting is
   kept for the other contexts.

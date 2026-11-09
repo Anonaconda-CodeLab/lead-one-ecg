@@ -415,7 +415,7 @@ function exerciseResponse(A, recMark) {
   const at = t => { const i = lowerBound(times, t - 3); return i < n && Math.abs(s10[i].t - t) <= 3 ? s10[i].v : NaN; };
   const base = { peak: pk10.v, peakT: pk10.t, peak20: pk20 ? pk20.v : NaN, peak20T: pk20 ? pk20.t : NaN, endHR: s10[n - 1].v, end: null, src: null };
   let end = null, src = null, stop = NaN;
-  if (isFinite(recMark) && recMark > 15 && recMark < A.dur - 5) {
+  if (isFinite(recMark) && recMark > 15 && recMark <= A.dur) {
     end = recMark; src = 'marked'; stop = at(recMark - 5); if (!isFinite(stop)) stop = at(recMark);
   } else {
     // auto: the latest heart-rate high point that everything afterwards stays below, followed by a clear fall
@@ -439,9 +439,13 @@ function exerciseResponse(A, recMark) {
   if (end == null || !isFinite(stop)) return base;
   const a60 = end + 60 <= tEnd + 3 ? at(end + 60) : NaN, a120 = end + 120 <= tEnd + 3 ? at(end + 120) : NaN;
   let fl = { v: Infinity, t: end }; for (const q of s10) if (q.t >= end && q.v < fl.v) fl = q;
+  // under a minute of recording after the end of exercise: recovery was cut short. No floor either: the lowest heart rate
+  // of a few seconds after stopping is not a recovery floor
+  const after = (isFinite(A.dur) ? A.dur : tEnd) - end, cut = after < 60;
+  if (cut) fl = { v: NaN, t: NaN };
   const drop = stop - fl.v;
   return Object.assign(base, { end, src, stop, at60: a60, at120: a120, hrr60: stop - a60, hrr120: stop - a120,
-    floor: fl.v, floorT: fl.t, drop, pct60: drop > 2 ? 100 * (stop - a60) / drop : NaN, after: tEnd - end });
+    floor: fl.v, floorT: fl.t, drop, pct60: drop > 2 ? 100 * (stop - a60) / drop : NaN, after, cut });
 }
 /* ramp test: 3-minute steps from the start of the recording to failure */
 function rampTest(A, ER, step = 180) {

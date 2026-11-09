@@ -86,7 +86,7 @@ function cleanMeta(m) {
     pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && num(p.t1) != null && p.t1 >= p.t0).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
-    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), plan: cleanPlan(m.plan), standMark: num(m.standMark)
+    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : '', plan: cleanPlan(m.plan), standMark: num(m.standMark)
   };
 }
 const HNUM = ['oLie', 'oRise', 'oRmssd', 'oPeak', 'start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
@@ -511,7 +511,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -526,7 +526,7 @@ async function startRecording() {
   S.autoMin = autoStopFor(S.ctx, $('#autoOn').checked, S.autoMinSel);
   S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
-  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
+  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.stopWhy = ''; S.stopArmed = 0; S.lastStep = 1; S.lthrCued = false;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
   S.live.fill(0); S.livePos = 0; S.liveHP = makeStreamFilter(design('hp', 0.5)); S.liveLP = makeStreamFilter(design('lp', 35));
   S.sessionId = 'rec-' + Date.now(); S.startMs = Date.now(); S.devName = S.device && S.device.name || 'Polar H10';
@@ -564,7 +564,7 @@ $('#btnPause').onclick = () => {
 };
 async function stopRecording(why) {
   if (!S.recording || S.stopping) return;
-  S.stopping = true; cancelCues();
+  S.stopping = true; S.stopWhy = why; cancelCues();
   if (S.paused) { const p = S.pauses[S.pauses.length - 1]; if (p) p.t1 = S.total / FS; S.paused = false; }
   try { if (S.connected) await cpWrite(ECG_STOP); } catch (e) {}
   try { if (S.connected && S.acc.on) await cpWrite(ACC_STOP); } catch (e) {}
@@ -581,7 +581,7 @@ async function stopRecording(why) {
   const raw = new Int32Array(S.total); let o = 0; for (const c of S.chunks) { raw.set(c, o); o += c.length; }
   S.raw = raw; S.meta = sessionMeta('complete'); S.analysis = null;
   S.meta._acc = accData && accData.length >= 3 * 30 * AC.fs ? { fs: AC.fs, t0: AC.t0, data: accData } : null;
-  $('#doneWhy').textContent = why === 'limit' ? 'Stopped automatically at the 8-hour limit.' : why === 'auto' ? `Stopped automatically after ${minTxt(S.autoMin)}.` : 'Stopped manually.';
+  $('#doneWhy').textContent = (why === 'limit' ? 'Stopped automatically at the 8-hour limit.' : why === 'auto' ? `Stopped automatically after ${minTxt(S.autoMin)}.` : 'Stopped manually.') + recoveryCutNote(S.recMark, S.total / FS);
   $('#doneDur').textContent = hms((S.total - S.pausedSamples - S.gapSamples) / FS);
   $('#doneStart').textContent = new Date(S.startMs).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   $('#doneGap').textContent = (S.pausedSamples || S.gapSamples) ? durText(S.pausedSamples / FS) + ' / ' + durText(S.gapSamples / FS) : 'None';
@@ -710,6 +710,22 @@ function tickTraining() {
     $('#spCount').textContent = done ? 'Done' : ms2(1800 - el); $('#spMsg').textContent = done ? 'tap Start recovery' : el < 600 ? 'last 20 min count from 10:00' : 'counting toward threshold';
   }
 }
+/* recovery needs 2 minutes of recording after Start recovery. Stop held inside that window asks once more (hold again
+   within 10 s), so a stray hold can't cut it short; the 8-hour limit is unaffected */
+const RECOVERY_SEC = 120;
+function stopNeedsConfirm(recMark, now, armedUntil, clock) { return recMark != null && now - recMark < RECOVERY_SEC && !(armedUntil > clock); }
+function stopHeld() {
+  if (stopNeedsConfirm(S.recMark, S.total / FS, S.stopArmed, Date.now())) {
+    S.stopArmed = Date.now() + 10000;
+    toast(`Recovery needs 2 minutes (${ms2(RECOVERY_SEC - (S.total / FS - S.recMark))} to go). Hold Stop again to stop anyway.`);
+    return;
+  }
+  stopRecording('user');
+}
+function recoveryCutNote(recMark, end) {
+  if (recMark == null || end - recMark >= 60) return '';
+  return ` Recovery was cut short: the recording stopped ${Math.round(end - recMark)} s after Start recovery, so it can't be measured. Next time, keep recording for 2 minutes after Start recovery.`;
+}
 $('#btnRecov').onclick = () => {
   if (!S.recording || S.recMark != null) return;
   cancelCues(); S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
@@ -768,7 +784,7 @@ function drawLive() {
 }
 (function () {
   const b = $('#btnStop'); let t = null;
-  const start = e => { e.preventDefault(); b.classList.add('holding'); t = setTimeout(() => { b.classList.remove('holding'); stopRecording('user'); }, 1200); };
+  const start = e => { e.preventDefault(); b.classList.add('holding'); t = setTimeout(() => { b.classList.remove('holding'); stopHeld(); }, 1200); };
   const cancel = () => { b.classList.remove('holding'); clearTimeout(t); };
   b.addEventListener('pointerdown', start); b.addEventListener('pointerup', cancel); b.addEventListener('pointerleave', cancel); b.addEventListener('pointercancel', cancel);
   b.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(e); });
@@ -871,7 +887,7 @@ function saveRecordingFile() {
   downloadFile(fileStamp(d, m.ctx) + '.json',
     JSON.stringify({ format: 'lead-one-ecg', version: 3, fs: FS, id: m.id, start: m.start, ctx: m.ctx, pos: m.pos, notes: m.notes || '', device: m.device, fw: m.fw, battery: m.battery,
       gap: m.gap, paused: m.paused, pauses: m.pauses, rr: m.rr, gapMarker: GAP, samples: btoa(bin),
-      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, plan: m.plan || null, standMark: m.standMark,
+      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, stopWhy: m.stopWhy || '', plan: m.plan || null, standMark: m.standMark,
       accFs: m._acc ? m._acc.fs : 0, accT0: m._acc ? m._acc.t0 : 0, acc: m._acc ? b64(new Uint8Array(m._acc.data.buffer, m._acc.data.byteOffset, m._acc.data.byteLength)) : '' }));
 }
 async function openFile(file) {

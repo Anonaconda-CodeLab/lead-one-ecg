@@ -218,3 +218,22 @@ test('ramp test: a step whose last 30 s hit lost signal uses its last clean 30 s
   assert.ok(html.includes('strap lost contact') && html.includes('left out of the plateau check'), 'marked in the report');
   assert.ok(html.includes('Heart rate through the steps'), 'heart-rate trace shown');
 });
+
+test('recovery cut short: a Start recovery mark seconds before the end is "Cut short", with no recovery floor', async () => {
+  const d = L.makeDemo(36, 5, 'lthr');
+  const meta = { id: 'c', start: Date.UTC(2026, 10, 9, 1, 9), ctx: 'training', pos: 'seated', trainType: 'lthr', recovery: 'passive', gap: 0, stopWhy: 'user' };
+  const dur = d.raw.length / L.FS;
+  for (const [after, cut] of [[7, true], [130, false]]) {
+    const A = await L.analyze(d.raw, { age: 58, rr: d.rr, recMark: dur - after }), E = A.exercise;
+    assert.equal(E.src, 'marked', `mark ${after} s before the end is used`);
+    assert.equal(E.cut, cut); assert.ok(Math.abs(E.after - after) < 0.5, `after ${E.after}`);
+    const txt = L.renderReport(A, { ...meta, recMark: dur - after }, { sex: 'M', dob: '1968-01-01' }, []).replace(/<[^>]+>/g, ' ');
+    if (cut) {
+      assert.ok(!isFinite(E.floor), 'no floor from a few seconds');
+      assert.ok(!/Recovery floor/.test(txt), 'no floor row');
+      assert.ok(/Recovery cut short \(recording stopped 7 s after Start recovery\)/.test(txt), 'summary says cut short');
+      assert.ok(/stopped 7 s after you tapped Start recovery \(Stop was held\)/.test(txt), 'card says why');
+      assert.ok(!/while you were still exercising/.test(txt), 'never "still exercising" when Start recovery was tapped');
+    } else assert.ok(/Recovery floor/.test(txt) && isFinite(E.hrr60), 'a full recovery is unchanged');
+  }
+});

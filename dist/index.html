@@ -520,7 +520,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <p><b>Recovery after exercise</b></p>
 <ul><li><b>Active</b>: you keep moving gently after stopping (walking, easy pedalling).</li><li><b>Passive</b>: you stand, sit or lie still.</li></ul>
 <p>Heart rate falls faster when you stand still, so the app judges active recovery against a more relaxed limit.</p>
-<p><b>When you finish exercising, tap Start recovery and keep recording for at least 2 minutes.</b> Recovery is measured from that moment, not from a peak in the middle of the session. If you forget, the app tries to find the end of exercise by itself.</p>
+<p><b>When you finish exercising, tap Start recovery and keep recording for at least 2 minutes.</b> Recovery is measured from that moment, not from a peak in the middle of the session. If you forget, the app tries to find the end of exercise by itself. If you hold <b>Stop</b> in the first 2 minutes after Start recovery, the app asks you to hold it once more, so a stray hold can't cut the recovery short.</p>
 <p>Your <b>working maximum heart rate</b> comes from your own data: the highest heart rate you have held for 20 seconds in any training recording, plus 2 %, or the plateau of a ramp test. Age formulas (Fox, Tanaka, Nes, and Gulati for women) are shown for comparison and are used only until you have training data.</p>
 <h2>Reading your report</h2>
 <p>The report has these parts:</p>
@@ -553,8 +553,8 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <p>Moisten the electrodes again, tighten the strap, and keep still. A worn strap or an old battery also weakens the signal.</p>
 <h3>Breathing shows &quot;…&quot; or &quot;n/a&quot;</h3>
 <p>Breathing appears after about 30 seconds of still recording. It is measured from chest movement when available, otherwise estimated from the ECG.</p>
-<h3>The report says recovery was not measured</h3>
-<p>The recording ended while you were still exercising. Tap <b>Start recovery</b> when you stop, and keep recording for at least 2 minutes.</p>
+<h3>The report says recovery was not measured, or cut short</h3>
+<p><b>Not measured:</b> the recording ended while you were still exercising. Tap <b>Start recovery</b> when you stop, and keep recording for at least 2 minutes. <b>Cut short:</b> you tapped Start recovery, but the recording stopped less than a minute later, so there was nothing to measure; the report says how many seconds were recorded and why it stopped.</p>
 <h2>Privacy</h2>
 <p>Lead One ECG makes no network requests at all while you use it: no analytics, no tracking, no cookies, no account. Your recordings, history and profile never leave your device unless you export them yourself. The Android app goes further: it has no internet permission, so it cannot connect to anything except the strap. The app's source code is open, so anyone can check this. (Opening the web app is an ordinary visit to its website, like any page; after that it makes no requests.)</p>
 <p><b>Translating the page.</b> If you use your browser's <i>Translate</i> button, the browser sends the page's text to its translation service (Google's, in Chrome). Lead One ECG marks your readings, reports, history and strap details so the translator leaves them out: only the app's own buttons and labels are translated.</p>
@@ -1142,7 +1142,7 @@ function exerciseResponse(A, recMark) {
   const at = t => { const i = lowerBound(times, t - 3); return i < n && Math.abs(s10[i].t - t) <= 3 ? s10[i].v : NaN; };
   const base = { peak: pk10.v, peakT: pk10.t, peak20: pk20 ? pk20.v : NaN, peak20T: pk20 ? pk20.t : NaN, endHR: s10[n - 1].v, end: null, src: null };
   let end = null, src = null, stop = NaN;
-  if (isFinite(recMark) && recMark > 15 && recMark < A.dur - 5) {
+  if (isFinite(recMark) && recMark > 15 && recMark <= A.dur) {
     end = recMark; src = 'marked'; stop = at(recMark - 5); if (!isFinite(stop)) stop = at(recMark);
   } else {
     // auto: the latest heart-rate high point that everything afterwards stays below, followed by a clear fall
@@ -1166,9 +1166,13 @@ function exerciseResponse(A, recMark) {
   if (end == null || !isFinite(stop)) return base;
   const a60 = end + 60 <= tEnd + 3 ? at(end + 60) : NaN, a120 = end + 120 <= tEnd + 3 ? at(end + 120) : NaN;
   let fl = { v: Infinity, t: end }; for (const q of s10) if (q.t >= end && q.v < fl.v) fl = q;
+  // under a minute of recording after the end of exercise: recovery was cut short. No floor either: the lowest heart rate
+  // of a few seconds after stopping is not a recovery floor
+  const after = (isFinite(A.dur) ? A.dur : tEnd) - end, cut = after < 60;
+  if (cut) fl = { v: NaN, t: NaN };
   const drop = stop - fl.v;
   return Object.assign(base, { end, src, stop, at60: a60, at120: a120, hrr60: stop - a60, hrr120: stop - a120,
-    floor: fl.v, floorT: fl.t, drop, pct60: drop > 2 ? 100 * (stop - a60) / drop : NaN, after: tEnd - end });
+    floor: fl.v, floorT: fl.t, drop, pct60: drop > 2 ? 100 * (stop - a60) / drop : NaN, after, cut });
 }
 /* ramp test: 3-minute steps from the start of the recording to failure */
 function rampTest(A, ER, step = 180) {
@@ -2256,7 +2260,7 @@ function commentary(A, meta, R, B, X = null) {
         + (X.rec === 'active' ? `Recovery was active, so it is graded against a relaxed limit of ${L.out} bpm rather than ${HRR_LIMITS.passive.out} bpm for passive recovery. Relative to the recovery floor of ${f0(E.floor)} bpm, ${f0(E.pct60)} % of the total fall happened in the first minute.` : `Recovery was passive (standing or sitting still); a first-minute fall above ${L.out} bpm is expected.`)
         + (B.hrr ? ` Your usual first-minute recovery is ${f0(B.hrr.m)} bpm.` : ''));
       verdict = ok ? ['in', 'Recovery within expected range'] : ['out', 'Slow heart-rate recovery'];
-    } else if (E) out.push(E.end == null ? 'Recovery was not measured: the recording ended while you were still exercising, so no recovery flag is raised. To measure it, tap “Start recovery” when you stop and keep recording for two minutes.' : 'Recovery could not be measured because the recording stopped within a minute of finishing.');
+    } else if (E) out.push(E.end == null ? 'Recovery was not measured: the recording ended while you were still exercising, so no recovery flag is raised. To measure it, tap “Start recovery” when you stop and keep recording for two minutes.' : `Recovery was cut short: the recording stopped ${Math.round(E.after)} s after ${E.src === 'marked' ? 'Start recovery' : 'the end of exercise'}${meta.stopWhy === 'user' ? ' (Stop was held)' : meta.stopWhy === 'auto' ? ' (auto-stop)' : ''}, so it was not measured.`);
     if (W.highMax) out.push(`High-max individual: your recorded maximum is more than 12 % above the Tanaka age estimate (${f0(W.AF.tanaka)} bpm), so age formulas under-read your maximum. Zones in this report use your own data.`);
     if (A.events.length) out.push(`${A.events.length} ectopic ${A.events.length === 1 ? 'event was' : 'events were'} flagged during this session (see the strips). Occasional ectopic beats during exercise are common; frequent or symptomatic ectopic activity during exertion warrants medical review.`);
     out.push('A chest strap provides a single ECG lead. It cannot assess ST-segment changes in the way a clinical exercise stress test does.');
@@ -2443,8 +2447,8 @@ function gradeAll(A, meta, R, X = null) {
             bord: `Slightly slower than expected for ${recW} recovery. Heat, dehydration, fatigue and how abruptly you stopped all affect it. Check it again after your next session.`,
             out: `A fall of ${L.out} bpm or less in the first minute is slower than expected for ${recW} recovery. If it stays this slow on repeat tests, discuss it with a doctor.` }[g]
             + (X.rec === 'active' ? ` Because you kept moving, the threshold is relaxed (${L.out} bpm instead of ${HRR_LIMITS.passive.out} bpm for standing still).` : '') });
-      } else add('hrr', { title: 'Heart-rate recovery (1 min)', short: 'heart-rate recovery', value: 'Too short', g: 'na', what: 'How far your heart rate falls in the first minute after you stop exercising.',
-        text: 'The recording stopped less than a minute after you finished. Keep recording for at least two minutes after stopping.' });
+      } else add('hrr', { title: 'Heart-rate recovery (1 min)', short: 'heart-rate recovery', value: 'Cut short', g: 'na', cut: true, what: 'How far your heart rate falls in the first minute after you stop exercising.',
+        text: `The recording stopped ${f(E.after)} s after ${E.src === 'marked' ? 'you tapped Start recovery' : 'you finished'}${meta.stopWhy === 'user' ? ' (Stop was held)' : meta.stopWhy === 'auto' ? ' (auto-stop)' : ''}, so recovery could not be measured. This says nothing about your heart. Keep recording for at least two minutes after Start recovery.` });
       if (X.tt === 'ramp' && X.ramp) { const r = X.ramp;
         add('ramp', { title: 'Ramp test result', short: 'ramp test', value: r.valid ? f(r.max) + ' bpm' : 'Incomplete', g: 'na', what: 'A step test to exhaustion that measures your maximum heart rate directly.',
           text: !r.valid ? 'Fewer than three 3-minute steps were completed, so the test is not valid. Start easier and increase the load every 3 minutes until you cannot continue.'
@@ -2748,7 +2752,7 @@ function renderReport(A, meta0, st, hist = []) {
   const durTxt = recSec < 600 ? Math.floor(recSec / 60) + ' min ' + String(Math.round(recSec % 60)).padStart(2, '0') + ' s' : durShort(recSec);
   let summ = `${ctxL ? `${esc(ctxL)}${posL ? ', ' + esc(posL.toLowerCase()) : ''}` : 'Recording'}, <b>${durTxt}</b> of ECG${pausedSec > 1 ? ` (paused ${durShort(pausedSec)})` : ''}${lostSec > 1 ? `; signal unavailable for ${durShort(lostSec)}` : ''}. `;
   summ += `Mean heart rate <b>${fmt(A.meanHR)} bpm</b> (${fmt(A.minHR.v)}–${fmt(A.maxHR.v)} bpm) across ${fmt(A.beats)} beats. `;
-  summ += O ? `Orthostatic test: lying <b>${fmt(O.lieHR)} bpm</b>, peak ${fmt(O.peakHR)} bpm on standing, then <b>${fmt(O.standHR)} bpm</b> standing (+${fmt(O.sustained)} bpm). ` : isTraining && X.ER ? `${esc(TRAIN_TYPES[X.tt])}. Peak <b>${fmt(X.ER.peak20)} bpm</b> (20-s mean; ${fmt(100 * X.ER.peak20 / X.WM.v)} % of working maximum ${fmt(X.WM.v)} bpm). ${X.ER.end != null && isFinite(X.ER.hrr60) ? `Recovery ${fmt(X.ER.hrr60)} bpm in the first minute (${X.rec}). ` : 'Recovery not measured. '}` : `RMSSD <b>${fmt(A.rmssd, 1)} ms</b>, SDNN ${fmt(A.sdnn, 1)} ms${A.breath ? `, breathing ${fmt(A.breath.median, 1)}/min` : ''}. `;
+  summ += O ? `Orthostatic test: lying <b>${fmt(O.lieHR)} bpm</b>, peak ${fmt(O.peakHR)} bpm on standing, then <b>${fmt(O.standHR)} bpm</b> standing (+${fmt(O.sustained)} bpm). ` : isTraining && X.ER ? `${esc(TRAIN_TYPES[X.tt])}. Peak <b>${fmt(X.ER.peak20)} bpm</b> (20-s mean; ${fmt(100 * X.ER.peak20 / X.WM.v)} % of working maximum ${fmt(X.WM.v)} bpm). ${X.ER.end != null && isFinite(X.ER.hrr60) ? `Recovery ${fmt(X.ER.hrr60)} bpm in the first minute (${X.rec}). ` : X.ER.cut ? `Recovery cut short (recording stopped ${fmt(X.ER.after)} s after ${X.ER.src === 'marked' ? 'Start recovery' : 'finishing'}). ` : 'Recovery not measured. '}` : `RMSSD <b>${fmt(A.rmssd, 1)} ms</b>, SDNN ${fmt(A.sdnn, 1)} ms${A.breath ? `, breathing ${fmt(A.breath.median, 1)}/min` : ''}. `;
   summ += nEv ? `<b>${nEv} ectopic ${nEv === 1 ? 'event' : 'events'}</b> (${fmt(evPct, 2)} % of beats). ` : 'No ectopic beats detected. ';
   summ += A.pauses.length ? `<b>${A.pauses.length} ${A.pauses.length === 1 ? 'pause' : 'pauses'} over 2 s</b>, longest ${(longP.ms / 1000).toFixed(2)} s at ${clock(longP.time)}. ` : 'No pauses over 2 s. ';
   summ += outs.length ? `Outside the normal range: ${outs.map(m => m.label).join(', ')}.` : 'All other graded values are within or better than the normal range.';
@@ -2760,8 +2764,8 @@ function renderReport(A, meta0, st, hist = []) {
   let tiles;
   if (isTraining) {
     const E = X.ER || {}, W = X.WM, hi80 = A.zones.slice(3).reduce((a, z) => a + z.sec, 0);
-    const recTile = kpi('Recovery · 1 min', E.end != null && isFinite(E.hrr60) ? fmt(E.hrr60) : '—', E.end != null && isFinite(E.hrr60) ? 'bpm' : '', E.end != null && isFinite(E.hrr60) ? gc('hrr') : chip('info', 'Not measured'),
-      E.end != null && isFinite(E.hrr60) ? `${X.rec} · from ${fmt(E.stop)} bpm at stop` : E.end == null ? 'ended while exercising' : 'record 2 min after stopping');
+    const recTile = kpi('Recovery · 1 min', E.end != null && isFinite(E.hrr60) ? fmt(E.hrr60) : '—', E.end != null && isFinite(E.hrr60) ? 'bpm' : '', E.end != null && isFinite(E.hrr60) ? gc('hrr') : chip('info', E.cut ? 'Cut short' : 'Not measured'),
+      E.end != null && isFinite(E.hrr60) ? `${X.rec} · from ${fmt(E.stop)} bpm at stop` : E.end == null ? 'ended while exercising' : E.cut ? `stopped ${fmt(E.after)} s after the mark` : 'record 2 min after stopping');
     const maxTile = kpi('Working max HR', fmt(W.v), 'bpm', W.highMax ? chip('info', 'High-max individual') : chip('info', W.src === 'tanaka' ? 'Age estimate' : W.src === 'ramp' ? 'Ramp test' : 'Your data + 2 %'), `age formulas ${fmt(W.AF.lo)}–${fmt(W.AF.hi)}`);
     const peakTile = kpi('Peak heart rate', fmt(E.peak20), 'bpm', chip('info', fmt(100 * E.peak20 / W.v) + ' % of max'), '20-s mean at ' + clock(E.peak20T || 0));
     const first = X.tt === 'ramp' && X.ramp ? kpi('Measured max HR', X.ramp.valid ? fmt(X.ramp.max) : '—', X.ramp.valid ? 'bpm' : '', X.ramp.valid ? chip(X.ramp.plateau ? 'in' : 'info', X.ramp.plateau ? 'Plateau: true max' : 'No plateau: a floor') : chip('info', 'Test incomplete'), `${X.ramp.completed} steps of 3 min`)
@@ -2881,7 +2885,7 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
         <div class="panel"><h3>Sustained block</h3>${kvT('Block', clock(T.t0) + ' – ' + clock(T.end), mmss(T.dur) + ' long')}${kvT('Average heart rate', fmt(T.avg) + ' bpm', fmt(100 * T.avg / X.WM.v) + ' % of working maximum')}${kvT('First half / second half', fmt(T.m1) + ' / ' + fmt(T.m2) + ' bpm')}${kvT('Cardiac drift', (T.drift >= 0 ? '+' : '−') + fmt(Math.abs(T.drift), 1) + ' %', 'under 5 % = steady')}${kvT('Held within ±5 bpm', fmt(100 * T.within) + ' % of the block')}
         <p class="note-p" style="margin:0">${!T.valid ? 'The block lasted less than 10 minutes, too short to judge drift reliably.' : 'Cardiac drift is the rise in heart rate at a steady effort as the session goes on. Less drift at the same pace over the weeks is a sign of improving endurance; heat and dehydration increase it.'}</p></div>`; }
     page(`${tests}
-      <div class="sec-h"><h2>Recovery after exercise</h2><span>${E.end != null ? 'Measured from the end of exercise at ' + clock(E.end) : 'Not measured'}</span></div>
+      <div class="sec-h"><h2>Recovery after exercise</h2><span>${E.end == null ? 'Not measured' : E.cut ? 'Cut short: the recording stopped ' + fmt(E.after) + ' s after ' + clock(E.end) : 'Measured from the end of exercise at ' + clock(E.end)}</span></div>
       ${E.end == null ? `<p class="note-p" style="font-size:8.6pt">The recording ended while you were still exercising, so recovery was not measured and no recovery flag is raised. To measure it, tap <b>Start recovery</b> on the recording screen when you stop, then keep recording for at least two minutes.</p>` : `
       <div class="cols2">
         <div class="panel"><h3>End-of-session recovery</h3>
@@ -2890,8 +2894,8 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
           ${kvT('Heart rate at stop', fmt(E.stop) + ' bpm')}
           ${kvT('After 1 minute', isFinite(E.at60) ? fmt(E.at60) + ' bpm' : '—', isFinite(E.hrr60) ? 'fall ' + fmt(E.hrr60) + ' bpm' : 'recording too short', G.hrr && (G.hrr.g === 'out' || G.hrr.g === 'bord'))}
           ${kvT('After 2 minutes', isFinite(E.at120) ? fmt(E.at120) + ' bpm' : '—', isFinite(E.hrr120) ? 'fall ' + fmt(E.hrr120) + ' bpm' : 'recording too short')}
-          ${kvT('Recovery floor', fmt(E.floor) + ' bpm', 'lowest 10-s heart rate after stopping, at ' + clock(E.floorT))}
-          ${kvT('Share of fall in first minute', isFinite(E.pct60) ? fmt(E.pct60) + ' %' : '—', 'of the total fall from stop to floor')}</div>
+          ${E.cut ? kvT('Recording after the mark', fmt(E.after) + ' s', 'cut short: at least 60 s are needed, 2 minutes ideally') : `${kvT('Recovery floor', fmt(E.floor) + ' bpm', 'lowest 10-s heart rate after stopping, at ' + clock(E.floorT))}
+          ${kvT('Share of fall in first minute', isFinite(E.pct60) ? fmt(E.pct60) + ' %' : '—', 'of the total fall from stop to floor')}`}</div>
         <div class="panel"><h3>How it is graded</h3>
           <p class="note-p" style="margin:0">${X.rec === 'active' ? `<b>Active recovery: limit relaxed.</b> Moving keeps heart rate higher, so a first-minute fall of more than ${Lm.out} bpm is normal (borderline up to ${Lm.bord} bpm), instead of ${HRR_LIMITS.passive.out} bpm for standing still. The share of the fall to your recovery floor is shown as well, because a fixed target suits active recovery less well.` : `<b>Passive recovery.</b> Standing or sitting still lets heart rate fall fastest, so a first-minute fall of more than ${Lm.out} bpm is expected (borderline up to ${Lm.bord} bpm).`}</p>
           <p class="note-p" style="margin:0">Recovery is measured from the end of the session, never from a peak in the middle of it, so intervals with active recovery between efforts do not produce false flags.</p>
@@ -3291,7 +3295,7 @@ function cleanMeta(m) {
     pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && num(p.t1) != null && p.t1 >= p.t0).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
-    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), plan: cleanPlan(m.plan), standMark: num(m.standMark)
+    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : '', plan: cleanPlan(m.plan), standMark: num(m.standMark)
   };
 }
 const HNUM = ['oLie', 'oRise', 'oRmssd', 'oPeak', 'start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
@@ -3716,7 +3720,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -3731,7 +3735,7 @@ async function startRecording() {
   S.autoMin = autoStopFor(S.ctx, $('#autoOn').checked, S.autoMinSel);
   S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
-  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.lastStep = 1; S.lthrCued = false;
+  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.stopWhy = ''; S.stopArmed = 0; S.lastStep = 1; S.lthrCued = false;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
   S.live.fill(0); S.livePos = 0; S.liveHP = makeStreamFilter(design('hp', 0.5)); S.liveLP = makeStreamFilter(design('lp', 35));
   S.sessionId = 'rec-' + Date.now(); S.startMs = Date.now(); S.devName = S.device && S.device.name || 'Polar H10';
@@ -3769,7 +3773,7 @@ $('#btnPause').onclick = () => {
 };
 async function stopRecording(why) {
   if (!S.recording || S.stopping) return;
-  S.stopping = true; cancelCues();
+  S.stopping = true; S.stopWhy = why; cancelCues();
   if (S.paused) { const p = S.pauses[S.pauses.length - 1]; if (p) p.t1 = S.total / FS; S.paused = false; }
   try { if (S.connected) await cpWrite(ECG_STOP); } catch (e) {}
   try { if (S.connected && S.acc.on) await cpWrite(ACC_STOP); } catch (e) {}
@@ -3786,7 +3790,7 @@ async function stopRecording(why) {
   const raw = new Int32Array(S.total); let o = 0; for (const c of S.chunks) { raw.set(c, o); o += c.length; }
   S.raw = raw; S.meta = sessionMeta('complete'); S.analysis = null;
   S.meta._acc = accData && accData.length >= 3 * 30 * AC.fs ? { fs: AC.fs, t0: AC.t0, data: accData } : null;
-  $('#doneWhy').textContent = why === 'limit' ? 'Stopped automatically at the 8-hour limit.' : why === 'auto' ? `Stopped automatically after ${minTxt(S.autoMin)}.` : 'Stopped manually.';
+  $('#doneWhy').textContent = (why === 'limit' ? 'Stopped automatically at the 8-hour limit.' : why === 'auto' ? `Stopped automatically after ${minTxt(S.autoMin)}.` : 'Stopped manually.') + recoveryCutNote(S.recMark, S.total / FS);
   $('#doneDur').textContent = hms((S.total - S.pausedSamples - S.gapSamples) / FS);
   $('#doneStart').textContent = new Date(S.startMs).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   $('#doneGap').textContent = (S.pausedSamples || S.gapSamples) ? durText(S.pausedSamples / FS) + ' / ' + durText(S.gapSamples / FS) : 'None';
@@ -3915,6 +3919,22 @@ function tickTraining() {
     $('#spCount').textContent = done ? 'Done' : ms2(1800 - el); $('#spMsg').textContent = done ? 'tap Start recovery' : el < 600 ? 'last 20 min count from 10:00' : 'counting toward threshold';
   }
 }
+/* recovery needs 2 minutes of recording after Start recovery. Stop held inside that window asks once more (hold again
+   within 10 s), so a stray hold can't cut it short; the 8-hour limit is unaffected */
+const RECOVERY_SEC = 120;
+function stopNeedsConfirm(recMark, now, armedUntil, clock) { return recMark != null && now - recMark < RECOVERY_SEC && !(armedUntil > clock); }
+function stopHeld() {
+  if (stopNeedsConfirm(S.recMark, S.total / FS, S.stopArmed, Date.now())) {
+    S.stopArmed = Date.now() + 10000;
+    toast(`Recovery needs 2 minutes (${ms2(RECOVERY_SEC - (S.total / FS - S.recMark))} to go). Hold Stop again to stop anyway.`);
+    return;
+  }
+  stopRecording('user');
+}
+function recoveryCutNote(recMark, end) {
+  if (recMark == null || end - recMark >= 60) return '';
+  return ` Recovery was cut short: the recording stopped ${Math.round(end - recMark)} s after Start recovery, so it can't be measured. Next time, keep recording for 2 minutes after Start recovery.`;
+}
 $('#btnRecov').onclick = () => {
   if (!S.recording || S.recMark != null) return;
   cancelCues(); S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
@@ -3973,7 +3993,7 @@ function drawLive() {
 }
 (function () {
   const b = $('#btnStop'); let t = null;
-  const start = e => { e.preventDefault(); b.classList.add('holding'); t = setTimeout(() => { b.classList.remove('holding'); stopRecording('user'); }, 1200); };
+  const start = e => { e.preventDefault(); b.classList.add('holding'); t = setTimeout(() => { b.classList.remove('holding'); stopHeld(); }, 1200); };
   const cancel = () => { b.classList.remove('holding'); clearTimeout(t); };
   b.addEventListener('pointerdown', start); b.addEventListener('pointerup', cancel); b.addEventListener('pointerleave', cancel); b.addEventListener('pointercancel', cancel);
   b.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(e); });
@@ -4076,7 +4096,7 @@ function saveRecordingFile() {
   downloadFile(fileStamp(d, m.ctx) + '.json',
     JSON.stringify({ format: 'lead-one-ecg', version: 3, fs: FS, id: m.id, start: m.start, ctx: m.ctx, pos: m.pos, notes: m.notes || '', device: m.device, fw: m.fw, battery: m.battery,
       gap: m.gap, paused: m.paused, pauses: m.pauses, rr: m.rr, gapMarker: GAP, samples: btoa(bin),
-      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, plan: m.plan || null, standMark: m.standMark,
+      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, stopWhy: m.stopWhy || '', plan: m.plan || null, standMark: m.standMark,
       accFs: m._acc ? m._acc.fs : 0, accT0: m._acc ? m._acc.t0 : 0, acc: m._acc ? b64(new Uint8Array(m._acc.data.buffer, m._acc.data.byteOffset, m._acc.data.byteLength)) : '' }));
 }
 async function openFile(file) {

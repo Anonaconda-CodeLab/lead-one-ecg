@@ -187,3 +187,18 @@ test('auto-stop does not apply to training: switch hidden, fixed hint, saved set
   const setUpd = h.slice(h.indexOf('function updateAuto()'), h.indexOf("$('#autoOn').onchange"));
   assert.ok(/patchSettings\(\{ autoOn: on, autoMin: S\.autoMinSel \}\)/.test(setUpd), 'the setting is saved only from the switch itself');
 });
+
+test('Stop held in the first 2 minutes of recovery asks once more; the finish screen says when recovery was cut short', () => {
+  const h = distHtml(), grab = name => new Function('RECOVERY_SEC', 'Math', 'return ' + h.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`))[0])(120, Math);
+  const need = grab('stopNeedsConfirm');
+  assert.equal(need(1800, 1807, 0, 1000), true, '7 s into recovery: ask');
+  assert.equal(need(1800, 1807, 5000, 1000), false, 'held again within 10 s: stop');
+  assert.equal(need(1800, 1925, 0, 1000), false, 'after 2 minutes: stop straight away');
+  assert.equal(need(null, 600, 0, 1000), false, 'no recovery started: stop straight away');
+  const note = grab('recoveryCutNote');
+  assert.match(note(1802.5, 1809.8), /Recovery was cut short: the recording stopped 7 s after Start recovery/);
+  assert.equal(note(1802.5, 1932), ''); assert.equal(note(null, 1809.8), '');
+  assert.ok(h.includes("S.stopping = true; S.stopWhy = why;"), 'why it stopped is kept');
+  assert.ok(h.includes("stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : ''"), 'and survives export and re-import');
+  assert.ok(h.includes("stopHeld(); }, 1200)"), 'the Stop button goes through the guard');
+});

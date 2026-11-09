@@ -146,6 +146,8 @@ Heart rate falls faster when you stand still, so the app judges active recovery 
 
 **When you finish exercising, tap Start recovery and keep recording for at least 2 minutes.** Recovery is measured from that
 moment, not from a peak in the middle of the session. If you forget, the app tries to find the end of exercise by itself.
+If you hold **Stop** in the first 2 minutes after Start recovery, the app asks you to hold it once more, so a stray hold
+can't cut the recovery short.
 
 Your **working maximum heart rate** comes from your own data: the highest heart rate you have held for 20 seconds in any
 training recording, plus 2 %, or the plateau of a ramp test. Age formulas (Fox, Tanaka, Nes, and Gulati for women) are
@@ -247,9 +249,10 @@ Moisten the electrodes again, tighten the strap, and keep still. A worn strap or
 Breathing appears after about 30 seconds of still recording. It is measured from chest movement when available, otherwise
 estimated from the ECG.
 
-### The report says recovery was not measured
-The recording ended while you were still exercising. Tap **Start recovery** when you stop, and keep recording for at least
-2 minutes.
+### The report says recovery was not measured, or cut short
+**Not measured:** the recording ended while you were still exercising. Tap **Start recovery** when you stop, and keep
+recording for at least 2 minutes. **Cut short:** you tapped Start recovery, but the recording stopped less than a minute
+later, so there was nothing to measure; the report says how many seconds were recorded and why it stopped.
 
 ## Privacy
 Lead One ECG makes no network requests at all while you use it: no analytics, no tracking, no cookies, no account. Your
