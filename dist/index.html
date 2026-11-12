@@ -478,10 +478,10 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.8.3 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.8.4 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <p class="dev-meta" style="margin:0">Questions or problems: <a href="mailto:hello@anonacondacodelab.com">hello@anonacondacodelab.com</a>. A description or a screenshot is usually enough; please don't send recordings or reports unless you are happy to share them, because they contain your health data.</p>
-      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.3" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">Source code</a><a class="btn web-only" href="/android.html">Android app</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
+      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.4" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">Source code</a><a class="btn web-only" href="/android.html">Android app</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
   </section>
 
@@ -542,6 +542,9 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <ul><li><b>Reading history</b> (the summary of each reading, used for your baseline and trends) is small and kept indefinitely.</li><li><b>Recordings</b> (the raw ECG) are kept on the device until you delete them from the list on the home screen. Deleting a recording also removes it from your personal baseline, so a reading taken under the wrong conditions no longer affects later comparisons.</li></ul>
 <p><b>Back up regularly.</b> Clearing Chrome's browsing data (&quot;Cookies and site data&quot;), uninstalling Chrome, resetting or replacing your phone, or using an Incognito tab would lose them. The app shows a reminder when a backup is due.</p>
 <ul><li><b>Settings → Export history</b> saves a backup file of your reading history. Keep it somewhere safe, such as Google Drive.</li><li><b>Settings → Import history</b> restores it, on the same phone or a new one. Readings already present are not duplicated.</li><li><b>Moving to a new phone:</b> send yourself the backup file (e-mail, Google Drive or a chat app), and <b>save it to the new phone first</b> (Download, or Save to Files). Then open the app; on the setup screen tap <b>Import your history file</b>, or later use <b>Settings → Import history</b>. Your profile comes across too.</li><li>To keep a particular recording in full, use <b>Save recording</b> or <b>Save as PDF</b> on its report. Imported history brings back your baseline and trends, but not the raw recordings.</li></ul>
+<h2>Common questions</h2>
+<h3>Why only the Polar H10?</h3>
+<p>Lead One reads the heart's electrical signal itself (the ECG trace), not just the heart rate. Most chest straps, including Polar's own H9 and those from Garmin, Wahoo and others, send only heart rate and beat-to-beat timing over the standard Bluetooth heart-rate service: enough for heart rate and HRV, but not for the waveform. Watches and arm bands measure the pulse with light and give no ECG at all. The H10 is one of the very few straps that streams its raw ECG (130 samples a second) and chest movement over an openly documented connection, so the waveform, the QT and T-wave measurements, the extra-beat check and the ECG strips in the report are possible. The few other ECG sensors each use their own connection and haven't been tested, so they aren't supported.</p>
 <h2>Troubleshooting</h2>
 <h3>&quot;Bluetooth isn't available&quot;</h3>
 <p>On a phone, open the app in <b>Google Chrome or Chromium on Android</b>, from its https address. On a computer, use Chrome or Edge. On iPhone and iPad, use the <b>Bluefy</b> browser. Safari and Firefox are not supported. On Linux, enable <code>chrome://flags/#enable-experimental-web-platform-features</code>; in Brave, enable <code>brave://flags/#brave-web-bluetooth-api</code>.</p>
@@ -1139,7 +1142,14 @@ function exerciseResponse(A, recMark) {
   if (!s10.length) return null;
   const n = s10.length, times = s10.map(p => p.t), tEnd = s10[n - 1].t;
   const pk10 = s10.reduce((a, b) => b.v > a.v ? b : a), pk20 = s20.length ? s20.reduce((a, b) => b.v > a.v ? b : a) : null;
-  const at = t => { const i = lowerBound(times, t - 3); return i < n && Math.abs(s10[i].t - t) <= 3 ? s10[i].v : NaN; };
+  // heart rate at time t: the nearest point within 3 s; across a short signal gap (a few seconds of lost contact right
+  // at +60 s, say) a straight line between the points on either side, each at most 10 s away; otherwise none
+  const at = t => {
+    const i = lowerBound(times, t - 3); if (i < n && Math.abs(s10[i].t - t) <= 3) return s10[i].v;
+    const r = lowerBound(times, t), l = r - 1;
+    if (l < 0 || r >= n || t - s10[l].t > 10 || s10[r].t - t > 10) return NaN;
+    return s10[l].v + (s10[r].v - s10[l].v) * (t - s10[l].t) / (s10[r].t - s10[l].t);
+  };
   const base = { peak: pk10.v, peakT: pk10.t, peak20: pk20 ? pk20.v : NaN, peak20T: pk20 ? pk20.t : NaN, endHR: s10[n - 1].v, end: null, src: null };
   let end = null, src = null, stop = NaN;
   if (isFinite(recMark) && recMark > 15 && recMark <= A.dur) {
@@ -3052,7 +3062,7 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.8.3 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.8.4 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later

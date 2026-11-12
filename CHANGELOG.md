@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.4
 - **Lost strap contact is recognised:** when the strap loses contact mid-session, beats go missing and the timing turns
   erratic. That stretch is now left out of extra beats, pauses and averages, and the report says when it happened. A
   4 Nov ramp test had shown 157 extra beats and a 4-second "pause" with "reviewed by a doctor soon"; now 7 extra beats,
@@ -19,9 +19,15 @@
   while you were still exercising", and no longer shows a "recovery floor" taken from those few seconds. The Recording
   complete screen says so straight away. Holding **Stop** in the first 2 minutes after Start recovery now asks you to hold
   it again, so a stray hold can't cut the recovery short. Why a recording stopped is saved with it.
+- Recovery: a few seconds of lost signal right at +1 or +2 minutes no longer leaves that value blank; it is read from
+  the heart rates on either side (each at most 10 seconds away).
+- Manual: new **Common questions** section, starting with "Why only the Polar H10?".
 - Auto-stop no longer applies to **Training**: the switch is hidden and training recordings run until you stop them
   (maximum 8 hours), so a short auto-stop set for morning readings can't cut a session short. Your auto-stop setting is
   kept for the other contexts.
+- Release builds (as in Still Point 1.0.2): the Gradle wrapper is checked to be an official Gradle release before it
+  runs; the signed APK's version must match the web app's; a release can't attach to a tag left over from an earlier
+  attempt; tests run on Node 20 and 22 (Node 18 is end of life; Node 20.12 or newer is required).
 
 ## 1.8.3
 - **QTc is graded only where it can be trusted.** Above 100 bpm, or before the heart rate has settled after effort,

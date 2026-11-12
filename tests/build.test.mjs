@@ -160,6 +160,20 @@ test('release workflow: three jobs; only publish can write, only sign sees the k
   assert.ok(!/tags:/.test(w.split('jobs:')[0]), 'no tag trigger');
   assert.match(publish, /android-test/);
   assert.match(w, /LeadOne-ECG-\$VER\.apk/);
+  // hardening carried over from Still Point 1.0.2
+  const validate = build.search(/- uses: gradle\/actions\/wrapper-validation@[0-9a-f]{40}/), gradle = build.indexOf('./gradlew --no-daemon assembleRelease');
+  assert.ok(validate >= 0 && gradle > validate, 'the Gradle wrapper is validated before the build runs it');
+  assert.match(sign, /APKVER=\$\("\$BT\/aapt2" dump badging "\$APK"[\s\S]*if \[ "\$APKVER" != "\$VER" \]; then[\s\S]*exit 1;/, 'the APK version is checked against package.json');
+  assert.match(publish, /if response=\$\(gh api --include "repos\/\$GH_REPO\/git\/ref\/tags\/\$TAG"[\s\S]*?then[\s\S]*?Tag \$TAG already exists without a release[\s\S]*?exit 1[\s\S]*?HTTP\/\[0-9\.\]\+ 404[\s\S]*?exit 1/, 'an existing tag without a release is refused, and so is an unclear answer');
+});
+
+test('CI: tests on Node 20 and 22 (engines from 20.12), and dist/ checked for changed and new files', async () => {
+  const { readFileSync } = await import('node:fs');
+  const c = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.match(c, /node: \[20, 22\]/);
+  assert.equal(JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).engines.node, '>=20.12');
+  assert.match(c, /git diff --exit-code -- dist\//);
+  assert.match(c, /git ls-files --others --exclude-standard -- dist\//, 'new, uncommitted files in dist/ fail too');
 });
 
 test('workflows: every action is pinned to a full commit (a moved tag cannot change what runs)', async () => {
@@ -167,7 +181,7 @@ test('workflows: every action is pinned to a full commit (a moved tag cannot cha
   for (const f of ['.github/workflows/android.yml', '.github/workflows/ci.yml']) {
     const uses = [...readFileSync(new URL('../' + f, import.meta.url), 'utf8').matchAll(/uses:\s*(\S+)/g)].map(m => m[1]);
     assert.ok(uses.length > 0, f);
-    for (const u of uses) assert.match(u, /^[\w.-]+\/[\w.-]+@[0-9a-f]{40}$/, `${f}: ${u}`);
+    for (const u of uses) assert.match(u, /^[\w.-]+\/[\w.-]+(\/[\w.-]+)*@[0-9a-f]{40}$/, `${f}: ${u}`);
   }
 });
 
