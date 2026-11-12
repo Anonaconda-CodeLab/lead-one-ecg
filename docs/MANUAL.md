@@ -227,6 +227,17 @@ replacing your phone, or using an Incognito tab would lose them. The app shows a
 - To keep a particular recording in full, use **Save recording** or **Save as PDF** on its report. Imported history brings
   back your baseline and trends, but not the raw recordings.
 
+## Common questions
+
+### Why only the Polar H10?
+Lead One reads the heart's electrical signal itself (the ECG trace), not just the heart rate. Most chest straps,
+including Polar's own H9 and those from Garmin, Wahoo and others, send only heart rate and beat-to-beat timing over
+the standard Bluetooth heart-rate service: enough for heart rate and HRV, but not for the waveform. Watches and arm
+bands measure the pulse with light and give no ECG at all. The H10 is one of the very few straps that streams its raw
+ECG (130 samples a second) and chest movement over an openly documented connection, so the waveform, the QT and T-wave
+measurements, the extra-beat check and the ECG strips in the report are possible. The few other ECG sensors each use
+their own connection and haven't been tested, so they aren't supported.
+
 ## Troubleshooting
 
 ### "Bluetooth isn't available"
