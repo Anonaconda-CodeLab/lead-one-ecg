@@ -237,3 +237,26 @@ test('recovery cut short: a Start recovery mark seconds before the end is "Cut s
     } else assert.ok(/Recovery floor/.test(txt) && isFinite(E.hrr60), 'a full recovery is unchanged');
   }
 });
+
+test('recovery at +60 s and +120 s reads across a few seconds of lost signal', () => {
+  // steady 160 bpm effort to 600 s, then an exponential fall; the strap loses contact for 8 s around +60 s and +120 s
+  const prof = s => s < 600 ? 160 : 90 + 70 * Math.exp(-(s - 600) / 50);
+  const t = [], rr = [], rrOk = [], ect = []; let tc = 0;
+  while (tc < 900) { const r = 60000 / prof(tc); tc += r / 1000; t.push(tc); rr.push(r); rrOk.push(1); ect.push(0); }
+  const gap = s => (s > 655 && s < 667) || (s > 715 && s < 727);
+  const keep = t.map((s, i) => !gap(s));
+  const pick = a => a.filter((_, i) => keep[i]);
+  const T = pick(t), RR = pick(rr), OK = pick(rrOk), EC = pick(ect);
+  // the beat right after each gap spans it: not a valid interval
+  for (let i = 1; i < T.length; i++) if (T[i] - T[i - 1] > 2) OK[i] = 0;
+  const E = L.exerciseResponse({ beats: T.length, t: T, rr: RR, rrOk: OK, ect: EC, dur: 900 }, 600);
+  assert.equal(E.src, 'marked');
+  const want60 = prof(660), want120 = prof(720);
+  assert.ok(Math.abs(E.at60 - want60) < 6, `+60 s read across the gap (${E.at60} vs ${want60.toFixed(1)})`);
+  assert.ok(Math.abs(E.at120 - want120) < 6, `+120 s read across the gap (${E.at120} vs ${want120.toFixed(1)})`);
+  // a long loss of signal still gives no value rather than a guess
+  const far = t.map(s => !(s > 630 && s < 700)), T2 = t.filter((_, i) => far[i]);
+  const OK2 = rrOk.filter((_, i) => far[i]); for (let i = 1; i < T2.length; i++) if (T2[i] - T2[i - 1] > 2) OK2[i] = 0;
+  const E2 = L.exerciseResponse({ beats: T2.length, t: T2, rr: rr.filter((_, i) => far[i]), rrOk: OK2, ect: ect.filter((_, i) => far[i]), dur: 900 }, 600);
+  assert.ok(Number.isNaN(E2.at60), 'no +60 s value across a 70 s gap');
+});

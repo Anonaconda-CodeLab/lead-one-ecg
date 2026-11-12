@@ -94,7 +94,9 @@ interval sessions with active recovery between efforts do not produce false flag
 effort, recovery is reported as not measured.
 
 Reported: heart rate at stop, at +1 and +2 minutes, the falls (HRR1, HRR2), the recovery floor (lowest 10-s heart rate after
-stopping) and the share of the total fall to the floor reached in the first minute. HRR1 is graded by recovery type:
+stopping) and the share of the total fall to the floor reached in the first minute. If the signal drops out for a few seconds right at
++1 or +2 minutes, the value is read from a straight line between the heart rates on either side (each at most 10 s
+away); a longer gap leaves it unmeasured. HRR1 is graded by recovery type:
 **active** (kept moving) ≤ 12 bpm outside normal range, 13–17 borderline [6]; **passive** (still) ≤ 18 bpm outside,
 19–22 borderline (passive recovery gives larger falls, so the limit is higher; approximate).
 

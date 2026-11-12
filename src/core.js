@@ -412,7 +412,14 @@ function exerciseResponse(A, recMark) {
   if (!s10.length) return null;
   const n = s10.length, times = s10.map(p => p.t), tEnd = s10[n - 1].t;
   const pk10 = s10.reduce((a, b) => b.v > a.v ? b : a), pk20 = s20.length ? s20.reduce((a, b) => b.v > a.v ? b : a) : null;
-  const at = t => { const i = lowerBound(times, t - 3); return i < n && Math.abs(s10[i].t - t) <= 3 ? s10[i].v : NaN; };
+  // heart rate at time t: the nearest point within 3 s; across a short signal gap (a few seconds of lost contact right
+  // at +60 s, say) a straight line between the points on either side, each at most 10 s away; otherwise none
+  const at = t => {
+    const i = lowerBound(times, t - 3); if (i < n && Math.abs(s10[i].t - t) <= 3) return s10[i].v;
+    const r = lowerBound(times, t), l = r - 1;
+    if (l < 0 || r >= n || t - s10[l].t > 10 || s10[r].t - t > 10) return NaN;
+    return s10[l].v + (s10[r].v - s10[l].v) * (t - s10[l].t) / (s10[r].t - s10[l].t);
+  };
   const base = { peak: pk10.v, peakT: pk10.t, peak20: pk20 ? pk20.v : NaN, peak20T: pk20 ? pk20.t : NaN, endHR: s10[n - 1].v, end: null, src: null };
   let end = null, src = null, stop = NaN;
   if (isFinite(recMark) && recMark > 15 && recMark <= A.dur) {
