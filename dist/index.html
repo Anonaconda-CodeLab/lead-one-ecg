@@ -2705,16 +2705,20 @@ function ctxView(A, ctx) {
 /* why a ramp test is not valid (rampTest: three completed steps with a measured heart rate and no signal loss, and a
    20-s peak). `plain` = the plain-language card, otherwise the short line on the test panel */
 function rampInvalid(r, plain) {
-  const why = r.completed < 3 ? 'few' : !isFinite(r.max) ? 'peak' : r.flagged ? 'lost' : 'data';
+  // causes counted over completed steps only: an unfinished last step with lost contact doesn't make the test invalid
+  const done = (r.steps || []).filter(x => x.done), lost = done.filter(x => x.flag).length, gone = done.filter(x => !x.flag && !isFinite(x.hr)).length;
+  const why = r.completed < 3 ? 'few' : !isFinite(r.max) ? 'peak' : lost && gone ? 'mixed' : lost ? 'lost' : 'data';
   return plain ? {
     few: 'Fewer than three 3-minute steps were completed, so the test is not valid. Start easier and increase the load every 3 minutes until you cannot continue.',
     lost: 'The strap lost contact during too many steps: fewer than three completed steps had a clean heart rate, so the test is not valid. Moisten the electrodes, keep the strap snug, and repeat the test.',
     data: 'Heart-rate data was missing in too many steps: fewer than three completed steps had a measurable heart rate, so the test is not valid. Keep the strap in good contact and repeat the test.',
+    mixed: 'The strap lost contact in some steps and heart-rate data was missing in others: fewer than three completed steps had a clean, measurable heart rate, so the test is not valid. Moisten the electrodes, keep the strap snug, and repeat the test.',
     peak: 'No 20-second peak heart rate could be measured, so the test is not valid. Keep the strap in good contact and repeat the test.' }[why]
     : 'Test not valid: ' + {
     few: 'fewer than three steps were completed.',
     lost: 'fewer than three completed steps were free of signal loss.',
     data: 'fewer than three completed steps had a measurable heart rate.',
+    mixed: 'fewer than three completed steps had a clean, measurable heart rate (signal loss in some, missing data in others).',
     peak: 'no 20-second peak heart rate could be measured.' }[why];
 }
 function renderReport(A, meta0, st, hist = []) {

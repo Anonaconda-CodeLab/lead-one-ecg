@@ -338,6 +338,13 @@ test('an invalid ramp test says why: too few steps, signal loss, missing heart r
   assert.match(L.rampInvalid(r, true), /^Heart-rate data was missing in too many steps/);
   assert.equal(L.rampInvalid({ completed: 2, max: 160, flagged: 0 }, false), 'Test not valid: fewer than three steps were completed.');
   assert.match(L.rampInvalid({ completed: 2, max: 160, flagged: 0 }, true), /^Fewer than three 3-minute steps were completed/);
-  assert.equal(L.rampInvalid({ completed: 4, max: 160, flagged: 2 }, false), 'Test not valid: fewer than three completed steps were free of signal loss.');
+  const S = (done, flag, hr) => ({ done, flag, hr });
+  assert.equal(L.rampInvalid({ completed: 4, max: 160, flagged: 2, steps: [S(true, '', 150), S(true, 'lost', NaN), S(true, 'moved', 158), S(true, '', 162)] }, false), 'Test not valid: fewer than three completed steps were free of signal loss.');
+  // signal loss only in the unfinished last step, heart rate missing in two completed ones: a data problem, not signal loss
+  const unf = { completed: 4, max: 160, flagged: 1, steps: [S(true, '', 140), S(true, '', NaN), S(true, '', NaN), S(true, '', 160), S(false, 'lost', NaN)] };
+  assert.equal(L.rampInvalid(unf, false), 'Test not valid: fewer than three completed steps had a measurable heart rate.');
+  const mix = { completed: 4, max: 160, flagged: 1, steps: [S(true, '', 140), S(true, 'lost', NaN), S(true, '', NaN), S(true, '', 160)] };
+  assert.match(L.rampInvalid(mix, false), /signal loss in some, missing data in others/);
+  assert.match(L.rampInvalid(mix, true), /^The strap lost contact in some steps and heart-rate data was missing in others/);
   assert.match(L.rampInvalid({ completed: 4, max: NaN, flagged: 0 }, true), /^No 20-second peak heart rate could be measured/);
 });
