@@ -549,7 +549,7 @@ async function startRecording() {
     S.recording = false; const m = String(e && e.message || e);
     toast(/status code 20\d|busy|in progress/i.test(m) ? 'The strap was still busy and could not start. Wait a few seconds and tap Start again; if it keeps happening, disconnect and reconnect the strap. (' + m + ')' : 'Could not start: ' + m, 12000);
     return; }
-  if (!(await startAcc())) toast('The motion sensor could not be started; breathing will be estimated from the ECG.', 5000);
+  if (!(await startAcc())) toast(S.ctx === 'training' ? 'The motion sensor could not be started, so breathing will not be measured in this session.' : 'The motion sensor could not be started; breathing will be estimated from the ECG.', 5000);
   putSession(sessionMeta('recording')); keepAwake(); persistStorage();
   if (NATIVE) LeadOneNative.recording(true, 'Recording ECG. It continues with the screen off.');   // foreground service: keeps recording with the screen off
   $('#notesIn').value = ''; upNotes();
@@ -817,11 +817,14 @@ function historyEntry(A, meta) {
     ...(meta.ctx === 'ortho' ? (o => o.valid ? { oLie: o.lieHR, oRise: o.sustained, oRmssd: o.rmssdLie, oPeak: o.peakHR } : {})(orthoTest(A, meta.standMark)) : {})
   };
 }
+function analyzeOpts(meta) {
+  const age = ageAt(getSettings().dob, meta.start);
+  return { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx };
+}
 async function runReport(raw, meta) {
   show('scrAnalyze'); $('#anBar').style.width = '2%';
   try {
-    const st = getSettings(), age = ageAt(st.dob, meta.start);
-    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }, (p, step) => { $('#anBar').style.width = Math.round(p * 100) + '%'; $('#anStep').textContent = step; });
+    const A = await analyze(raw, analyzeOpts(meta), (p, step) => { $('#anBar').style.width = Math.round(p * 100) + '%'; $('#anStep').textContent = step; });
     S.analysis = A; S.meta = meta; S.raw = raw;
     if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));
     await renderInto();
@@ -857,8 +860,12 @@ $('#btnDetails').onclick = () => {
 };
 $('#btnDetailsCancel').onclick = () => { $('#detailsPanel').hidden = true; };
 $('#btnDetailsSave').onclick = async () => {
+  const wasTraining = S.meta.ctx === 'training';
   S.meta.ctx = chipVal($('#ctxChips2')); S.meta.pos = chipVal($('#posChips2')); S.meta.notes = str($('#notesIn2').value.trim(), 200);
   if (S.meta.ctx === 'training') { S.meta.trainType = S.dTT; S.meta.recovery = S.dRec; S.meta.plan = S.dTT === 'intervals' ? S.getPlan2() : null; } else { S.meta.trainType = ''; S.meta.recovery = ''; S.meta.plan = null; }
+  // breathing is worked out differently in Training (no ECG estimate): moving a recording into or out of Training
+  // re-runs the analysis, so the report and the history entry match the new context
+  if (S.raw && wasTraining !== (S.meta.ctx === 'training')) S.analysis = await analyze(S.raw, analyzeOpts(S.meta));
   if (!S.meta.sample) {
     if (S.meta.id) { const s = await getSession(S.meta.id); if (s) { s.ctx = S.meta.ctx; s.pos = S.meta.pos; s.notes = S.meta.notes; s.trainType = S.meta.trainType; s.recovery = S.meta.recovery; s.plan = S.meta.plan; await putSession(s); } }
     if (S.analysis.dur - S.analysis.gapSec >= 55) await putHistory(historyEntry(S.analysis, S.meta));
@@ -970,8 +977,7 @@ async function autoSummary() {
   const box = $('#doneSum'), meta = S.meta, raw = S.raw; S.ready = null;
   box.hidden = false; box.innerHTML = '<p class="sum-wait">Analysing… <span id="sumPct">0</span> %</p>';
   try {
-    const st = getSettings(), age = ageAt(st.dob, meta.start);
-    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }, p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
+    const A = await analyze(raw, analyzeOpts(meta), p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
     if (S.meta !== meta) return;   // moved on to something else meanwhile
     S.analysis = A;
     if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));

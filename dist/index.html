@@ -1198,7 +1198,7 @@ function rampTest(A, ER, step = 180) {
     let w0 = Math.max(t0, t1 - 30), w1 = t1, flag = '';
     if (lostIn(w0, w1) > 0) {
       flag = 'lost';
-      for (let e = t1 - 5; e - 30 >= t0 - 1e-6; e -= 5) if (lostIn(e - 30, e) === 0) { w0 = e - 30; w1 = e; flag = 'moved'; break; }
+      for (let e = t1 - 5; e - 30 >= t0 - 1e-6; e -= 5) if (lostIn(e - 30, e) === 0 && isFinite(meanHRBetween(B, e - 30, e).v)) { w0 = e - 30; w1 = e; flag = 'moved'; break; }
     }
     steps.push({ n: k + 1, t0, t1, done, w0, w1, flag, hr: flag === 'lost' ? NaN : meanHRBetween(B, w0, w1).v });
   }
@@ -1625,6 +1625,9 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   }
   // pauses (> 2 s) on clean intervals
   const { pauses, gaps, longest } = splitPauses(t, rr, rrOk, nn);
+  // a signal gap is not one long beat: left in, a 4-s dropout at 165 bpm would pull a 20-s heart rate down to about
+  // 133 bpm (and the heart rate at Start recovery with it). It stays listed in `gaps` for the report
+  for (const g of gaps) rrOk[g.k] = 0;
 
   // zones
   const age = opts.age || 35, hrMax = 220 - age;
@@ -2273,7 +2276,7 @@ function commentary(A, meta, R, B, X = null) {
         + (X.rec === 'active' ? `Recovery was active, so it is graded against a relaxed limit of ${L.out} bpm rather than ${HRR_LIMITS.passive.out} bpm for passive recovery. Relative to the recovery floor of ${f0(E.floor)} bpm, ${f0(E.pct60)} % of the total fall happened in the first minute.` : `Recovery was passive (standing or sitting still); a first-minute fall above ${L.out} bpm is expected.`)
         + (B.hrr ? ` Your usual first-minute recovery is ${f0(B.hrr.m)} bpm.` : ''));
       verdict = ok ? ['in', 'Recovery within expected range'] : ['out', 'Slow heart-rate recovery'];
-    } else if (E) out.push(E.end == null ? 'Recovery was not measured: the recording ended while you were still exercising, so no recovery flag is raised. To measure it, tap “Start recovery” when you stop and keep recording for two minutes.' : `Recovery was cut short: the recording stopped ${Math.round(E.after)} s after ${E.src === 'marked' ? 'Start recovery' : 'the end of exercise'}${meta.stopWhy === 'user' ? ' (Stop was held)' : meta.stopWhy === 'auto' ? ' (auto-stop)' : ''}, so it was not measured.`);
+    } else if (E) out.push(E.end == null ? 'Recovery was not measured: the recording ended while you were still exercising, so no recovery flag is raised. To measure it, tap “Start recovery” when you stop and keep recording for two minutes.' : E.cut ? `Recovery was cut short: the recording stopped ${Math.round(E.after)} s after ${E.src === 'marked' ? 'Start recovery' : 'the end of exercise'}${meta.stopWhy === 'user' ? ' (Stop was held)' : meta.stopWhy === 'auto' ? ' (auto-stop)' : ''}, so it was not measured.` : 'Recovery was not measured: the strap signal was missing around one minute after you stopped, so no recovery flag is raised.');
     if (W.highMax) out.push(`High-max individual: your recorded maximum is more than 12 % above the Tanaka age estimate (${f0(W.AF.tanaka)} bpm), so age formulas under-read your maximum. Zones in this report use your own data.`);
     if (A.events.length) out.push(`${A.events.length} ectopic ${A.events.length === 1 ? 'event was' : 'events were'} flagged during this session (see the strips). Occasional ectopic beats during exercise are common; frequent or symptomatic ectopic activity during exertion warrants medical review.`);
     out.push('A chest strap provides a single ECG lead. It cannot assess ST-segment changes in the way a clinical exercise stress test does.');
@@ -2463,7 +2466,9 @@ function gradeAll(A, meta, R, X = null) {
             bord: `Slightly slower than expected for ${recW} recovery. Heat, dehydration, fatigue and how abruptly you stopped all affect it. Check it again after your next session.`,
             out: `A fall of ${L.out} bpm or less in the first minute is slower than expected for ${recW} recovery. If it stays this slow on repeat tests, discuss it with a doctor.` }[g]
             + (X.rec === 'active' ? ` Because you kept moving, the threshold is relaxed (${L.out} bpm instead of ${HRR_LIMITS.passive.out} bpm for standing still).` : '') });
-      } else add('hrr', { title: 'Heart-rate recovery (1 min)', short: 'heart-rate recovery', value: 'Cut short', g: 'na', cut: true, what: 'How far your heart rate falls in the first minute after you stop exercising.',
+      } else if (!E.cut) add('hrr', { title: 'Heart-rate recovery (1 min)', short: 'heart-rate recovery', value: 'Not measured', g: 'na', what: 'How far your heart rate falls in the first minute after you stop exercising.',
+        text: `The recording continued for ${f(E.after)} s after ${E.src === 'marked' ? 'you tapped Start recovery' : 'you finished'}, but the strap signal was missing around one minute, so recovery could not be measured. This says nothing about your heart. Moisten the electrodes and keep the strap snug for the whole recovery.` });
+      else add('hrr', { title: 'Heart-rate recovery (1 min)', short: 'heart-rate recovery', value: 'Cut short', g: 'na', cut: true, what: 'How far your heart rate falls in the first minute after you stop exercising.',
         text: `The recording stopped ${f(E.after)} s after ${E.src === 'marked' ? 'you tapped Start recovery' : 'you finished'}${meta.stopWhy === 'user' ? ' (Stop was held)' : meta.stopWhy === 'auto' ? ' (auto-stop)' : ''}, so recovery could not be measured. This says nothing about your heart. Keep recording for at least two minutes after Start recovery.` });
       if (X.tt === 'ramp' && X.ramp) { const r = X.ramp;
         add('ramp', { title: 'Ramp test result', short: 'ramp test', value: r.valid ? f(r.max) + ' bpm' : 'Incomplete', g: 'na', what: 'A step test to exhaustion that measures your maximum heart rate directly.',
@@ -2872,7 +2877,7 @@ function renderReport(A, meta0, st, hist = []) {
       tests = `<div class="sec-h"><h2>Max HR ramp test</h2><span>3-minute steps to failure</span></div>
         <div class="cols2"><div><table class="ev"><thead><tr><th>Step</th><th>Elapsed</th><th>HR, last 30 s</th></tr></thead><tbody>${thin(r.steps, 14).map(st => `<tr><td class="m">${st.n}${st.done ? '' : ' (stopped)'}</td><td class="m">${mmss(st.t0)}–${mmss(st.t1)}</td><td class="m">${st.flag === 'lost' ? '— <span class="note-p">strap lost contact</span>' : fmt(st.hr) + ' bpm' + (st.flag ? ` <span class="note-p">${mmss(st.w0)}–${mmss(st.w1)}*</span>` : '')}</td></tr>`).join('')}</tbody></table>${r.steps.some(st => st.flag) ? `<p class="note-p" style="margin:1mm 0 0">${r.steps.some(st => st.flag === 'moved') ? '* The strap lost contact in this step’s last 30 s, so its latest clean 30 s are used. ' : ''}Marked steps are left out of the plateau check.</p>` : ''}</div>
         <div class="panel"><h3>Result</h3>${kvT('Steps completed', fmt(r.completed))}${kvT('Failure point', clock(r.fail), r.failSrc === 'marked' ? 'marked with Start recovery' : r.failSrc === 'auto' ? 'detected automatically' : 'end of recording')}${kvT('Measured maximum', isFinite(r.max) ? fmt(r.max) + ' bpm' : '—', 'highest 20-s heart rate before failure')}${kvT('Heart-rate plateau', r.plateau ? 'Yes' : 'No', r.plateau ? 'levelled off: true maximum reached' : 'still rising: the true maximum is higher')}
-        <p class="note-p" style="margin:0">${!r.valid ? 'Test not valid: fewer than three steps were completed.' : r.plateau ? 'The measured maximum is used as your working maximum without a margin.' : 'Without a plateau, this value is a floor; the +2 % margin applies.'}</p></div></div>
+        <p class="note-p" style="margin:0">${!r.valid ? (r.completed < 3 ? 'Test not valid: fewer than three steps were completed.' : 'Test not valid: fewer than three completed steps were free of signal loss.') : r.plateau ? 'The measured maximum is used as your working maximum without a margin.' : 'Without a plateau, this value is a floor; the +2 % margin applies.'}</p></div></div>
         <div class="fig"><div class="sec-h"><h2>Heart rate through the steps</h2><span>Line = 10-s heart rate · bars = each step’s value, over the 30 s it comes from${(A.lost || []).length ? ' · shaded = strap lost contact' : ''}</span></div>${rampChart(A, r, startMs)}</div>`; }
     if (X.tt === 'lthr' && X.lt) { const r = X.lt;
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
@@ -3774,7 +3779,7 @@ async function startRecording() {
     S.recording = false; const m = String(e && e.message || e);
     toast(/status code 20\d|busy|in progress/i.test(m) ? 'The strap was still busy and could not start. Wait a few seconds and tap Start again; if it keeps happening, disconnect and reconnect the strap. (' + m + ')' : 'Could not start: ' + m, 12000);
     return; }
-  if (!(await startAcc())) toast('The motion sensor could not be started; breathing will be estimated from the ECG.', 5000);
+  if (!(await startAcc())) toast(S.ctx === 'training' ? 'The motion sensor could not be started, so breathing will not be measured in this session.' : 'The motion sensor could not be started; breathing will be estimated from the ECG.', 5000);
   putSession(sessionMeta('recording')); keepAwake(); persistStorage();
   if (NATIVE) LeadOneNative.recording(true, 'Recording ECG. It continues with the screen off.');   // foreground service: keeps recording with the screen off
   $('#notesIn').value = ''; upNotes();
@@ -4042,11 +4047,14 @@ function historyEntry(A, meta) {
     ...(meta.ctx === 'ortho' ? (o => o.valid ? { oLie: o.lieHR, oRise: o.sustained, oRmssd: o.rmssdLie, oPeak: o.peakHR } : {})(orthoTest(A, meta.standMark)) : {})
   };
 }
+function analyzeOpts(meta) {
+  const age = ageAt(getSettings().dob, meta.start);
+  return { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx };
+}
 async function runReport(raw, meta) {
   show('scrAnalyze'); $('#anBar').style.width = '2%';
   try {
-    const st = getSettings(), age = ageAt(st.dob, meta.start);
-    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }, (p, step) => { $('#anBar').style.width = Math.round(p * 100) + '%'; $('#anStep').textContent = step; });
+    const A = await analyze(raw, analyzeOpts(meta), (p, step) => { $('#anBar').style.width = Math.round(p * 100) + '%'; $('#anStep').textContent = step; });
     S.analysis = A; S.meta = meta; S.raw = raw;
     if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));
     await renderInto();
@@ -4082,8 +4090,12 @@ $('#btnDetails').onclick = () => {
 };
 $('#btnDetailsCancel').onclick = () => { $('#detailsPanel').hidden = true; };
 $('#btnDetailsSave').onclick = async () => {
+  const wasTraining = S.meta.ctx === 'training';
   S.meta.ctx = chipVal($('#ctxChips2')); S.meta.pos = chipVal($('#posChips2')); S.meta.notes = str($('#notesIn2').value.trim(), 200);
   if (S.meta.ctx === 'training') { S.meta.trainType = S.dTT; S.meta.recovery = S.dRec; S.meta.plan = S.dTT === 'intervals' ? S.getPlan2() : null; } else { S.meta.trainType = ''; S.meta.recovery = ''; S.meta.plan = null; }
+  // breathing is worked out differently in Training (no ECG estimate): moving a recording into or out of Training
+  // re-runs the analysis, so the report and the history entry match the new context
+  if (S.raw && wasTraining !== (S.meta.ctx === 'training')) S.analysis = await analyze(S.raw, analyzeOpts(S.meta));
   if (!S.meta.sample) {
     if (S.meta.id) { const s = await getSession(S.meta.id); if (s) { s.ctx = S.meta.ctx; s.pos = S.meta.pos; s.notes = S.meta.notes; s.trainType = S.meta.trainType; s.recovery = S.meta.recovery; s.plan = S.meta.plan; await putSession(s); } }
     if (S.analysis.dur - S.analysis.gapSec >= 55) await putHistory(historyEntry(S.analysis, S.meta));
@@ -4195,8 +4207,7 @@ async function autoSummary() {
   const box = $('#doneSum'), meta = S.meta, raw = S.raw; S.ready = null;
   box.hidden = false; box.innerHTML = '<p class="sum-wait">Analysing… <span id="sumPct">0</span> %</p>';
   try {
-    const st = getSettings(), age = ageAt(st.dob, meta.start);
-    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }, p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
+    const A = await analyze(raw, analyzeOpts(meta), p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
     if (S.meta !== meta) return;   // moved on to something else meanwhile
     S.analysis = A;
     if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));

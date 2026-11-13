@@ -6,7 +6,8 @@
   4 Nov ramp test had shown 157 extra beats and a 4-second "pause" with "reviewed by a doctor soon"; now 7 extra beats,
   no pause, and a note that contact was lost at 08:51–08:55.
 - A gap of over 2 seconds with your heart rate above 100 bpm on both sides is shown as a signal gap, not graded as a
-  pause.
+  pause, and left out of heart-rate averages (it could pull a 20-second heart rate down by 30 bpm). If such a gap
+  falls right at one minute into recovery, the report says recovery was not measured, rather than "cut short".
 - **Ramp test:** a step whose last 30 seconds fall in lost signal uses its latest clean 30 seconds or is marked "strap
   lost contact", instead of showing a wrong average (one step had read 129 bpm instead of about 162). Marked steps are
   left out of the plateau check, and a new chart shows heart rate through the steps with each step's value.

@@ -267,4 +267,62 @@ test('Training: no ECG-derived breathing estimate; the report says "Not measured
   assert.equal(A.breathSource, 'none'); assert.equal(A.breath, null);
   const R = await analyze(d.raw, { age: 45, rr: d.rr });
   assert.equal(R.breathSource, 'ecg', 'other contexts keep the ECG fallback');
+  const txt = s => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const meta = { start: Date.now(), ctx: 'training', pos: '', trainType: 'session', recovery: 'passive' }, st = { sex: 'M', dob: '1968-01-01' };
+  const T = txt(L.renderReport(A, meta, st, []));
+  assert.match(T, /Breathing rate Not measured/, 'the breathing card says Not measured');
+  assert.match(T, /An estimate from the ECG isn’t reliable during exercise/);
+  assert.ok(!/Breathing rate ECG-derived/.test(T), 'no ECG-derived breathing value in the measurements table');
+  assert.match(T, /Breathing rate not measured while moving/);
+  assert.match(txt(L.renderReport(R, { ...meta, ctx: 'rest', trainType: '', recovery: '' }, st, [])), /Breathing rate [0-9.]+ \/min/, 'rest reports still show the ECG estimate');
+});
+
+test('a signal gap during exercise is left out of heart-rate averages; ramp steps need a measurable window', async () => {
+  // 165 bpm throughout, with one 4.25-s dropout (beats missing) at 300 s
+  const t = [], rr = [], rrOk = [], ect = []; let tc = 0, dropped = false;
+  while (tc < 600) { let r = 60000 / 165; if (!dropped && tc > 300) { r = 4250; dropped = true; } tc += r / 1000; t.push(tc); rr.push(r); rrOk.push(1); ect.push(0); }
+  const nn = rr.map((r, k) => k && r < 2000 ? 1 : 0), ok = rrOk.slice();
+  const P = L.splitPauses(t, rr, ok, nn);
+  assert.equal(P.gaps.length, 1); assert.equal(P.pauses.length, 0);
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  for (const g of A.gaps || []) assert.equal(A.rrOk[g.k], 0, 'gap interval not a valid beat');
+  // with the gap left out, the 20-s heart rate over the dropout stays at 165
+  const B = { beats: t.length, dur: 600, t, rr, rrOk: rrOk.map((v, k) => P.gaps.some(g => g.k === k) ? 0 : v), ect };
+  const s = L.rollingHR(B, 20, 1).filter(p => Math.abs(p.t - 302) < 3);
+  assert.ok(s.length && s.every(p => Math.abs(p.v - 165) < 2), 'rolling 20-s heart rate ' + s.map(p => p.v.toFixed(0)));
+  const s0 = L.rollingHR({ ...B, rrOk }, 20, 1).filter(p => Math.abs(p.t - 302) < 3);
+  assert.ok(s0.some(p => p.v < 145), 'counted as one beat, the gap would pull it down (' + s0.map(p => p.v.toFixed(0)) + ')');
+});
+
+test('ramp: a step moved out of lost signal needs a window with beats in it', () => {
+  // 160 bpm; no beats 138-176 s (strap off), lost-contact span 170-185 s covering the end of step 1
+  const t = [], rr = [], rrOk = [], ect = []; let tc = 0;
+  while (tc < 560) { tc += 0.375; if (tc > 138 && tc < 176) continue; t.push(tc); rr.push(t.length > 1 ? 1000 * (tc - t[t.length - 2]) : 375); rrOk.push(rr[rr.length - 1] < 2000 ? 1 : 0); ect.push(0); }
+  const A = { beats: t.length, dur: 560, t, rr, rrOk, ect, lost: [{ t0: 170, t1: 185 }] };
+  const s1 = L.rampTest(A, { end: 540 }).steps[0];
+  assert.equal(s1.flag, 'moved');
+  assert.ok(isFinite(s1.hr) && Math.abs(s1.hr - 160) < 1, `step 1 from a window with beats (${s1.hr}, ${s1.w0}-${s1.w1})`);
+  assert.ok(s1.w0 < 138, 'the window has beats in it');
+});
+
+test('signal gaps are taken out of the beats used for heart-rate averages', async () => {
+  const { readFileSync } = await import('node:fs');
+  const c = readFileSync(new URL('../src/core.js', import.meta.url), 'utf8');
+  const at = c.indexOf('splitPauses(t, rr, rrOk, nn);');
+  assert.ok(at > 0 && /^\s*\/\/[^\n]*\n(\s*\/\/[^\n]*\n)*\s*for \(const g of gaps\) rrOk\[g\.k\] = 0;/.test(c.slice(c.indexOf('\n', at) + 1)), 'gaps cleared from rrOk straight after they are found');
+});
+
+test('recovery with the signal missing at +1 min (recording long enough) says Not measured, not Cut short', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  assert.ok(A.exercise && A.exercise.end != null, 'demo has a recovery');
+  const txt = s => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const meta = { start: Date.now(), ctx: 'training', pos: '', trainType: 'intervals', recovery: 'passive' }, st = { sex: 'M', dob: '1968-01-01' };
+  const T = txt(L.renderReport({ ...A, exercise: { ...A.exercise, at60: NaN, hrr60: NaN, cut: false, after: 300 } }, meta, st, []));
+  assert.match(T, /Heart-rate recovery \(1 min\) Not measured/);
+  assert.match(T, /the strap signal was missing around one minute/);
+  assert.ok(!/Cut short/.test(T), 'not called cut short');
+  const C = txt(L.renderReport({ ...A, exercise: { ...A.exercise, at60: NaN, hrr60: NaN, cut: true, after: 7 } }, meta, st, []));
+  assert.match(C, /Heart-rate recovery \(1 min\) Cut short/);
 });

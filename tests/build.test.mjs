@@ -197,7 +197,7 @@ test('auto-stop does not apply to training: switch hidden, fixed hint, saved set
   assert.equal(autoStopFor('rest', false, 5), 0);
   assert.ok(h.includes("$('.setup .auto').hidden = S.ctx === 'ortho' || S.ctx === 'training';"), 'switch hidden for training');
   assert.ok(h.includes("'Training recordings run until you stop them (maximum 8 hours).'"), 'training hint');
-  assert.match(h, /S\.total >= MAX_SAMPLES\) stopRecording\('limit'\)|stopRecording\('limit'\)/, 'the 8-hour limit still stops every recording');
+  assert.match(h, /if \(S\.total >= MAX_SAMPLES\) stopRecording\('limit'\);/, 'the 8-hour limit still stops every recording');
   const setUpd = h.slice(h.indexOf('function updateAuto()'), h.indexOf("$('#autoOn').onchange"));
   assert.ok(/patchSettings\(\{ autoOn: on, autoMin: S\.autoMinSel \}\)/.test(setUpd), 'the setting is saved only from the switch itself');
 });
@@ -233,4 +233,7 @@ test('breathing in Training: live tile says "moving" instead of waiting for ever
   for (const fs of [7, 9, '10', NaN, null]) assert.ok(!ok(fs), String(fs) + ' refused');
   assert.ok(h.includes('accRateOk(j.accFs)'), 'the import uses the check');
   assert.ok(h.includes('acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }'), 'analysis knows the context');
+  assert.equal((h.match(/await analyze\(/g) || []).length, (h.match(/await analyze\((raw|S\.raw), analyzeOpts\((meta|S\.meta)\)/g) || []).length, 'every analysis gets the same options');
+  assert.ok(h.includes("if (S.raw && wasTraining !== (S.meta.ctx === 'training')) S.analysis = await analyze(S.raw, analyzeOpts(S.meta));"), 'moving a report into or out of Training re-runs the analysis');
+  assert.ok(h.includes("S.ctx === 'training' ? 'The motion sensor could not be started, so breathing will not be measured in this session.'"), 'no ECG breathing promised in Training');
 });

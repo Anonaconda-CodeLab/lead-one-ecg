@@ -83,7 +83,7 @@ Signal processing, reference ranges and their sources are documented in [docs/ME
 
 ## Development
 ```sh
-npm run build   # writes dist/index.html (no dependencies, Node 18+)
+npm run build   # writes dist/index.html (no dependencies, Node 20.12+)
 npm test        # builds and runs the test suite
 ```
 See [CONTRIBUTING.md](CONTRIBUTING.md). Project settings (web address, source-code link, contact address, Ko-fi username,

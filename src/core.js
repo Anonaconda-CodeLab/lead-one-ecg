@@ -468,7 +468,7 @@ function rampTest(A, ER, step = 180) {
     let w0 = Math.max(t0, t1 - 30), w1 = t1, flag = '';
     if (lostIn(w0, w1) > 0) {
       flag = 'lost';
-      for (let e = t1 - 5; e - 30 >= t0 - 1e-6; e -= 5) if (lostIn(e - 30, e) === 0) { w0 = e - 30; w1 = e; flag = 'moved'; break; }
+      for (let e = t1 - 5; e - 30 >= t0 - 1e-6; e -= 5) if (lostIn(e - 30, e) === 0 && isFinite(meanHRBetween(B, e - 30, e).v)) { w0 = e - 30; w1 = e; flag = 'moved'; break; }
     }
     steps.push({ n: k + 1, t0, t1, done, w0, w1, flag, hr: flag === 'lost' ? NaN : meanHRBetween(B, w0, w1).v });
   }
@@ -895,6 +895,9 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   }
   // pauses (> 2 s) on clean intervals
   const { pauses, gaps, longest } = splitPauses(t, rr, rrOk, nn);
+  // a signal gap is not one long beat: left in, a 4-s dropout at 165 bpm would pull a 20-s heart rate down to about
+  // 133 bpm (and the heart rate at Start recovery with it). It stays listed in `gaps` for the report
+  for (const g of gaps) rrOk[g.k] = 0;
 
   // zones
   const age = opts.age || 35, hrMax = 220 - age;

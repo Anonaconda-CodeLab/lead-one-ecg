@@ -3,7 +3,7 @@
 Thanks for your interest in Lead One ECG.
 
 ## Development
-Requirements: Node.js 18 or later. There are no npm dependencies.
+Requirements: Node.js 20.12 or later. There are no npm dependencies.
 
 ```sh
 npm run build   # writes dist/index.html
