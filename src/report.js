@@ -807,6 +807,8 @@ function ctxView(A, ctx) {
   if (A.qtcWin && !('qtcSteady' in A)) V.qtcSteady = ctx === 'training' ? A.qtcWin.strict : A.qtcWin.rest;
   return V;
 }
+/* why a recovery value at +60 or +120 s is missing: the recording ended first, or the strap signal was missing then */
+function recMissing(E, sec) { return E.after < sec ? 'recording too short' : 'strap signal missing at that point'; }
 /* why a ramp test is not valid (rampTest: three completed steps with a measured heart rate and no signal loss, and a
    20-s peak). `plain` = the plain-language card, otherwise the short line on the test panel */
 function rampInvalid(r, plain) {
@@ -1037,8 +1039,8 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
           ${kvT('Recovery type', X.rec === 'active' ? 'Active' : 'Passive', X.rec === 'active' ? 'kept moving (walking, easy spinning)' : 'stood, sat or lay still')}
           ${kvT('End of exercise', clock(E.end), E.src === 'marked' ? 'marked with Start recovery' : 'detected automatically')}
           ${kvT('Heart rate at stop', fmt(E.stop) + ' bpm')}
-          ${kvT('After 1 minute', isFinite(E.at60) ? fmt(E.at60) + ' bpm' : '—', isFinite(E.hrr60) ? 'fall ' + fmt(E.hrr60) + ' bpm' : 'recording too short', G.hrr && (G.hrr.g === 'out' || G.hrr.g === 'bord'))}
-          ${kvT('After 2 minutes', isFinite(E.at120) ? fmt(E.at120) + ' bpm' : '—', isFinite(E.hrr120) ? 'fall ' + fmt(E.hrr120) + ' bpm' : 'recording too short')}
+          ${kvT('After 1 minute', isFinite(E.at60) ? fmt(E.at60) + ' bpm' : '—', isFinite(E.hrr60) ? 'fall ' + fmt(E.hrr60) + ' bpm' : recMissing(E, 60), G.hrr && (G.hrr.g === 'out' || G.hrr.g === 'bord'))}
+          ${kvT('After 2 minutes', isFinite(E.at120) ? fmt(E.at120) + ' bpm' : '—', isFinite(E.hrr120) ? 'fall ' + fmt(E.hrr120) + ' bpm' : recMissing(E, 120))}
           ${E.cut ? kvT('Recording after the mark', fmt(E.after) + ' s', 'cut short: at least 60 s are needed, 2 minutes ideally') : `${kvT('Recovery floor', fmt(E.floor) + ' bpm', 'lowest 10-s heart rate after stopping, at ' + clock(E.floorT))}
           ${kvT('Share of fall in first minute', isFinite(E.pct60) ? fmt(E.pct60) + ' %' : '—', 'of the total fall from stop to floor')}`}</div>
         <div class="panel"><h3>How it is graded</h3>

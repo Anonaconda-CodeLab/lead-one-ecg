@@ -323,6 +323,10 @@ test('recovery with the signal missing at +1 min (recording long enough) says No
   assert.match(T, /Heart-rate recovery \(1 min\) Not measured/);
   assert.match(T, /the strap signal was missing around one minute/);
   assert.ok(!/Cut short/.test(T), 'not called cut short');
+  assert.match(T, /After 1 minute strap signal missing at that point —/, 'recovery page: +1 min not blamed on a short recording');
+  const T2 = txt(L.renderReport({ ...A, exercise: { ...A.exercise, at60: NaN, hrr60: NaN, at120: NaN, hrr120: NaN, cut: false, after: 90 } }, meta, st, []));
+  assert.match(T2, /After 1 minute strap signal missing at that point —/);
+  assert.match(T2, /After 2 minutes recording too short —/, '+2 min after a 90-s recovery: the recording ended first');
   const C = txt(L.renderReport({ ...A, exercise: { ...A.exercise, at60: NaN, hrr60: NaN, cut: true, after: 7 } }, meta, st, []));
   assert.match(C, /Heart-rate recovery \(1 min\) Cut short/);
 });
