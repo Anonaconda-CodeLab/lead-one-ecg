@@ -326,3 +326,18 @@ test('recovery with the signal missing at +1 min (recording long enough) says No
   const C = txt(L.renderReport({ ...A, exercise: { ...A.exercise, at60: NaN, hrr60: NaN, cut: true, after: 7 } }, meta, st, []));
   assert.match(C, /Heart-rate recovery \(1 min\) Cut short/);
 });
+
+test('an invalid ramp test says why: too few steps, signal loss, missing heart rate or no peak', () => {
+  const beats = gaps => { const t = [], rr = [], rrOk = [], ect = []; let tc = 0;
+    while (tc < 560) { tc += 0.375; if (gaps.some(([a, b]) => tc > a && tc < b)) continue; t.push(tc); const r = t.length > 1 ? 1000 * (tc - t[t.length - 2]) : 375; rr.push(r); rrOk.push(r < 2000 ? 1 : 0); ect.push(0); }
+    return { beats: t.length, dur: 560, t, rr, rrOk, ect, lost: [] }; };
+  // heart rate missing over the last 30 s of steps 1 and 2, no lost-contact span: completed but not measurable
+  const r = L.rampTest(beats([[148, 182], [328, 362]]), { end: 545 });
+  assert.equal(r.completed, 3); assert.equal(r.flagged, 0); assert.ok(!r.valid);
+  assert.equal(L.rampInvalid(r, false), 'Test not valid: fewer than three completed steps had a measurable heart rate.');
+  assert.match(L.rampInvalid(r, true), /^Heart-rate data was missing in too many steps/);
+  assert.equal(L.rampInvalid({ completed: 2, max: 160, flagged: 0 }, false), 'Test not valid: fewer than three steps were completed.');
+  assert.match(L.rampInvalid({ completed: 2, max: 160, flagged: 0 }, true), /^Fewer than three 3-minute steps were completed/);
+  assert.equal(L.rampInvalid({ completed: 4, max: 160, flagged: 2 }, false), 'Test not valid: fewer than three completed steps were free of signal loss.');
+  assert.match(L.rampInvalid({ completed: 4, max: NaN, flagged: 0 }, true), /^No 20-second peak heart rate could be measured/);
+});

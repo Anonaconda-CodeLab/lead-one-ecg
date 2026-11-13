@@ -2472,7 +2472,7 @@ function gradeAll(A, meta, R, X = null) {
         text: `The recording stopped ${f(E.after)} s after ${E.src === 'marked' ? 'you tapped Start recovery' : 'you finished'}${meta.stopWhy === 'user' ? ' (Stop was held)' : meta.stopWhy === 'auto' ? ' (auto-stop)' : ''}, so recovery could not be measured. This says nothing about your heart. Keep recording for at least two minutes after Start recovery.` });
       if (X.tt === 'ramp' && X.ramp) { const r = X.ramp;
         add('ramp', { title: 'Ramp test result', short: 'ramp test', value: r.valid ? f(r.max) + ' bpm' : 'Incomplete', g: 'na', what: 'A step test to exhaustion that measures your maximum heart rate directly.',
-          text: !r.valid ? 'Fewer than three 3-minute steps were completed, so the test is not valid. Start easier and increase the load every 3 minutes until you cannot continue.'
+          text: !r.valid ? rampInvalid(r, true)
             : r.plateau ? `Your heart rate levelled off at ${f(r.max)} bpm over the final steps, so this is your true maximum. It now sets your training zones.`
             : `Your heart rate was still rising when you stopped (${f(r.max)} bpm), so your true maximum is probably higher. This value is a floor, not a ceiling.` }); }
       if (X.tt === 'dfa' && X.dfa) { const r = X.dfa;
@@ -2702,6 +2702,21 @@ function ctxView(A, ctx) {
   if (A.qtcWin && !('qtcSteady' in A)) V.qtcSteady = ctx === 'training' ? A.qtcWin.strict : A.qtcWin.rest;
   return V;
 }
+/* why a ramp test is not valid (rampTest: three completed steps with a measured heart rate and no signal loss, and a
+   20-s peak). `plain` = the plain-language card, otherwise the short line on the test panel */
+function rampInvalid(r, plain) {
+  const why = r.completed < 3 ? 'few' : !isFinite(r.max) ? 'peak' : r.flagged ? 'lost' : 'data';
+  return plain ? {
+    few: 'Fewer than three 3-minute steps were completed, so the test is not valid. Start easier and increase the load every 3 minutes until you cannot continue.',
+    lost: 'The strap lost contact during too many steps: fewer than three completed steps had a clean heart rate, so the test is not valid. Moisten the electrodes, keep the strap snug, and repeat the test.',
+    data: 'Heart-rate data was missing in too many steps: fewer than three completed steps had a measurable heart rate, so the test is not valid. Keep the strap in good contact and repeat the test.',
+    peak: 'No 20-second peak heart rate could be measured, so the test is not valid. Keep the strap in good contact and repeat the test.' }[why]
+    : 'Test not valid: ' + {
+    few: 'fewer than three steps were completed.',
+    lost: 'fewer than three completed steps were free of signal loss.',
+    data: 'fewer than three completed steps had a measurable heart rate.',
+    peak: 'no 20-second peak heart rate could be measured.' }[why];
+}
 function renderReport(A, meta0, st, hist = []) {
   _uid = 0;
   const okKey = (o, k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(o, k) ? k : '';
@@ -2877,7 +2892,7 @@ function renderReport(A, meta0, st, hist = []) {
       tests = `<div class="sec-h"><h2>Max HR ramp test</h2><span>3-minute steps to failure</span></div>
         <div class="cols2"><div><table class="ev"><thead><tr><th>Step</th><th>Elapsed</th><th>HR, last 30 s</th></tr></thead><tbody>${thin(r.steps, 14).map(st => `<tr><td class="m">${st.n}${st.done ? '' : ' (stopped)'}</td><td class="m">${mmss(st.t0)}–${mmss(st.t1)}</td><td class="m">${st.flag === 'lost' ? '— <span class="note-p">strap lost contact</span>' : fmt(st.hr) + ' bpm' + (st.flag ? ` <span class="note-p">${mmss(st.w0)}–${mmss(st.w1)}*</span>` : '')}</td></tr>`).join('')}</tbody></table>${r.steps.some(st => st.flag) ? `<p class="note-p" style="margin:1mm 0 0">${r.steps.some(st => st.flag === 'moved') ? '* The strap lost contact in this step’s last 30 s, so its latest clean 30 s are used. ' : ''}Marked steps are left out of the plateau check.</p>` : ''}</div>
         <div class="panel"><h3>Result</h3>${kvT('Steps completed', fmt(r.completed))}${kvT('Failure point', clock(r.fail), r.failSrc === 'marked' ? 'marked with Start recovery' : r.failSrc === 'auto' ? 'detected automatically' : 'end of recording')}${kvT('Measured maximum', isFinite(r.max) ? fmt(r.max) + ' bpm' : '—', 'highest 20-s heart rate before failure')}${kvT('Heart-rate plateau', r.plateau ? 'Yes' : 'No', r.plateau ? 'levelled off: true maximum reached' : 'still rising: the true maximum is higher')}
-        <p class="note-p" style="margin:0">${!r.valid ? (r.completed < 3 ? 'Test not valid: fewer than three steps were completed.' : 'Test not valid: fewer than three completed steps were free of signal loss.') : r.plateau ? 'The measured maximum is used as your working maximum without a margin.' : 'Without a plateau, this value is a floor; the +2 % margin applies.'}</p></div></div>
+        <p class="note-p" style="margin:0">${!r.valid ? rampInvalid(r, false) : r.plateau ? 'The measured maximum is used as your working maximum without a margin.' : 'Without a plateau, this value is a floor; the +2 % margin applies.'}</p></div></div>
         <div class="fig"><div class="sec-h"><h2>Heart rate through the steps</h2><span>Line = 10-s heart rate · bars = each step’s value, over the 30 s it comes from${(A.lost || []).length ? ' · shaded = strap lost contact' : ''}</span></div>${rampChart(A, r, startMs)}</div>`; }
     if (X.tt === 'lthr' && X.lt) { const r = X.lt;
       tests = `<div class="sec-h"><h2>LTHR test</h2><span>30-minute time trial</span></div>
