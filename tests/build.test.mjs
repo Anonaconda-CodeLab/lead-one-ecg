@@ -216,3 +216,21 @@ test('Stop held in the first 2 minutes of recovery asks once more; the finish sc
   assert.ok(h.includes("stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : ''"), 'and survives export and re-import');
   assert.ok(h.includes("stopHeld(); }, 1200)"), 'the Stop button goes through the guard');
 });
+
+test('breathing in Training: live tile says "moving" instead of waiting for ever; exports keep the H10 motion data', () => {
+  const h = distHtml();
+  const live = new Function('return ' + h.match(/function liveBrText\([^)]*\) \{[\s\S]*?\n\}/)[0])();
+  assert.equal(live(true, 14.24, true, 'training'), '14.2<small>/min</small>');
+  assert.equal(live(true, null, true, 'training'), 'moving', 'training, 30 s of motion data, no rhythm');
+  assert.equal(live(true, null, false, 'training'), '…', 'still collecting');
+  assert.equal(live(true, null, true, 'rest'), '…', 'at rest it keeps waiting for a still stretch');
+  assert.equal(live(false, null, true, 'rest'), 'n/a');
+  // the motion-data rates an export may carry include the H10's 25 Hz averaged by 3 (8.33 Hz), as saved by JSON
+  const rates = h.match(/const ACC_RATES = (\[[^\]]*\]);/)[1];
+  const ok = new Function(`const ACC_RATES = ${rates}; ${h.match(/const ACC_FS = [^\n]*/)[0]} ${h.match(/const accRateOk = [^\n]*/)[0]} return accRateOk;`)();
+  assert.ok(ok(JSON.parse(JSON.stringify(25 / 3))), '8.333… Hz accepted');
+  for (const fs of [10, 12.5, 20]) assert.ok(ok(fs), fs + ' Hz accepted');
+  for (const fs of [7, 9, '10', NaN, null]) assert.ok(!ok(fs), String(fs) + ' refused');
+  assert.ok(h.includes('accRateOk(j.accFs)'), 'the import uses the check');
+  assert.ok(h.includes('acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }'), 'analysis knows the context');
+});

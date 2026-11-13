@@ -554,8 +554,8 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <p>Moisten the electrodes and wear the strap (the H10 sleeps when it is not touching skin). Close other apps connected to it, and try again after toggling Bluetooth.</p>
 <h3>&quot;Weak&quot; or &quot;Noisy&quot; signal</h3>
 <p>Moisten the electrodes again, tighten the strap, and keep still. A worn strap or an old battery also weakens the signal.</p>
-<h3>Breathing shows &quot;…&quot; or &quot;n/a&quot;</h3>
-<p>Breathing appears after about 30 seconds of still recording. It is measured from chest movement when available, otherwise estimated from the ECG.</p>
+<h3>Breathing shows &quot;…&quot;, &quot;moving&quot; or &quot;n/a&quot;</h3>
+<p>Breathing appears after about 30 seconds of still recording. It is measured from chest movement when available, otherwise estimated from the ECG. During <b>Training</b> it shows <b>moving</b> when your chest moves too much to pick out your breathing (cycling and running usually do), and the report says &quot;Not measured&quot;: an estimate from the ECG isn't reliable during exercise.</p>
 <h3>The report says recovery was not measured, or cut short</h3>
 <p><b>Not measured:</b> the recording ended while you were still exercising. Tap <b>Start recovery</b> when you stop, and keep recording for at least 2 minutes. <b>Cut short:</b> you tapped Start recovery, but the recording stopped less than a minute later, so there was nothing to measure; the report says how many seconds were recorded and why it stopped.</p>
 <h2>Privacy</h2>
@@ -1653,9 +1653,12 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   };
   const accSec = opts.acc && opts.acc.data ? opts.acc.data.length / 3 / opts.acc.fs : 0;
   const accB = accSec >= 30 ? accBreathing(opts.acc, 0.05, Math.min(60, accSec - 0.5)) : null;
-  const breathSource = accB ? 'acc' : 'ecg';
-  const breath = accB || breathingRate(ampT, ampV, H.series.T, H.series.V, dur, 0.1);
-  const breathSlow = accB || breathingRate(ampT, ampV, H.series.T, H.series.V, dur, 0.05);
+  // the ECG estimate relies on heart rate rising and falling with each breath, which all but disappears during
+  // exercise (a 13 Nov ride gave 6-27/min): in training, breathing comes from chest movement or is not measured
+  const ecgBreath = opts.ctx !== 'training';
+  const breathSource = accB ? 'acc' : ecgBreath ? 'ecg' : 'none';
+  const breath = accB || (ecgBreath ? breathingRate(ampT, ampV, H.series.T, H.series.V, dur, 0.1) : null);
+  const breathSlow = accB || (ecgBreath ? breathingRate(ampT, ampV, H.series.T, H.series.V, dur, 0.05) : null);
   const stillPct = accStillness(opts.acc);
   const breathShare = shareFor(breath), breathShareSlow = shareFor(breathSlow);
   // exercise response: 10-s heart rate, peak, recovery at 60 / 120 s
@@ -2431,6 +2434,9 @@ function gradeAll(A, meta, R, X = null) {
     else if (train) { g = 'na'; t = 'Breathing speeds up during exercise, so it is not graded.'; }
     else { g = v > 24 ? 'out' : v > 20 ? 'bord' : 'norm'; t = { norm: v < 8 ? 'Very slow breathing, which is normal when deeply relaxed or asleep. It does make the LF/HF ratio unreliable.' : 'A normal resting breathing rate.', bord: 'Slightly fast for rest. This can reflect anxiety, recent activity, heat or congestion.', out: 'Fast breathing at rest. If you were resting and felt short of breath, seek medical advice.' }[g]; }
     add('br', { title: 'Breathing rate', short: 'breathing rate', value: f(v, 1) + ' /min', g, what: A.breathSource === 'acc' ? 'Breaths per minute, measured from the rise and fall of your chest by the motion sensor in the strap.' : 'Breaths per minute, estimated indirectly from small changes in the ECG that follow your breathing.' + (A.hasAcc ? ' The motion sensor could not be used because you were moving.' : ''), text: t }); }
+  else if (A.breathSource === 'none') add('br', { title: 'Breathing rate', short: 'breathing rate', value: 'Not measured', g: 'na',
+    what: 'Breaths per minute, measured from the rise and fall of your chest by the motion sensor in the strap.',
+    text: (A.hasAcc ? 'Your chest moved too much during the session (pedalling or running rocks the upper body), so the motion sensor could not pick out your breathing. ' : 'The motion sensor was not available, so breathing could not be measured. ') + 'An estimate from the ECG isn\u2019t reliable during exercise, so none is shown.' });
   if (med && isFinite(A.breathShare)) { const v = A.breathShare, g = v >= 60 ? 'fav' : v >= 35 ? 'norm' : 'bord';
     add('coupling', { title: 'Breathing–heart coupling', short: 'breathing–heart coupling', value: f(v) + ' %', g, what: 'How closely your heart rate rose and fell with each breath. This is the main goal of paced breathing.', text: { fav: 'Your heart rate followed your breathing very closely, which is exactly what paced breathing aims for.', norm: 'Moderate coupling. Smooth, unhurried breaths at about 6 per minute usually increase it.', bord: 'Heart rate and breathing were only loosely linked. Try slower, even breaths, for example 5 seconds in and 5 seconds out.' }[g] }); }
   // exercise (training context, or any recording that reached a hard effort)
@@ -2742,7 +2748,7 @@ function renderReport(A, meta0, st, hist = []) {
     { label: 'HF power', key: '0.15–0.40 Hz', v: A.fd ? A.fd.hf : NaN, d: 0, u: 'ms²' },
     { label: 'LF/HF ratio', key: 'LF/HF', v: A.lfhf, d: 2, u: '', refNote: A.breath && A.breath.median < 9 ? 'not interpretable: slow breathing' : '' },
     { label: 'HF share', key: 'meanHF', v: A.hfPct, d: 0, u: '%', lo: 0, hi: 90, max: 100 },
-    { gk: 'br', label: 'Breathing rate', key: A.breathSource === 'acc' ? 'chest movement' : 'ECG-derived', v: A.breath ? A.breath.median : NaN, d: 1, u: '/min', lo: isTraining ? null : 8, hi: isTraining ? null : 20, refNote: isMed ? 'slow breathing expected' : '' },
+    { gk: 'br', label: 'Breathing rate', key: A.breathSource === 'acc' ? 'chest movement' : A.breathSource === 'none' ? 'not measured while moving' : 'ECG-derived', v: A.breath ? A.breath.median : NaN, d: 1, u: '/min', lo: isTraining ? null : 8, hi: isTraining ? null : 20, refNote: isMed ? 'slow breathing expected' : '' },
     { gk: 'coupling', label: 'Breathing-linked HRV', key: 'coupling', v: A.breathShare, d: 0, u: '%' },
     { gk: 'qrs', label: 'QRS duration', key: 'meanQRS', v: A.qrs, d: 0, u: 'ms', lo: 50, hi: 100 },
     { gk: 'qtc', label: 'QTc (Bazett)', key: qGraded ? 'steady stretches' : 'meanQTc', v: qB, d: 0, u: 'ms', lo: qGraded ? R.qtc[0] : null, hi: qGraded ? R.qtc[1] : null,
@@ -2806,7 +2812,7 @@ function renderReport(A, meta0, st, hist = []) {
       kpi('Mean heart rate', fmt(A.meanHR), 'bpm', gc('hr'), 'range ' + fmt(A.minHR.v) + '–' + fmt(A.maxHR.v) + ' bpm'),
       kpi('RMSSD', fmt(A.rmssd, 1), 'ms', gc('rmssd') + ' ' + bChip(A.rmssd, 'rmssd'), hrvRef ? 'population ' + hrvRef[0] + '–' + hrvRef[1] + ' ms' : srcTxt),
       kpi('SDNN', fmt(A.sdnn, 1), 'ms', gc('sdnn'), 'ln RMSSD ' + fmt(A.lnRmssd, 2)),
-      kpi('Breathing rate', A.breath ? fmt(A.breath.median, 1) : '—', '/min', A.breath ? gc('br') : chip('info', 'Not estimated'), A.breathSource === 'acc' ? 'measured from chest movement' : 'ECG-derived estimate'),
+      kpi('Breathing rate', A.breath ? fmt(A.breath.median, 1) : '—', '/min', A.breath ? gc('br') : chip('info', 'Not estimated'), A.breathSource === 'acc' ? 'measured from chest movement' : A.breathSource === 'none' ? 'chest moving too much' : 'ECG-derived estimate'),
       qtcTile(' ms'),
       rhythmTile];
   }
@@ -3053,7 +3059,7 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
       <p><b>Beat detection.</b> Pan–Tompkins-type energy detector with adaptive thresholds and search-back; R-peak times refined to sub-sample precision by parabolic interpolation.</p>
       <p><b>Ectopic beats.</b> Flagged when a beat is more than 20 % premature and followed by a compensatory interval, or, if it arrives on time, only when its QRS clearly differs from the surrounding beats (local template; correlation below 0.6 or abnormal amplitude). A late beat followed by an early one, together two ordinary intervals, is a timing slip, not an extra beat; beats with a QRS under 30 % of the usual size are not judged. Beats within 3 s form one event; only consecutive ectopic beats count as a run.</p>
       <p><b>HRV.</b> Time-domain indices follow Task Force (1996) definitions. Spectral analysis: 4 Hz resampling, linear detrending, Hann window, 5-minute segments; LF 0.04–0.15 Hz, HF 0.15–0.40 Hz. Strap intervals deviating more than 20 % from the local median are removed.</p>
-      <p><b>Breathing.</b> Measured from the strap’s accelerometer (chest wall movement, 12.5 Hz after averaging): spectral peak of the three axes in 60-s windows, 3–42 breaths/min; windows with body movement or no clear rhythm are rejected. If fewer than 40 % of windows are usable, breathing is estimated instead from R-wave amplitude modulation and respiratory sinus arrhythmia (6–42/min at rest). Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.</p>
+      <p><b>Breathing.</b> Measured from the strap’s accelerometer (chest wall movement, about 8–10 Hz after averaging; 8.3 Hz on the H10): spectral peak of the three axes in 60-s windows, 3–42 breaths/min; windows with body movement or no clear rhythm are rejected. If fewer than 40 % of windows are usable, breathing is estimated instead (except during training, where it is reported as not measured) from R-wave amplitude modulation and respiratory sinus arrhythmia (6–42/min at rest). Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.</p>
       <p><b>Waveform.</b> Beats averaged in 5-minute blocks and upsampled; QRS onset by slope threshold, QRS end by following each QRS wave until its slope levels off (either polarity; not measured if no clear end), T end by the tangent method. T-wave direction comes from the averaged beats (upright when above baseline by more than 5 % of the QRS size), not single beats. QTc is the median of per-beat values; it is graded only on steady stretches (at least 60 s at 50–100 bpm, after 150 s in that range; at rest the start of the recording counts as settled), using Bazett, and is otherwise shown without a grade or reference range.</p>
       <p><b>Grading.</b> HRV norms are approximate, based on Nunan et al. 2010 (RMSSD 42 ± 15 ms, SDNN 50 ± 16 ms) adjusted for age, sex and position after Voss et al. 2015: below the 5th percentile = outside normal range, 5th–15th = borderline, above the 75th = favourable. QTc limits follow Goldenberg et al. 2006 (men ≤ 430 ms normal, 431–450 borderline; women ≤ 450, 451–470); on the short side 320–329 ms is borderline and below 320 outside; applied to the Bazett value from steady stretches. Heart-rate recovery: 12 bpm or less at 1 minute is outside the normal range (Cole et al. 1999).</p>
       <p><b>Training.</b> Working maximum heart rate is the highest 20-s rolling mean from any training recording plus 2 % (a ramp-test plateau is used as measured); Tanaka (208 − 0.7 × age) is used only without training data. Fox, Tanaka, Nes and Gulati (women) are shown for context; a maximum more than 12 % above Tanaka is flagged. Recovery is measured from the end of exercise (marked, or the start of the final sustained fall) at 1 and 2 min; limits: active ≤ 12 bpm, passive ≤ 18 bpm at 1 min. DFA α1 (detrended fluctuation analysis, box sizes 4–16 beats) is computed in 2-min windows every 10 s from the strap's beat intervals (artifacts removed; windows with over 5 % artifacts excluded); a line fitted to α1 against heart rate on its falling part gives HRVT1 at α1 = 0.75 and HRVT2 at 0.5 (Rogers et al. 2021). LTHR is the mean heart rate of the last 20 min of a 30-min time trial (gaps excluded; at least 80 % coverage); the effort is timed from when heart rate first reaches 90 % of that value. Threshold zones follow Friel. Session maximum and minimum heart rate are taken from a 5-beat running median of normal beats, so a single stray interval cannot set them.</p>
@@ -3231,6 +3237,10 @@ const ECG_STOP = new Uint8Array([0x03, 0x00]);
 const REC_FORMATS = ['lead-one-ecg', 'h10-ecg-studio'], HIST_FORMATS = ['lead-one-ecg-history', 'h10-ecg-studio-history'];
 /* Accelerometer (PMD measurement type 2): sample rate, 16-bit resolution, ±8 g range. Output in milli-g. */
 const ACC_RATES = [25, 50, 100, 200];
+// motion-data rates a saved recording can carry: each strap rate averaged down to about 10 Hz (25 Hz -> 8.33 Hz on
+// the H10), plus the older fixed list. An export at any other rate opens without its motion data
+const ACC_FS = [...new Set([10, 12.5, 20, 25, 50, 100, 200, ...ACC_RATES.map(hz => hz / Math.max(1, Math.round(hz / 10)))])];
+const accRateOk = fs => typeof fs === 'number' && ACC_FS.some(r => Math.abs(r - fs) < 1e-6);
 const accStartCmd = hz => new Uint8Array([0x02, 0x02, 0x00, 0x01, hz & 0xff, hz >> 8, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00]);
 const ACC_STOP = new Uint8Array([0x03, 0x02]);
 const ACC_GAP = -32768, ACC_CHUNK = 1200;   // stored samples per chunk (3 axes each)
@@ -3702,6 +3712,13 @@ function onAcc(v) {
     }
   }
 }
+// live breathing tile: chest movement only. In training, once there are 30 s of motion data and still no clear
+// breathing rhythm, the chest is moving too much (pedalling, running): say so rather than waiting for ever
+function liveBrText(on, br, enough, ctx) {
+  if (br) return br.toFixed(1) + '<small>/min</small>';
+  if (!on) return ctx === 'training' ? '—' : 'n/a';
+  return enough && ctx === 'training' ? 'moving' : '…';
+}
 function liveBreathing() {
   const A = S.acc; if (!A.fs || A.ringN < 30 * A.fs) return null;
   const n = Math.floor(Math.min(A.ringN, 45 * A.fs)), d = new Int16Array(3 * n);
@@ -3958,7 +3975,7 @@ function tickRec() {
   $('#recHR').innerHTML = S.hr ? S.hr + '<small>bpm</small>' : '--';
   tickTraining(); cueDrift();
   if (Date.now() - S.acc.lastBrCalc > 5000) { S.acc.lastBrCalc = Date.now(); S.acc.liveBr = liveBreathing(); }
-  $('#recBr').innerHTML = !S.acc.on ? 'n/a' : S.acc.liveBr ? S.acc.liveBr.toFixed(1) + '<small>/min</small>' : '…';
+  $('#recBr').innerHTML = liveBrText(S.acc.on, S.acc.liveBr, S.acc.fs && S.acc.ringN >= 30 * S.acc.fs, S.ctx);
   let mn = Infinity, mx = -Infinity; const L = S.live.length;
   for (let i = 0; i < 2 * FS; i++) { const v = S.live[(S.livePos - 1 - i + L) % L]; if (v < mn) mn = v; if (v > mx) mx = v; }
   const p2p = mx - mn, q = $('#recQual');
@@ -4029,7 +4046,7 @@ async function runReport(raw, meta) {
   show('scrAnalyze'); $('#anBar').style.width = '2%';
   try {
     const st = getSettings(), age = ageAt(st.dob, meta.start);
-    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark }, (p, step) => { $('#anBar').style.width = Math.round(p * 100) + '%'; $('#anStep').textContent = step; });
+    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }, (p, step) => { $('#anBar').style.width = Math.round(p * 100) + '%'; $('#anStep').textContent = step; });
     S.analysis = A; S.meta = meta; S.raw = raw;
     if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));
     await renderInto();
@@ -4121,7 +4138,7 @@ async function openFile(file) {
       if (u8.length % 4 || u8.length / 4 > MAX_SAMPLES) throw new Error('This recording file is damaged.');
       raw = new Int32Array(u8.buffer);
       meta = cleanMeta(Object.assign({}, j, { source: file.name }));
-      if (typeof j.acc === 'string' && j.acc && [10, 12.5, 20, 25, 50, 100, 200].includes(j.accFs)) {
+      if (typeof j.acc === 'string' && j.acc && accRateOk(j.accFs)) {
         const a8 = unb64(j.acc); if (a8.length % 6 === 0 && a8.length / 6 <= 8 * 3600 * j.accFs + 100) meta._acc = { fs: j.accFs, t0: Math.max(0, +j.accT0 || 0), data: new Int16Array(a8.buffer) };
       }
     } else {
@@ -4179,7 +4196,7 @@ async function autoSummary() {
   box.hidden = false; box.innerHTML = '<p class="sum-wait">Analysing… <span id="sumPct">0</span> %</p>';
   try {
     const st = getSettings(), age = ageAt(st.dob, meta.start);
-    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark }, p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
+    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }, p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
     if (S.meta !== meta) return;   // moved on to something else meanwhile
     S.analysis = A;
     if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));

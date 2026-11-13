@@ -12,6 +12,10 @@ const ECG_STOP = new Uint8Array([0x03, 0x00]);
 const REC_FORMATS = ['lead-one-ecg', 'h10-ecg-studio'], HIST_FORMATS = ['lead-one-ecg-history', 'h10-ecg-studio-history'];
 /* Accelerometer (PMD measurement type 2): sample rate, 16-bit resolution, ±8 g range. Output in milli-g. */
 const ACC_RATES = [25, 50, 100, 200];
+// motion-data rates a saved recording can carry: each strap rate averaged down to about 10 Hz (25 Hz -> 8.33 Hz on
+// the H10), plus the older fixed list. An export at any other rate opens without its motion data
+const ACC_FS = [...new Set([10, 12.5, 20, 25, 50, 100, 200, ...ACC_RATES.map(hz => hz / Math.max(1, Math.round(hz / 10)))])];
+const accRateOk = fs => typeof fs === 'number' && ACC_FS.some(r => Math.abs(r - fs) < 1e-6);
 const accStartCmd = hz => new Uint8Array([0x02, 0x02, 0x00, 0x01, hz & 0xff, hz >> 8, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00]);
 const ACC_STOP = new Uint8Array([0x03, 0x02]);
 const ACC_GAP = -32768, ACC_CHUNK = 1200;   // stored samples per chunk (3 axes each)
@@ -483,6 +487,13 @@ function onAcc(v) {
     }
   }
 }
+// live breathing tile: chest movement only. In training, once there are 30 s of motion data and still no clear
+// breathing rhythm, the chest is moving too much (pedalling, running): say so rather than waiting for ever
+function liveBrText(on, br, enough, ctx) {
+  if (br) return br.toFixed(1) + '<small>/min</small>';
+  if (!on) return ctx === 'training' ? '—' : 'n/a';
+  return enough && ctx === 'training' ? 'moving' : '…';
+}
 function liveBreathing() {
   const A = S.acc; if (!A.fs || A.ringN < 30 * A.fs) return null;
   const n = Math.floor(Math.min(A.ringN, 45 * A.fs)), d = new Int16Array(3 * n);
@@ -739,7 +750,7 @@ function tickRec() {
   $('#recHR').innerHTML = S.hr ? S.hr + '<small>bpm</small>' : '--';
   tickTraining(); cueDrift();
   if (Date.now() - S.acc.lastBrCalc > 5000) { S.acc.lastBrCalc = Date.now(); S.acc.liveBr = liveBreathing(); }
-  $('#recBr').innerHTML = !S.acc.on ? 'n/a' : S.acc.liveBr ? S.acc.liveBr.toFixed(1) + '<small>/min</small>' : '…';
+  $('#recBr').innerHTML = liveBrText(S.acc.on, S.acc.liveBr, S.acc.fs && S.acc.ringN >= 30 * S.acc.fs, S.ctx);
   let mn = Infinity, mx = -Infinity; const L = S.live.length;
   for (let i = 0; i < 2 * FS; i++) { const v = S.live[(S.livePos - 1 - i + L) % L]; if (v < mn) mn = v; if (v > mx) mx = v; }
   const p2p = mx - mn, q = $('#recQual');
@@ -810,7 +821,7 @@ async function runReport(raw, meta) {
   show('scrAnalyze'); $('#anBar').style.width = '2%';
   try {
     const st = getSettings(), age = ageAt(st.dob, meta.start);
-    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark }, (p, step) => { $('#anBar').style.width = Math.round(p * 100) + '%'; $('#anStep').textContent = step; });
+    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }, (p, step) => { $('#anBar').style.width = Math.round(p * 100) + '%'; $('#anStep').textContent = step; });
     S.analysis = A; S.meta = meta; S.raw = raw;
     if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));
     await renderInto();
@@ -902,7 +913,7 @@ async function openFile(file) {
       if (u8.length % 4 || u8.length / 4 > MAX_SAMPLES) throw new Error('This recording file is damaged.');
       raw = new Int32Array(u8.buffer);
       meta = cleanMeta(Object.assign({}, j, { source: file.name }));
-      if (typeof j.acc === 'string' && j.acc && [10, 12.5, 20, 25, 50, 100, 200].includes(j.accFs)) {
+      if (typeof j.acc === 'string' && j.acc && accRateOk(j.accFs)) {
         const a8 = unb64(j.acc); if (a8.length % 6 === 0 && a8.length / 6 <= 8 * 3600 * j.accFs + 100) meta._acc = { fs: j.accFs, t0: Math.max(0, +j.accT0 || 0), data: new Int16Array(a8.buffer) };
       }
     } else {
@@ -960,7 +971,7 @@ async function autoSummary() {
   box.hidden = false; box.innerHTML = '<p class="sum-wait">Analysing… <span id="sumPct">0</span> %</p>';
   try {
     const st = getSettings(), age = ageAt(st.dob, meta.start);
-    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark }, p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
+    const A = await analyze(raw, { age: age || 35, rr: meta.rr, acc: meta._acc, recMark: meta.recMark, ctx: meta.ctx }, p => { const e = $('#sumPct'); if (e) e.textContent = Math.round(p * 100); });
     if (S.meta !== meta) return;   // moved on to something else meanwhile
     S.analysis = A;
     if (!meta.sample && A.dur - A.gapSec >= 55) await putHistory(historyEntry(A, meta));

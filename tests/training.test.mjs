@@ -260,3 +260,11 @@ test('recovery at +60 s and +120 s reads across a few seconds of lost signal', (
   const E2 = L.exerciseResponse({ beats: T2.length, t: T2, rr: rr.filter((_, i) => far[i]), rrOk: OK2, ect: ect.filter((_, i) => far[i]), dur: 900 }, 600);
   assert.ok(Number.isNaN(E2.at60), 'no +60 s value across a 70 s gap');
 });
+
+test('Training: no ECG-derived breathing estimate; the report says "Not measured" instead', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  assert.equal(A.breathSource, 'none'); assert.equal(A.breath, null);
+  const R = await analyze(d.raw, { age: 45, rr: d.rr });
+  assert.equal(R.breathSource, 'ecg', 'other contexts keep the ECG fallback');
+});

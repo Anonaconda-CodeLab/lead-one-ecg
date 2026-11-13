@@ -9,7 +9,7 @@ browser; the relevant code is in `src/core.js` (signal processing) and `src/repo
 |---|---|---|---|
 | ECG | Polar H10, PMD measurement type 0 | 130 Hz, µV | Beat detection, waveform, ectopics, breathing fallback |
 | Beat intervals | Bluetooth Heart Rate Measurement RR field | 1/1024 s | Heart rate variability (preferred source) |
-| Acceleration | PMD measurement type 2, ±8 g, 16-bit | 25–200 Hz, averaged to ≈10–12.5 Hz | Breathing rate, movement |
+| Acceleration | PMD measurement type 2, ±8 g, 16-bit | 25–200 Hz, averaged to ≈8–10 Hz (8.3 Hz on the H10) | Breathing rate, movement |
 
 Pauses and Bluetooth drop-outs are stored as gaps and excluded from every calculation. The accelerometer stream is kept
 aligned to the ECG timeline (gaps padded, clock drift corrected to within 1 s).
@@ -54,7 +54,9 @@ ectopic beats are called a couplet or run. Pauses are clean RR intervals longer 
    (peak/median band power < 6). The result is used if at least 40 % of windows are valid.
 2. **ECG-derived fallback.** Combined spectra of R-wave amplitude modulation and respiratory sinus arrhythmia in 90-s
    windows; at rest the search starts at 6 breaths/min to avoid the ≈0.1 Hz blood-pressure (Mayer) wave, which is strong
-   when standing. Paced-breathing (meditation) recordings search from 3 breaths/min.
+   when standing. Paced-breathing (meditation) recordings search from 3 breaths/min. **Not used in Training:** respiratory sinus
+   arrhythmia all but disappears during exercise, and the estimate wanders (6–27/min on one ride), so when chest
+   movement can't be used, breathing is reported as not measured.
 
 Breathing-linked HRV is the share of 0.033–0.4 Hz HRV power within ±0.03 Hz of the breathing frequency.
 

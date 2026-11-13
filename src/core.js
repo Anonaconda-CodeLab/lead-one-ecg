@@ -923,9 +923,12 @@ async function analyze(raw, opts = {}, progress = () => {}) {
   };
   const accSec = opts.acc && opts.acc.data ? opts.acc.data.length / 3 / opts.acc.fs : 0;
   const accB = accSec >= 30 ? accBreathing(opts.acc, 0.05, Math.min(60, accSec - 0.5)) : null;
-  const breathSource = accB ? 'acc' : 'ecg';
-  const breath = accB || breathingRate(ampT, ampV, H.series.T, H.series.V, dur, 0.1);
-  const breathSlow = accB || breathingRate(ampT, ampV, H.series.T, H.series.V, dur, 0.05);
+  // the ECG estimate relies on heart rate rising and falling with each breath, which all but disappears during
+  // exercise (a 13 Nov ride gave 6-27/min): in training, breathing comes from chest movement or is not measured
+  const ecgBreath = opts.ctx !== 'training';
+  const breathSource = accB ? 'acc' : ecgBreath ? 'ecg' : 'none';
+  const breath = accB || (ecgBreath ? breathingRate(ampT, ampV, H.series.T, H.series.V, dur, 0.1) : null);
+  const breathSlow = accB || (ecgBreath ? breathingRate(ampT, ampV, H.series.T, H.series.V, dur, 0.05) : null);
   const stillPct = accStillness(opts.acc);
   const breathShare = shareFor(breath), breathShareSlow = shareFor(breathSlow);
   // exercise response: 10-s heart rate, peak, recovery at 60 / 120 s

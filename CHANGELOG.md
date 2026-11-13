@@ -21,6 +21,13 @@
   it again, so a stray hold can't cut the recovery short. Why a recording stopped is saved with it.
 - Recovery: a few seconds of lost signal right at +1 or +2 minutes no longer leaves that value blank; it is read from
   the heart rates on either side (each at most 10 seconds away).
+- **Breathing during Training:** when pedalling or running moves the chest too much for the motion sensor, the live
+  display now says "moving" instead of "…" for the whole session, and the report says "Not measured" instead of an
+  estimate from the ECG, which isn't reliable during exercise (a 13 Nov ride showed 21.2/min from estimates ranging
+  6–27/min).
+- **Opening a saved recording file kept its motion data only at some rates:** the H10's motion data (8.3 samples a
+  second) was dropped, so breathing and "time still" changed when an export was reopened. Fixed; the Methods page
+  also gave the wrong rate.
 - Manual: new **Common questions** section, starting with "Why only the Polar H10?".
 - Auto-stop no longer applies to **Training**: the switch is hidden and training recordings run until you stop them
   (maximum 8 hours), so a short auto-stop set for morning readings can't cut a session short. Your auto-stop setting is

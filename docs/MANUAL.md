@@ -256,9 +256,10 @@ it, and try again after toggling Bluetooth.
 ### "Weak" or "Noisy" signal
 Moisten the electrodes again, tighten the strap, and keep still. A worn strap or an old battery also weakens the signal.
 
-### Breathing shows "…" or "n/a"
+### Breathing shows "…", "moving" or "n/a"
 Breathing appears after about 30 seconds of still recording. It is measured from chest movement when available, otherwise
-estimated from the ECG.
+estimated from the ECG. During **Training** it shows **moving** when your chest moves too much to pick out your breathing (cycling
+and running usually do), and the report says "Not measured": an estimate from the ECG isn't reliable during exercise.
 
 ### The report says recovery was not measured, or cut short
 **Not measured:** the recording ended while you were still exercising. Tap **Start recovery** when you stop, and keep
