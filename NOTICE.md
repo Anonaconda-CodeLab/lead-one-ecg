@@ -23,12 +23,19 @@ The **Android app** (built from `mobile/`) also includes:
 |---|---|---|
 | [Capacitor](https://capacitorjs.com) (`@capacitor/android`, `@capacitor/core`) | 8.5.3 | MIT |
 | [@capacitor-community/bluetooth-le](https://github.com/capacitor-community/bluetooth-le) | 8.3.0 | MIT |
-| AndroidX libraries (AppCompat, Core, CoordinatorLayout, Core SplashScreen, Activity, WebKit) | see `mobile/android/variables.gradle` | Apache-2.0 |
+| AndroidX libraries (AppCompat, Core, Core KTX, Core SplashScreen, Activity, Fragment, CoordinatorLayout, WebKit) | see `mobile/android/variables.gradle` | Apache-2.0 |
 | Kotlin standard library | 2.2.20 | Apache-2.0 |
-| Gradle wrapper (`mobile/android/gradle/wrapper`, build tool only) | | Apache-2.0 |
+| Apache Cordova Android framework (in Capacitor; with its [NOTICE](src/vendor/NOTICE-cordova.txt)) | 14.0.1 | Apache-2.0 |
+| Gradle wrapper (`mobile/android/gradle/wrapper`, build tool only, not in the app) | | Apache-2.0 |
 
-MIT and Apache-2.0 are compatible with the GNU GPL v3, under which the app as a whole is distributed. Their licence
-texts travel with each package (`mobile/node_modules/*/LICENSE`, and the AndroidX and Kotlin artifacts).
+MIT and Apache-2.0 are compatible with the GNU GPL v3, under which the app as a whole is distributed.
+
+The full licence texts ship with the app, in three places: the **Licences** screen (Settings > About; the Android
+components are listed there in the Android app only), `licences.txt` beside the page (the typefaces) and
+`licences-android.txt` (the Android components), both also inside the APK. Their sources are in this repository:
+[src/fonts/](src/fonts) for the OFL texts and [src/vendor/](src/vendor) for Capacitor's and the Bluetooth plugin's MIT
+licences, the Apache License 2.0 and Apache Cordova's NOTICE. A test fails if a font or licence file is added without
+an entry.
 
 No other third-party code is included. The Bluetooth protocol implementation is written from Polar's publicly documented
 Measurement Data (PMD) specification in the [Polar BLE SDK](https://github.com/polarofficial/polar-ble-sdk).

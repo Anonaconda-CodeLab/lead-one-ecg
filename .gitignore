@@ -8,7 +8,10 @@
 *.csv
 *.txt
 !src/fonts/*.txt
+!src/vendor/*.txt
 !dist/robots.txt
+!dist/licences.txt
+!dist/licences-android.txt
 LeadOne-ECG-*
 H10-ECG-*
 ECG-*

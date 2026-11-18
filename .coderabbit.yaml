@@ -32,6 +32,9 @@ reviews:
         Focus on: anything that could send data off the device; untrusted text (names, notes, file names, imported
         recordings and history files) reaching the page unescaped; parsing of imported files that could crash, hang
         or run out of memory; and report wording or grading that could falsely alarm or falsely reassure.
+        Licences: every bundled third-party piece (fonts, anything vendored, and the Android app's Capacitor, plugin,
+        Cordova, AndroidX and Kotlin) must have its full licence text in NOTICE.md, on the Licences screen and in
+        licences.txt / licences-android.txt (built by build.mjs from src/fonts and src/vendor). Flag any that is missing.
     - path: "src/core.js"
       instructions: |
         Signal processing and analysis: filters, beat detection, ectopic classification, HRV, waveform measurement

@@ -34,10 +34,55 @@ const about = `<div class="card" id="aboutCard">
       <div><div class="dev-name">About ${APP.APP_NAME}</div><div class="dev-meta">Version ${APP.VERSION}${BUILD ? ` · build ${BUILD}` : ''} · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       ${contact ? `<p class="dev-meta" style="margin:0">Questions or problems: <a href="mailto:${contact}">${contact}</a>. A description or a screenshot is usually enough; please don't send recordings or reports unless you are happy to share them, because they contain your health data.</p>` : ''}
-      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button>${appUrl ? `<a class="btn native-only" href="${appUrl}/android.html?v=${APP.VERSION}" rel="noopener noreferrer">Check for updates</a>` : ''}${repo ? `<a class="btn" href="${repo}" rel="noopener noreferrer">Source code</a>` : ''}<a class="btn web-only" href="/android.html">Android app</a>${kofi ? `<a class="btn coffee" href="${kofi}" rel="noopener noreferrer">☕ Support on Ko-fi</a>` : ''}</div>
+      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><button id="btnLicences" class="btn">Licences</button>${appUrl ? `<a class="btn native-only" href="${appUrl}/android.html?v=${APP.VERSION}" rel="noopener noreferrer">Check for updates</a>` : ''}${repo ? `<a class="btn" href="${repo}" rel="noopener noreferrer">Source code</a>` : ''}<a class="btn web-only" href="/android.html">Android app</a>${kofi ? `<a class="btn coffee" href="${kofi}" rel="noopener noreferrer">☕ Support on Ko-fi</a>` : ''}</div>
     </div>`;
 
 const src = f => readFileSync(join(root, 'src', f), 'utf8');
+const escHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// The licence texts of everything built in: shown on the Licences screen (Settings > About) and written to
+// licences.txt next to the page, which also goes into the APK. Identical texts (the Apache licence) are given once,
+// with every component under them. The studio pattern, as in Flatbed 1.0.3.
+const APACHE = 'Apache License 2.0', MIT = 'MIT', OFL = 'SIL Open Font License 1.1';
+const LICENCES = [
+  ['Instrument Sans typeface', 'fonts/OFL-InstrumentSans.txt', OFL], ['IBM Plex Mono typeface', 'fonts/OFL-IBMPlexMono.txt', OFL]
+];
+// only in the Android app (web users don't get this code): shown on the Licences screen in the app only, and written
+// to licences-android.txt next to the page (which, like everything in dist/, goes into the APK)
+const LICENCES_ANDROID = [
+  ['Capacitor 8.5.3 (@capacitor/android and @capacitor/core)', 'vendor/LICENSE-capacitor.txt', MIT],
+  ['Capacitor Bluetooth Low Energy plugin 8.3.0 (@capacitor-community/bluetooth-le)', 'vendor/LICENSE-bluetooth-le.txt', MIT],
+  ['Apache Cordova Android framework 14.0.1 (in Capacitor)', 'vendor/LICENSE-apache-2.0.txt', APACHE],
+  ['AndroidX libraries (appcompat, core, core-ktx, core-splashscreen, activity, fragment, coordinatorlayout, webkit, and the libraries they use)', 'vendor/LICENSE-apache-2.0.txt', APACHE],
+  ['Kotlin standard library (used by AndroidX and the Bluetooth plugin)', 'vendor/LICENSE-apache-2.0.txt', APACHE],
+  ['Apache Cordova: its NOTICE file', 'vendor/NOTICE-cordova.txt', 'Apache License 2.0 notice']
+];
+const rule = '='.repeat(78);
+function licenceGroups(list, prefix) {
+  const groups = [];
+  for (const [name, f, licence] of list) {
+    const text = src(f).replace(/\r\n/g, '\n').trim();
+    let g = groups.find(x => x.text === text);
+    if (!g) groups.push(g = { id: `${prefix}${groups.length + 1}`, names: [], text, items: [] });
+    g.names.push(name); g.items.push([name, licence]);
+  }
+  return groups;
+}
+const licenceText = (list, intro) => intro + licenceGroups(list, 'x').map(g => `${rule}\n${g.names.join('\n')}\n${rule}\n\n${g.text}\n`).join('\n');
+// the Licences screen: a short list first (each component and its licence, tapping one jumps to its text), then the
+// texts, each followed by a way back to the list; the Android app's own components only in the app (native-only)
+function licencesHtml() {
+  const web = licenceGroups(LICENCES, 'lic-'), and = licenceGroups(LICENCES_ANDROID, 'lic-a');
+  const list = groups => '<ul class="lic-list">' + groups.flatMap(g => g.items.map(([n, l]) =>
+    `<li><a href="#${g.id}" data-lic="${g.id}">${escHtml(n)}</a><span>${escHtml(l)}</span></li>`)).join('') + '</ul>';
+  const texts = groups => groups.map(g => `<section class="lic" id="${g.id}" tabindex="-1"><h3>${g.names.map(escHtml).join('<br>')}</h3>` +
+    `<pre class="licences" translate="no">${escHtml(g.text)}</pre><a class="lic-top" href="#licTop" data-lic="licTop">↑ Back to the list</a></section>`).join('');
+  return `<div id="licTop" class="lic-toc" tabindex="-1"><p>${APP.APP_NAME} ${APP.VERSION} itself: GNU General Public License v3 or later. Built into it:</p>${list(web)}` +
+    `<div class="native-only"><p>Added by the Android app:</p>${list(and)}</div></div>` +
+    texts(web) + `<div class="native-only"><h2 class="licences-head">In the Android app</h2>${texts(and)}</div>`;
+}
+const licencesTxt = licenceText(LICENCES, `${APP.APP_NAME} ${APP.VERSION}: licences of the components built into the app.\n${APP.APP_NAME} itself: GNU General Public License v3 or later (the LICENSE file in the source code).\n\n`);
+const licencesAndroidTxt = licenceText(LICENCES_ANDROID, `${APP.APP_NAME} ${APP.VERSION}, Android app: licences of the components it adds to the web app (those are in licences.txt).\n\n`);
 
 // minimal Markdown renderer for docs/MANUAL.md (headings, paragraphs, lists, '> ' callouts, bold, italics, code, https links)
 function md(text) {
@@ -75,14 +120,14 @@ const thanks = kofi ? `<p class="thanks">No ads, no tracking. If you find this a
 const androidLink = `<p class="android-link web-only"><a href="/android.html">Also available as an Android app →</a></p>`;
 const manual = md(readFileSync(join(root, 'docs', 'MANUAL.md'), 'utf8'));
 const b64 = f => readFileSync(join(root, 'src', 'fonts', f)).toString('base64');
-const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION|APP_URL|APP_HOST)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about).replace('{{DONATE}}', donate).replace('{{THANKS}}', thanks).replace('{{ANDROID}}', androidLink).replace('{{MANUAL}}', () => manual);
+const fill = s => s.replace(/\{\{(APP_NAME|FILE_PREFIX|VERSION|APP_URL|APP_HOST)\}\}/g, (_, k) => APP[k]).replace('{{ABOUT}}', about).replace('{{DONATE}}', donate).replace('{{THANKS}}', thanks).replace('{{ANDROID}}', androidLink).replace('{{MANUAL}}', () => manual).replace('{{LICENCES}}', () => licencesHtml());
 
 const fonts = `@font-face{font-family:"Instrument Sans";font-style:normal;font-display:swap;font-weight:400 700;font-stretch:75% 100%;src:url(data:font/woff2;base64,${b64('InstrumentSans-latin-variable.woff2')}) format("woff2-variations")}
 @font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:400;src:url(data:font/woff2;base64,${b64('IBMPlexMono-latin-400.woff2')}) format("woff2")}
 @font-face{font-family:"IBM Plex Mono";font-style:normal;font-display:swap;font-weight:500;src:url(data:font/woff2;base64,${b64('IBMPlexMono-latin-500.woff2')}) format("woff2")}`;
 
 const css = `<style>${fonts}\n${src('style.css')}</style>`;
-const js = `<script>\n${fill(src('core.js'))}\n${fill(src('report.js'))}\n${fill(src('native.js'))}\n${fill(src('app.js'))}\n</script>`;
+const js = `<script>\n${fill(src('core.js'))}\n${fill(src('report.js'))}\n${fill(src('native.js'))}\n${fill(src('app.js'))}\n${src('line.js')}\n</script>`;
 const body = fill(src('body.html'));
 const title = `<title>${APP.APP_NAME}</title>`;
 // link previews and search: canonical address, Open Graph / Twitter card (image hosted on the studio site), robots and sitemap
@@ -137,6 +182,9 @@ writeFileSync(file, out);
 // home-screen install: a web manifest and local icons (no service worker; the page itself never touches the network)
 if (!fragment) {
   for (const f of readdirSync(join(root, 'src', 'icons'))) copyFileSync(join(root, 'src', 'icons', f), join(root, 'dist', f));
+  // the licence texts beside the page (and so in the APK too)
+  writeFileSync(join(root, 'dist', 'licences.txt'), licencesTxt);
+  writeFileSync(join(root, 'dist', 'licences-android.txt'), licencesAndroidTxt);
   // HTTP headers for Cloudflare Pages, which publishes dist/ as it is (see README)
   writeFileSync(join(root, 'dist', '_headers'), `# HTTP headers for Cloudflare Pages (generated by build.mjs). The pages keep their own Content Security Policy;
 # the header adds what a <meta> tag can't (no framing by other sites) and a second block on connections.
