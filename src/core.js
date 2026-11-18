@@ -610,23 +610,25 @@ function lthrTest(A, ER) {
 /* interval training: the hard efforts and the recoveries between them, from 10-s heart rate up to the end of exercise.
    An effort is a stretch above 60 % of the way from the session's low (10th percentile) to its high (98th percentile),
    lasting at least 20 s; dips shorter than 20 s are bridged. */
-/* interval plan (for example Tabata 20/10 x 8): rounds are lined up so the last work round ends when Start recovery
-   was tapped (or at the detected end of exercise). Short rests leave no trace in heart rate, so they cannot be detected. */
-function planWork(A, ER, plan, recMark) {
+/* interval plan (for example Tabata 20/10 x 8): when the app timed the rounds (Start intervals, planT0 = when round 1
+   began), they are placed exactly; otherwise they are lined up so the last work round ends when Start recovery was
+   tapped (or at the detected end of exercise). Short rests leave no trace in heart rate, so they cannot be detected. */
+function planWork(A, ER, plan, recMark, planT0) {
   const w = Math.max(5, plan.w | 0), r = Math.max(0, plan.r | 0), n = Math.max(1, plan.n | 0);
   const B = cleanBeats(A), s5 = rollingHR(A, 5, 1, B);
   const end = recMark != null ? recMark : ER && ER.end != null ? ER.end : A.dur, total = n * w + (n - 1) * r;
-  const t0 = Math.max(0, end - total), clipped = end - total < -2;
+  const timed = isFinite(planT0) && planT0 >= 0 && planT0 < end;
+  const t0 = timed ? planT0 : Math.max(0, end - total), clipped = !timed && end - total < -2;
   const peakIn = (a, b) => { let m = NaN; for (const q of s5) if (q.t >= a && q.t <= b && !(q.v <= m)) m = q.v; return m; };
   const rounds = [];
   for (let i = 0; i < n; i++) {
-    const ws = t0 + i * (w + r), we = ws + w; if (ws >= A.dur) break;
+    const ws = t0 + i * (w + r), we = ws + w; if (ws >= A.dur || (timed && ws >= end - 1)) break;   // timed: rounds after an early Start recovery weren't done
     const re = i < n - 1 && r > 0 ? we + r : null, last5 = Math.min(5, w / 2);
     const endHR = meanHRBetween(B, we - last5, we).v, afterRest = re != null ? meanHRBetween(B, re - Math.min(5, r / 2), re).v : NaN;
     rounds.push({ n: i + 1, t0: ws, t1: we, avg: meanHRBetween(B, ws, we).v, peak: peakIn(ws, we + 2), endHR, afterRest, fall: endHR - afterRest });
   }
   const ok = rounds.filter(x => isFinite(x.avg));
-  return { w, r, n, t0, end, total, clipped, anchor: recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds,
+  return { w, r, n, t0, end, total, clipped, anchor: timed ? 'timed' : recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds,
     first: ok.length ? ok[0].avg : NaN, last: ok.length ? ok[ok.length - 1].avg : NaN, peak: Math.max(...ok.map(x => x.peak).filter(isFinite), -Infinity) };
 }
 function intervalWork(A, ER) {

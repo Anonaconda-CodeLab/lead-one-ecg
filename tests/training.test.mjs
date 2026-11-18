@@ -352,3 +352,28 @@ test('an invalid ramp test says why: too few steps, signal loss, missing heart r
   assert.match(L.rampInvalid(mix, true), /^The strap lost contact in some steps and heart-rate data was missing in others/);
   assert.match(L.rampInvalid({ completed: 4, max: NaN, flagged: 0 }, true), /^No 20-second peak heart rate could be measured/);
 });
+
+test('HRV page during exercise: no empty gauge column', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  const h = L.renderReport(A, { start: Date.now(), ctx: 'training', pos: 'sitting', trainType: 'session', recovery: 'passive' }, { sex: 'M', dob: '1968-01-01' }, []);
+  assert.match(h, /<div class="cols-hrv one">\s*<div class="panel">/, 'panel full width, no gauge column');
+  assert.match(h, /No population reference applies during activity, so these values are not graded\./);
+  const R = await analyze(d.raw, { age: 45, rr: d.rr });
+  assert.match(L.renderReport(R, { start: Date.now(), ctx: 'morning', pos: 'lying' }, { sex: 'M', dob: '1968-01-01' }, []), /<div class="cols-hrv">\s*<div class="fig">/, 'rest readings keep the gauge');
+});
+
+test('interval plan timed by the app: rounds placed at the saved start; an early Start recovery drops the rest', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  const tab = { w: 20, r: 10, n: 8 };
+  const P = L.planWork(A, A.exercise, tab, 400, 170);
+  assert.equal(P.anchor, 'timed'); assert.equal(P.rounds[0].t0, 170); assert.equal(P.rounds[7].t1, 400);
+  const E = L.planWork(A, A.exercise, tab, 260, 170);   // stopped after 3 rounds (170-260)
+  assert.equal(E.rounds.length, 3, 'rounds after Start recovery are not shown');
+  const U = L.planWork(A, A.exercise, tab, 400);
+  assert.equal(U.anchor, 'marked'); assert.equal(U.rounds[7].t1, 400, 'without a saved start, lined up with Start recovery as before');
+  const txt = s => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const T = txt(L.renderReport(A, { start: Date.now(), ctx: 'training', pos: 'sitting', trainType: 'intervals', recovery: 'passive', plan: tab, recMark: 260, planT0: 170 }, { sex: 'M', dob: '1968-01-01' }, []));
+  assert.match(T, /timed by the app/); assert.match(T, /\(3 of 8 done before Start recovery\)/);
+});
