@@ -231,7 +231,7 @@ table.mt td.rbar{width:44mm;line-height:0}
 .legend{display:flex;gap:4mm;flex-wrap:wrap;font-size:7pt;color:var(--p-muted)}
 .legend i{display:inline-block;width:3mm;height:2mm;border-radius:.5mm;margin-right:1mm;vertical-align:middle}
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:5mm;align-items:start}
-.cols-hrv{display:grid;grid-template-columns:62mm 1fr;gap:5mm;align-items:center}
+.cols-hrv{display:grid;grid-template-columns:62mm 1fr;gap:5mm;align-items:center}.cols-hrv.one{grid-template-columns:1fr;gap:2mm}
 .strip{display:flex;flex-direction:column;gap:.8mm;break-inside:avoid}
 .strip .sh{display:flex;justify-content:space-between;align-items:baseline;gap:3mm}
 .strip .sh b{font-size:9pt;font-weight:600}
@@ -417,10 +417,34 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 .sum-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:4px 10px;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
 .sum-row span{color:var(--muted)}.sum-row small{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:-2px}
 .sum-row .chip{font-size:12px;padding:2px 9px;border-radius:999px}
+
+/* Licences screen (Settings > About), as in Flatbed */
+.licences{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--f-mono);font-size:12px;line-height:1.5;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0}
+.licences-head{font-size:16px;margin:22px 0 10px}
+.lic-toc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:18px}
+.lic-toc p{margin:6px 0 8px;color:var(--muted);font-size:14px}
+.lic-list{list-style:none;margin:0;padding:0}
+.lic-list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;padding:9px 0;border-top:1px solid var(--line)}
+.lic-list li:first-child{border-top:0}
+.lic-list a{color:var(--fg);text-decoration:none;font-weight:500}
+.lic-list a:hover,.lic-list a:focus-visible{text-decoration:underline}
+.lic-list span{color:var(--muted);font-size:14px}
+.lic{margin-bottom:18px}
+.lic h3{font-size:14px;margin:0 0 8px}
+.lic-top{display:inline-block;margin-top:8px;font-size:14px;color:var(--muted)}
+.lic:focus,.lic-toc:focus{outline:none}
+
+/* LINE's built-in browser (no Bluetooth, no saving): a banner offering the phone's own browser, as in Remark */
+.line-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:8px 0 0;padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--accent);color:var(--fg);font-size:14px}
+.line-bar .btn{flex:none;text-decoration:none}
 </style>
 </head><body>
 <!-- Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later -->
 <main id="app">
+  <div id="lineBar" class="line-bar web-only" role="note" hidden>
+    <span>LINE's built-in browser can't connect to your strap or save files.</span>
+    <a id="lineOpen" class="btn primary" href="?openExternalBrowser=1">Open in your browser</a>
+  </div>
   <header class="bar">
     <div class="brand">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)"/><path d="M5 17h6l2-5 3 11 3-15 2 9h6" fill="none" stroke="var(--accent-fg)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -478,14 +502,449 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <input type="file" id="histIn" accept=".json,.txt,application/json,text/plain,application/octet-stream" hidden>
     </div>
     <div class="card" id="aboutCard">
-      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.8.4 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
+      <div><div class="dev-name">About Lead One ECG</div><div class="dev-meta">Version 1.8.5 · free and open source (GNU GPL v3) · runs entirely on this device</div></div>
       <p class="dev-meta" style="margin:0">© 2026 Anonaconda Code Lab. You may use, share and modify this app under the GNU General Public License v3 or later; it comes with no warranty. Independent software, not affiliated with Polar Electro. Not a medical device.</p>
       <p class="dev-meta" style="margin:0">Questions or problems: <a href="mailto:hello@anonacondacodelab.com">hello@anonacondacodelab.com</a>. A description or a screenshot is usually enough; please don't send recordings or reports unless you are happy to share them, because they contain your health data.</p>
-      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.4" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">Source code</a><a class="btn web-only" href="/android.html">Android app</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
+      <div class="acts-row"><button id="btnHelp2" class="btn">User manual</button><button id="btnLicences" class="btn">Licences</button><a class="btn native-only" href="https://leadone.anonacondacodelab.com/android.html?v=1.8.5" rel="noopener noreferrer">Check for updates</a><a class="btn" href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">Source code</a><a class="btn web-only" href="/android.html">Android app</a><a class="btn coffee" href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">☕ Support on Ko-fi</a></div>
     </div>
   </section>
 
   <!-- HELP / USER MANUAL (generated from docs/MANUAL.md) -->
+  <section id="scrLicences" class="screen" hidden>
+    <div class="acts-row"><button id="btnLicencesBack" class="btn">‹ Back</button></div>
+    <h2 class="licences-head" style="margin-top:4px">Licences</h2>
+    <div id="licTop" class="lic-toc" tabindex="-1"><p>Lead One ECG 1.8.5 itself: GNU General Public License v3 or later. Built into it:</p><ul class="lic-list"><li><a href="#lic-1" data-lic="lic-1">Instrument Sans typeface</a><span>SIL Open Font License 1.1</span></li><li><a href="#lic-2" data-lic="lic-2">IBM Plex Mono typeface</a><span>SIL Open Font License 1.1</span></li></ul><div class="native-only"><p>Added by the Android app:</p><ul class="lic-list"><li><a href="#lic-a1" data-lic="lic-a1">Capacitor 8.5.3 (@capacitor/android and @capacitor/core)</a><span>MIT</span></li><li><a href="#lic-a2" data-lic="lic-a2">Capacitor Bluetooth Low Energy plugin 8.3.0 (@capacitor-community/bluetooth-le)</a><span>MIT</span></li><li><a href="#lic-a3" data-lic="lic-a3">Apache Cordova Android framework 14.0.1 (in Capacitor)</a><span>Apache License 2.0</span></li><li><a href="#lic-a3" data-lic="lic-a3">AndroidX libraries (appcompat, core, core-ktx, core-splashscreen, activity, fragment, coordinatorlayout, webkit, and the libraries they use)</a><span>Apache License 2.0</span></li><li><a href="#lic-a3" data-lic="lic-a3">Kotlin standard library (used by AndroidX and the Bluetooth plugin)</a><span>Apache License 2.0</span></li><li><a href="#lic-a4" data-lic="lic-a4">Apache Cordova: its NOTICE file</a><span>Apache License 2.0 notice</span></li></ul></div></div><section class="lic" id="lic-1" tabindex="-1"><h3>Instrument Sans typeface</h3><pre class="licences" translate="no">Copyright 2022 The Instrument Sans Project Authors (https://github.com/Instrument/instrument-sans) InstrumentSans-Italic[wdth,wght].ttf: Copyright 2022 The Instrument Sans Project Authors (https://github.com/Instrument/instrument-sans)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION &amp; CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.</pre><a class="lic-top" href="#licTop" data-lic="licTop">↑ Back to the list</a></section><section class="lic" id="lic-2" tabindex="-1"><h3>IBM Plex Mono typeface</h3><pre class="licences" translate="no">Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-ThinItalic.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-ExtraLight.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-ExtraLightItalic.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-Light.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-LightItalic.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-Regular.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-Italic.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-Medium.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-MediumItalic.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-SemiBold.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-SemiBoldItalic.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-Bold.ttf: Copyright 2017 IBM Corp. All rights reserved. IBMPlexMono-BoldItalic.ttf: Copyright 2017 IBM Corp. All rights reserved.
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION &amp; CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.</pre><a class="lic-top" href="#licTop" data-lic="licTop">↑ Back to the list</a></section><div class="native-only"><h2 class="licences-head">In the Android app</h2><section class="lic" id="lic-a1" tabindex="-1"><h3>Capacitor 8.5.3 (@capacitor/android and @capacitor/core)</h3><pre class="licences" translate="no">MIT License
+
+Copyright (c) 2017-present Drifty Co.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre><a class="lic-top" href="#licTop" data-lic="licTop">↑ Back to the list</a></section><section class="lic" id="lic-a2" tabindex="-1"><h3>Capacitor Bluetooth Low Energy plugin 8.3.0 (@capacitor-community/bluetooth-le)</h3><pre class="licences" translate="no">MIT License
+
+Copyright (c) 2021 Capacitor plugin for Bluetooth Low Energy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</pre><a class="lic-top" href="#licTop" data-lic="licTop">↑ Back to the list</a></section><section class="lic" id="lic-a3" tabindex="-1"><h3>Apache Cordova Android framework 14.0.1 (in Capacitor)<br>AndroidX libraries (appcompat, core, core-ktx, core-splashscreen, activity, fragment, coordinatorlayout, webkit, and the libraries they use)<br>Kotlin standard library (used by AndroidX and the Bluetooth plugin)</h3><pre class="licences" translate="no">Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "{}"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright {yyyy} {name of copyright owner}
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.</pre><a class="lic-top" href="#licTop" data-lic="licTop">↑ Back to the list</a></section><section class="lic" id="lic-a4" tabindex="-1"><h3>Apache Cordova: its NOTICE file</h3><pre class="licences" translate="no">Apache Cordova
+Copyright 2015-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).</pre><a class="lic-top" href="#licTop" data-lic="licTop">↑ Back to the list</a></section></div>
+    <div class="acts-row"><button id="btnLicencesBack2" class="btn">‹ Back</button></div>
+  </section>
+
   <section id="scrHelp" class="screen" hidden>
     <div class="acts-row"><button id="btnHelpBack" class="btn">‹ Back</button></div>
     <article class="manual"><p>Lead One ECG turns a Polar H10 chest strap into a single-lead ECG recorder. It records your heart's electrical signal, analyses it on your phone and produces a clear A4 report you can save as a PDF. It is free, needs no account, and nothing you record ever leaves your device.</p>
@@ -516,7 +975,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <h2>Training sessions</h2>
 <p>Choose the <b>Training</b> context to measure your exercise heart rate, recovery and zones. Two more choices appear:</p>
 <p><b>Training type</b></p>
-<ul><li><b>Session</b>: any steady or mixed workout (runs, rides, gym).</li><li><b>Intervals</b>: repeated hard efforts with easier recoveries between them (for example 4 × 4 minutes). The report finds each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one. With short rests (Tabata, 30/30) heart rate has no time to fall, so the efforts run together. Pick an <b>Interval plan</b> (Tabata 20/10 × 8, 30/30, 10 × 1 min, 4 × 4 min, or your own work, rest and rounds) before you start, or later under <b>Details</b>. The report then lines the rounds up so the last one ends when you tapped <b>Start recovery</b>, and shows every round's average, peak and end-of-work heart rate. Tap <b>Start recovery</b> right as your last round ends.</li><li><b>Tempo</b>: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and your cardiac drift: how much your heart rate crept up in the second half at the same effort.</li><li><b>DFA-α1 test</b>: finds your <b>aerobic threshold</b> (the top of truly easy training) without a lab, from how orderly your beat-to-beat variation is. This measure, DFA α1, is about 1.0 when you are relaxed and falls as effort rises: it crosses <b>0.75 at the aerobic threshold</b> and <b>0.5 at the anaerobic threshold</b>. Best on a bike or treadmill, where effort can rise smoothly. Start <b>very easy for the first 6 minutes</b>, then raise the effort a little at each beep (every 3 minutes). Keep pedalling or running smoothly; talking, stopping and coasting disturb the reading. The recording screen shows a <b>live α1</b> after the first 2 minutes. Keep going until it is below 0.5 or you are near your limit, then tap <b>Start recovery</b>. The report plots α1 against heart rate and gives both thresholds. A good, snug strap contact matters: if more than 5 % of beats in a stretch are irregular or missed, that stretch is left out. A Max HR ramp test also shows these thresholds when α1 falls clearly enough.</li><li><b>Max HR ramp test</b>: start easy; the app beeps and vibrates every 3 minutes (with a 10-second warning) to tell you to increase the effort, until you cannot continue. Turn the phone's media volume up; the beeps are high-pitched so they carry over traffic. This finds your true maximum heart rate.</li><li><b>LTHR test</b>: warm up first <b>without recording</b>. Press <b>Start</b> at the moment you begin the 30-minute effort, then go as hard as you can sustain. The app tells you when 30 minutes are up; tap <b>Start recovery</b> then and keep recording for 2 minutes. Your lactate threshold heart rate (LTHR) is the average of the last 20 minutes before you tapped Start recovery, and sets your training zones. (If you do record the warm-up, the 30-minute cue comes early: time the effort yourself and tap Start recovery exactly when it ends.)</li></ul>
+<ul><li><b>Session</b>: any steady or mixed workout (runs, rides, gym).</li><li><b>Intervals</b>: repeated hard efforts with easier recoveries between them (for example 4 × 4 minutes). The report finds each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one. With short rests (Tabata, 30/30) heart rate has no time to fall, so the efforts run together. Pick an <b>Interval plan</b> (Tabata 20/10 × 8, 30/30, 10 × 1 min, 4 × 4 min, or your own work, rest and rounds) before you start, or later under <b>Details</b>. With a plan, the app is your interval timer: start recording, warm up, then tap <b>Start intervals</b>. After a 3-2-1 count it beeps and vibrates at the start of every work round (one long high beep, <b>GO</b>) and every rest (one lower beep), shows the round and the seconds left, and at the end of the last round plays a falling three-note beep and marks <b>Start recovery</b> itself: keep recording for 2 minutes. Tapping <b>Start recovery</b> earlier ends the plan there. The clock keeps running if you pause (the beeps are silent while paused). The report shows every round's average, peak and end-of-work heart rate, placed exactly where the app timed them. If you don't use Start intervals (or pick the plan later under Details), the rounds are lined up so the last one ends when you tapped <b>Start recovery</b>. Turn the media volume up; Rounds, the studio's timer app, is the choice when you aren't recording.</li><li><b>Tempo</b>: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and your cardiac drift: how much your heart rate crept up in the second half at the same effort.</li><li><b>DFA-α1 test</b>: finds your <b>aerobic threshold</b> (the top of truly easy training) without a lab, from how orderly your beat-to-beat variation is. This measure, DFA α1, is about 1.0 when you are relaxed and falls as effort rises: it crosses <b>0.75 at the aerobic threshold</b> and <b>0.5 at the anaerobic threshold</b>. Best on a bike or treadmill, where effort can rise smoothly. Start <b>very easy for the first 6 minutes</b>, then raise the effort a little at each beep (every 3 minutes). Keep pedalling or running smoothly; talking, stopping and coasting disturb the reading. The recording screen shows a <b>live α1</b> after the first 2 minutes. Keep going until it is below 0.5 or you are near your limit, then tap <b>Start recovery</b>. The report plots α1 against heart rate and gives both thresholds. A good, snug strap contact matters: if more than 5 % of beats in a stretch are irregular or missed, that stretch is left out. A Max HR ramp test also shows these thresholds when α1 falls clearly enough.</li><li><b>Max HR ramp test</b>: start easy; the app beeps and vibrates every 3 minutes (with a 10-second warning) to tell you to increase the effort, until you cannot continue. Turn the phone's media volume up; the beeps are high-pitched so they carry over traffic. This finds your true maximum heart rate.</li><li><b>LTHR test</b>: warm up first <b>without recording</b>. Press <b>Start</b> at the moment you begin the 30-minute effort, then go as hard as you can sustain. The app tells you when 30 minutes are up; tap <b>Start recovery</b> then and keep recording for 2 minutes. Your lactate threshold heart rate (LTHR) is the average of the last 20 minutes before you tapped Start recovery, and sets your training zones. (If you do record the warm-up, the 30-minute cue comes early: time the effort yourself and tap Start recovery exactly when it ends.)</li></ul>
 <p><b>Recovery after exercise</b></p>
 <ul><li><b>Active</b>: you keep moving gently after stopping (walking, easy pedalling).</li><li><b>Passive</b>: you stand, sit or lie still.</li></ul>
 <p>Heart rate falls faster when you stand still, so the app judges active recovery against a more relaxed limit.</p>
@@ -548,6 +1007,8 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <h2>Troubleshooting</h2>
 <h3>&quot;Bluetooth isn't available&quot;</h3>
 <p>On a phone, open the app in <b>Google Chrome or Chromium on Android</b>, from its https address. On a computer, use Chrome or Edge. On iPhone and iPad, use the <b>Bluefy</b> browser. Safari and Firefox are not supported. On Linux, enable <code>chrome://flags/#enable-experimental-web-platform-features</code>; in Brave, enable <code>brave://flags/#brave-web-bluetooth-api</code>.</p>
+<h3>The app opened inside LINE (or another chat app)</h3>
+<p>A link tapped in a LINE chat opens in LINE's built-in browser, which can't connect to the strap or save files. Lead One shows a banner there: tap <b>Open in your browser</b> to open the same page in your phone's own browser. In other chat apps, use their menu (often <b>⋯</b>) and choose <b>Open in browser</b>.</p>
 <h3>The strap connects, but the timer stays at 00:00:00 or &quot;No ECG from the strap&quot; appears</h3>
 <p>Another app is holding the strap's ECG stream. Force-close other heart-rate apps, unclip the sensor from the strap for 30 seconds, clip it back on, switch the phone's Bluetooth off and on, then reload the app and connect again.</p>
 <h3>The strap is not in the list or will not connect</h3>
@@ -563,7 +1024,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 <p><b>Translating the page.</b> If you use your browser's <i>Translate</i> button, the browser sends the page's text to its translation service (Google's, in Chrome). Lead One ECG marks your readings, reports, history and strap details so the translator leaves them out: only the app's own buttons and labels are translated.</p>
 <h2>Support and feedback</h2>
 <p>Questions, problems or ideas: email <b>hello@anonacondacodelab.com</b>. Describe what happened and, if you can, add a screenshot. Please don't send recordings, reports or history exports unless you are happy to share them: they contain your health data. Technical users can also open an issue at <b><a href="https://github.com/Anonaconda-CodeLab/lead-one-ecg" rel="noopener noreferrer">github.com/Anonaconda-CodeLab/lead-one-ecg</a></b>.</p>
-<p>Lead One ECG is free and open-source software from Anonaconda Code Lab, released under the GNU General Public License v3. If it is useful to you, you can support its development at <b><a href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">ko-fi.com/anonacondacodelab</a></b>.</p>
+<p>Lead One ECG is free and open-source software from Anonaconda Code Lab, released under the GNU General Public License v3. The code is written with Claude (an AI from Anthropic); since October 2026 every change names Claude as its author, and the owner designs and tests the app. The typefaces and, in the Android app, the components it is built with keep their own licences: see <b>Licences</b> under Settings &gt; About. If it is useful to you, you can support its development at <b><a href="https://ko-fi.com/anonacondacodelab" rel="noopener noreferrer">ko-fi.com/anonacondacodelab</a></b>.</p>
 <p>Polar and H10 are trademarks of Polar Electro Oy. Lead One ECG is independent and not affiliated with or endorsed by Polar Electro.</p>
 <hr>
 <p><i>Lead One ECG is provided &quot;as is&quot;, without warranty of any kind, under the GNU General Public License v3. It is for general wellness and education only and is not a medical device.</i></p></article>
@@ -602,7 +1063,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
         <div class="field"><label>Training type</label><div class="chips" id="ttChips" role="radiogroup" aria-label="Training type"></div></div>
 <div class="field" id="planField" hidden><label>Interval plan</label><div class="chips" id="planChips" role="radiogroup" aria-label="Interval plan"></div>
           <div class="plan-custom" id="planCustom" hidden><label>Work <input id="pW" inputmode="numeric" maxlength="4"> s</label><label>Rest <input id="pR" inputmode="numeric" maxlength="4"> s</label><label>Rounds <input id="pN" inputmode="numeric" maxlength="2"></label></div>
-          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. Tap <b>Start recovery</b> as the last work round ends: the rounds are lined up to that moment, so a warm-up before round 1 (recorded or not) is fine.</small></div>
+          <small class="dev-meta">With a plan, the app times your rounds: start recording, warm up, then tap <b>Start intervals</b>. After a 3-2-1 count it beeps and vibrates at every work round (GO) and every rest, and marks <b>Start recovery</b> itself at the end of the last round. Every round gets its own heart rate in the report. Turn the media volume up.</small></div>
         <div class="field"><label>Recovery after exercise</label><div class="chips" id="recChips" role="radiogroup" aria-label="Recovery type"></div></div>
         <p class="dev-meta" id="ttHint" style="margin:0"></p>
       </div>
@@ -661,6 +1122,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
   <section id="scrRec" class="screen" hidden>
     <div class="rec-top"><span class="live-chip" id="liveChip"><i></i><span id="liveTxt">Recording</span></span><span id="recConn" class="conn">Connected</span></div>
     <div id="recCtx" class="rec-ctx"></div>
+    <button id="btnIntervals" class="btn primary" hidden>Start intervals</button>
     <div id="stepPanel" class="step-panel" hidden><div class="sp-l"><small id="spLabel">Step</small><b id="spStep">1</b></div><div class="sp-r"><b id="spCount">3:00</b><small id="spMsg">until the next step</small></div></div>
     <div id="a1Live" class="a1-live" hidden><b id="a1Val" translate="no">—</b><span><small>DFA α1</small><span id="a1Msg">α1 appears after 2 minutes</span></span></div>
     <div id="recTimer" class="timer">00:00:00</div>
@@ -714,7 +1176,7 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
       <div id="trainOpts2" hidden><div class="field"><label>Training type</label><div class="chips" id="ttChips2"></div></div>
 <div class="field" id="planField2" hidden><label>Interval plan</label><div class="chips" id="planChips2" role="radiogroup" aria-label="Interval plan"></div>
           <div class="plan-custom" id="planCustom2" hidden><label>Work <input id="pW2" inputmode="numeric" maxlength="4"> s</label><label>Rest <input id="pR2" inputmode="numeric" maxlength="4"> s</label><label>Rounds <input id="pN2" inputmode="numeric" maxlength="2"></label></div>
-          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. Tap <b>Start recovery</b> as the last work round ends: the rounds are lined up to that moment, so a warm-up before round 1 (recorded or not) is fine.</small></div>
+          <small class="dev-meta">With a plan, every round gets its own heart rate in the report. If the app timed the rounds (Start intervals), they are placed exactly; otherwise they are lined up so the last work round ends when you tapped <b>Start recovery</b>.</small></div>
         <div class="field"><label>Recovery after exercise</label><div class="chips" id="recChips2"></div></div></div>
       <div class="field"><label for="notesIn2">Session notes</label><textarea id="notesIn2" maxlength="200" rows="2"></textarea><small class="count" id="notesCount2">0 / 200</small></div>
       <div class="acts-row"><button id="btnDetailsSave" class="btn primary">Update report</button><button id="btnDetailsCancel" class="btn">Cancel</button></div>
@@ -1340,23 +1802,25 @@ function lthrTest(A, ER) {
 /* interval training: the hard efforts and the recoveries between them, from 10-s heart rate up to the end of exercise.
    An effort is a stretch above 60 % of the way from the session's low (10th percentile) to its high (98th percentile),
    lasting at least 20 s; dips shorter than 20 s are bridged. */
-/* interval plan (for example Tabata 20/10 x 8): rounds are lined up so the last work round ends when Start recovery
-   was tapped (or at the detected end of exercise). Short rests leave no trace in heart rate, so they cannot be detected. */
-function planWork(A, ER, plan, recMark) {
+/* interval plan (for example Tabata 20/10 x 8): when the app timed the rounds (Start intervals, planT0 = when round 1
+   began), they are placed exactly; otherwise they are lined up so the last work round ends when Start recovery was
+   tapped (or at the detected end of exercise). Short rests leave no trace in heart rate, so they cannot be detected. */
+function planWork(A, ER, plan, recMark, planT0) {
   const w = Math.max(5, plan.w | 0), r = Math.max(0, plan.r | 0), n = Math.max(1, plan.n | 0);
   const B = cleanBeats(A), s5 = rollingHR(A, 5, 1, B);
   const end = recMark != null ? recMark : ER && ER.end != null ? ER.end : A.dur, total = n * w + (n - 1) * r;
-  const t0 = Math.max(0, end - total), clipped = end - total < -2;
+  const timed = isFinite(planT0) && planT0 >= 0 && planT0 < end;
+  const t0 = timed ? planT0 : Math.max(0, end - total), clipped = !timed && end - total < -2;
   const peakIn = (a, b) => { let m = NaN; for (const q of s5) if (q.t >= a && q.t <= b && !(q.v <= m)) m = q.v; return m; };
   const rounds = [];
   for (let i = 0; i < n; i++) {
-    const ws = t0 + i * (w + r), we = ws + w; if (ws >= A.dur) break;
+    const ws = t0 + i * (w + r), we = ws + w; if (ws >= A.dur || (timed && ws >= end - 1)) break;   // timed: rounds after an early Start recovery weren't done
     const re = i < n - 1 && r > 0 ? we + r : null, last5 = Math.min(5, w / 2);
     const endHR = meanHRBetween(B, we - last5, we).v, afterRest = re != null ? meanHRBetween(B, re - Math.min(5, r / 2), re).v : NaN;
     rounds.push({ n: i + 1, t0: ws, t1: we, avg: meanHRBetween(B, ws, we).v, peak: peakIn(ws, we + 2), endHR, afterRest, fall: endHR - afterRest });
   }
   const ok = rounds.filter(x => isFinite(x.avg));
-  return { w, r, n, t0, end, total, clipped, anchor: recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds,
+  return { w, r, n, t0, end, total, clipped, anchor: timed ? 'timed' : recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds,
     first: ok.length ? ok[0].avg : NaN, last: ok.length ? ok[ok.length - 1].avg : NaN, peak: Math.max(...ok.map(x => x.peak).filter(isFinite), -Infinity) };
 }
 function intervalWork(A, ER) {
@@ -2265,7 +2729,7 @@ function commentary(A, meta, R, B, X = null) {
     if (X.tt === 'dfa' && X.dfa) out.push(X.dfa.valid ? `DFA α1 fell from ${X.dfa.startA1.toFixed(2)} at easy effort to ${X.dfa.minA1.toFixed(2)}; it crossed 0.75 (aerobic threshold) at about ${f0(X.dfa.vt1)} bpm${isFinite(X.dfa.vt2) ? ` and 0.5 (anaerobic threshold) at about ${f0(X.dfa.vt2)} bpm` : ''}.${X.dfa.steep ? ' DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.' : ''}` : 'The DFA α1 thresholds could not be determined from this recording (see the training pages).');
     if (X.tt === 'session' || X.tt === 'intervals' || X.tt === 'tempo') out.push('Training sessions, including intervals such as 4 × 4, rarely reach true maximum heart rate: peaks seen in them are a floor, not a ceiling. A ramp test gives a measured value.');
     if (X.tt === 'intervals' && X.plan && X.plan.rounds.length) { const P = X.plan;
-      out.push(`${P.rounds.length} rounds of ${mmss(P.w)} work${P.r ? ` / ${mmss(P.r)} rest` : ''} (your interval plan, lined up with ${P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise'}): average heart rate rose from ${f0(P.first)} bpm in round 1 to ${f0(P.last)} bpm in the last round, peaking at ${f0(P.peak)} bpm.${P.r && P.r <= 15 ? ' Rests this short barely let heart rate fall, so it climbs from round to round; that is expected.' : ''}`); }
+      out.push(`${P.rounds.length} rounds of ${mmss(P.w)} work${P.r ? ` / ${mmss(P.r)} rest` : ''} (your interval plan, ${P.anchor === 'timed' ? 'timed by the app' : 'lined up with ' + (P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise')}): average heart rate rose from ${f0(P.first)} bpm in round 1 to ${f0(P.last)} bpm in the last round, peaking at ${f0(P.peak)} bpm.${P.r && P.r <= 15 ? ' Rests this short barely let heart rate fall, so it climbs from round to round; that is expected.' : ''}`); }
     if (X.tt === 'intervals' && X.iv && X.iv.bouts.length) { const b = X.iv.bouts, rec = b.filter(x => !x.last && isFinite(x.recDrop));
       out.push(`${b.length} hard ${b.length === 1 ? 'effort was' : 'efforts were'} detected, peaking at ${f0(Math.min(...b.map(x => x.peak)))}–${f0(Math.max(...b.map(x => x.peak)))} bpm${rec.length ? `, with heart rate falling ${f0(Math.min(...rec.map(x => x.recDrop)))}–${f0(Math.max(...rec.map(x => x.recDrop)))} bpm in the recoveries between them` : ''}.${isFinite(X.iv.fade) && X.iv.fade >= 5 ? ` Peak heart rate rose ${f0(X.iv.fade)} bpm from the first to the last effort, a common sign of accumulating fatigue (or of pushing harder on later repeats).` : ''}`); }
     if (X.tt === 'tempo' && X.tempo && X.tempo.valid) { const T = X.tempo;
@@ -2630,7 +3094,7 @@ function latestLthr(hist, cur) {
 function trainingContext(A, meta, hist, age, sex) {
   const ER = A.exercise || null, tt = meta.ctx === 'training' ? (TRAIN_TYPES[meta.trainType] ? meta.trainType : 'session') : null;
   const ramp = tt === 'ramp' ? rampTest(A, ER) : null, lt = tt === 'lthr' ? lthrTest(A, ER) : null;
-  const plan = tt === 'intervals' && meta.plan ? planWork(A, ER, meta.plan, meta.recMark) : null;
+  const plan = tt === 'intervals' && meta.plan ? planWork(A, ER, meta.plan, meta.recMark, meta.planT0) : null;
   const iv = tt === 'intervals' && !plan ? intervalWork(A, ER) : null, tempo = tt === 'tempo' ? tempoWork(A, ER) : null;
   const dfa = tt === 'dfa' || tt === 'ramp' ? dfaTest(A, ER) : null;
   const cur = { id: meta.id || ('file-' + meta.start), start: meta.start, ctx: meta.ctx, trainType: tt, peak20: ER ? ER.peak20 : NaN,
@@ -2913,10 +3377,10 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
         <p class="note-p" style="margin:0">${r.valid ? (X.tt === 'ramp' ? 'Estimated from the ramp test. A dedicated DFA-α1 test, stopped once α1 is below 0.5, gives the same result without going to exhaustion.' : 'Thresholds from α1 agree with laboratory gas-exchange thresholds within a few beats per minute in most studies, best in cycling with smooth effort. Repeat the test every 6–8 weeks.') + (r.steep ? ' <b>DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.</b> Smaller steps around this heart rate next time will separate them more clearly.' : '') : DFA_WHY[r.reason] || DFA_WHY.flat}</p></div></div>`;
       if (X.tt === 'dfa') tests = dfaSec; else dfaAfter = dfaSec; }
     if (X.tt === 'intervals' && X.plan) { const P = X.plan;
-      tests = `<div class="sec-h"><h2>Interval rounds</h2><span>${P.n} × ${mmss(P.w)}${P.r ? ' / ' + mmss(P.r) : ''} · lined up with ${P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise'}</span></div>
+      tests = `<div class="sec-h"><h2>Interval rounds</h2><span>${P.n} × ${mmss(P.w)}${P.r ? ' / ' + mmss(P.r) : ''} · ${P.anchor === 'timed' ? 'timed by the app' : 'lined up with ' + (P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise')}</span></div>
         <div class="fig">${planChart(A, P, startMs)}<div class="cap">Heart rate (5-s means); shaded bands = work rounds of your plan.</div></div>
         <table class="ev"><thead><tr><th>Round</th><th>Start</th><th>Average</th><th>Peak</th><th>End of work</th>${P.r ? '<th>After rest</th>' : ''}</tr></thead><tbody>${thin(P.rounds, 16).map(x => `<tr><td class="m">${x.n}</td><td class="m">${clock(x.t0)}</td><td class="m">${fmt(x.avg)} bpm</td><td class="m">${fmt(x.peak)} bpm</td><td class="m">${fmt(x.endHR)} bpm</td>${P.r ? `<td class="m">${isFinite(x.afterRest) ? fmt(x.afterRest) + ' bpm' : '—'}</td>` : ''}</tr>`).join('')}</tbody></table>
-        <p class="note-p">${P.clipped ? 'The recording started after the plan would have begun, so the first rounds are missing. ' : ''}Rounds are placed so the last work round ends ${P.anchor === 'marked' ? 'when you tapped Start recovery' : 'at the detected end of exercise'}. ${P.r && P.r <= 15 ? 'With rests this short, heart rate cannot fall between rounds, so it climbs through the session; the round-by-round rise shows how hard the set was.' : 'The fall during each rest shows how quickly you recover between efforts.'}</p>`; }
+        <p class="note-p">${P.clipped ? 'The recording started after the plan would have begun, so the first rounds are missing. ' : ''}${P.anchor === 'timed' ? `The app timed the rounds with its beeps, so they are placed exactly${P.rounds.length < P.n ? ` (${P.rounds.length} of ${P.n} done before Start recovery)` : ''}.` : `Rounds are placed so the last work round ends ${P.anchor === 'marked' ? 'when you tapped Start recovery' : 'at the detected end of exercise'}.`} ${P.r && P.r <= 15 ? 'With rests this short, heart rate cannot fall between rounds, so it climbs through the session; the round-by-round rise shows how hard the set was.' : 'The fall during each rest shows how quickly you recover between efforts.'}</p>`; }
     if (X.tt === 'intervals' && X.iv) { const v = X.iv;
       tests = `<div class="sec-h"><h2>Interval efforts</h2><span>detected from 10-s heart rate</span></div>
         ${v.bouts.length ? `<table class="ev"><thead><tr><th>#</th><th>Start</th><th>Effort</th><th>Peak</th><th>Average</th><th>Recovery</th><th>HR fall</th></tr></thead><tbody>${thin(v.bouts, 14).map(b => `<tr><td class="m">${b.n}</td><td class="m">${clock(b.t0)}</td><td class="m">${mmss(b.dur)}</td><td class="m">${fmt(b.peak)} bpm</td><td class="m">${fmt(b.mean)} bpm</td><td class="m">${b.last ? 'end of session' : mmss(b.recSec)}</td><td class="m">${b.last ? 'see below' : isFinite(b.recDrop) ? fmt(b.recDrop) + ' bpm' : '—'}</td></tr>`).join('')}</tbody></table>
@@ -2996,8 +3460,8 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
   page(`
     <div class="sec-h"><h2>Heart rate variability</h2><span>Normal-to-normal intervals · source: ${srcTxt}</span></div>
     ${plain('A healthy heart does not tick like a metronome: the gap between beats changes slightly all the time, mostly with your breathing. At rest, more variability usually means your body is relaxed and recovering well; it falls with stress, poor sleep, illness, alcohol and hard training. Your own trend matters more than comparisons with other people.')}
-    <div class="cols-hrv">
-      <div class="fig">${hrvRef ? gauge(A.rmssd, hrvRef) : '<p class="cap">No population reference applies during activity.</p>'}<div class="cap" style="text-align:center">${R.hrvJudge ? gc('rmssd') + '&nbsp; normal range ' + hrvRef[0] + '–' + hrvRef[1] + ' ms (' + R.hrvNote + ', approximate)' : hrvRef ? 'Population interval shown for orientation only.' : ''}</div></div>
+    <div class="cols-hrv${hrvRef ? '' : ' one'}">
+      ${hrvRef ? `<div class="fig">${gauge(A.rmssd, hrvRef)}<div class="cap" style="text-align:center">${R.hrvJudge ? gc('rmssd') + '&nbsp; normal range ' + hrvRef[0] + '–' + hrvRef[1] + ' ms (' + R.hrvNote + ', approximate)' : hrvRef ? 'Population interval shown for orientation only.' : ''}</div></div>` : ''}
       <div class="panel"><h3>Time and frequency domain</h3>
         ${kv('RMSSD · ln RMSSD', fmt(A.rmssd, 1) + ' ms · ' + fmt(A.lnRmssd, 2), 'short-term, vagally mediated variability')}
         ${kv('SDNN', fmt(A.sdnn, 1) + ' ms', 'overall variability, includes slow oscillations')}
@@ -3007,6 +3471,7 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
         ${kv('HF power · peak', fmt(fd.hf) + ' ms² · ' + fmt(fd.hfPeak, 3) + ' Hz', '0.15–0.40 Hz')}
         ${kv('LF/HF · HF share', fmt(A.lfhf, 2) + ' · ' + fmt(A.hfPct) + ' %', A.breath && A.breath.median < 9 ? 'not interpretable at this breathing rate' : '', A.breath && A.breath.median < 9)}
         ${kv('Breathing rate', A.breath ? fmt(A.breath.median, 1) + ' /min' : '—', isFinite(A.breathShare) ? fmt(A.breathShare) + ' % of HRV power at breathing frequency' : '')}</div>
+      ${hrvRef ? '' : '<p class="cap">No population reference applies during activity, so these values are not graded.</p>'}
     </div>
     <div class="fig"><div class="sec-h"><h2>HRV over time</h2><span>${A.hrvWinSec / 60}-minute windows · line = RMSSD · bars = pNN50</span></div>${hrvChart(A, startMs, R.hrvJudge ? hrvRef : null)}
       ${A.hrvWin.length ? `<div class="cap">RMSSD across windows ranged ${fmt(Math.min(...A.hrvWin.map(w => w.rmssd)))}–${fmt(Math.max(...A.hrvWin.map(w => w.rmssd)))} ms.</div>` : ''}</div>
@@ -3094,7 +3559,7 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
     <div class="disclaimer"><b>For general wellness and education only. Not a medical device.</b> Lead One ECG is independent open-source software, has not been evaluated or cleared by any medical regulator, and is not affiliated with or endorsed by Polar Electro or any device manufacturer. This report is produced by automated analysis of a consumer heart-rate strap and may contain errors. It must not be used to diagnose, treat, rule out or monitor any medical condition, or to make decisions about medicines or treatment. A normal result does not mean your heart is healthy. Seek medical attention for symptoms such as chest pain, fainting, palpitations or breathlessness, and share this report with a clinician if you would like it reviewed.</div>`);
 
   const total = pages.length;
-  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.8.4 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
+  return pages.map((inner, i) => `<div class="zoomer"><section class="page">${head}${inner}<footer class="pg-foot"><span>Lead One ECG 1.8.5 · for wellness and education only · not a medical device</span><span>Generated ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · page ${i + 1} of ${total}</span></footer></section></div>`).join('');
 }
 
 /* Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later
@@ -3243,7 +3708,7 @@ if (NATIVE) (() => {
     const scr = document.body.dataset.screen || 'scrHome';
     if (scr === 'scrHome' || scr === 'scrRec' || scr === 'scrAck') return false;
     if (scr === 'scrSettings' && !document.getElementById('setupIntro').hidden) return false;   // first-run setup
-    const back = scr === 'scrHelp' ? document.getElementById('btnHelpBack') : scr === 'scrReport' ? document.getElementById('btnBack') : null;
+    const back = scr === 'scrHelp' ? document.getElementById('btnHelpBack') : scr === 'scrReport' ? document.getElementById('btnBack') : scr === 'scrLicences' ? document.getElementById('btnLicencesBack') : null;
     if (back) back.click(); else if (typeof show === 'function') show('scrHome');
     return true;
   };
@@ -3341,7 +3806,7 @@ function cleanMeta(m) {
     pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && num(p.t1) != null && p.t1 >= p.t0).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
-    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : '', plan: cleanPlan(m.plan), standMark: num(m.standMark)
+    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : '', plan: cleanPlan(m.plan), planT0: num(m.planT0), standMark: num(m.standMark)
   };
 }
 const HNUM = ['oLie', 'oRise', 'oRmssd', 'oPeak', 'start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
@@ -3382,7 +3847,7 @@ const POS_CHIPS = Object.entries(POS).map(([k, v]) => [k, v.short]);
 const TT_CHIPS = [['session', 'Session', 'steady or mixed'], ['intervals', 'Intervals', 'repeated hard efforts'], ['tempo', 'Tempo', 'sustained, comfortably hard'], ['dfa', 'DFA-α1 test', 'aerobic threshold, 3-min steps'], ['ramp', 'Max HR ramp test', '3-min steps to failure'], ['lthr', 'LTHR test', '30-min time trial']];
 const REC_CHIPS = [['active', 'Active', 'keep moving'], ['passive', 'Passive', 'stand or sit still']];
 const TT_HINTS = { session: 'When you finish, tap Start recovery and keep recording for at least 2 minutes.',
-  intervals: 'Each hard effort is detected automatically, with your recovery between efforts. After the last one, tap Start recovery and keep recording for 2 minutes.',
+  intervals: 'Each hard effort is detected automatically, with your recovery between efforts. With an interval plan the app times the rounds: warm up, then tap Start intervals. Without one, tap Start recovery after the last effort. Keep recording for 2 minutes after recovery starts.',
   tempo: 'Warm up, then hold a steady, comfortably hard effort for at least 10 minutes. The report shows how steady you held it and how much your heart rate drifted. Tap Start recovery when you finish.',
   dfa: 'Finds your aerobic threshold from beat-to-beat variation. Best on a bike or treadmill. Start very easy for the first 6 minutes, then raise the effort a little at each beep (every 3 minutes). Keep pedalling or running smoothly; avoid talking, stopping or coasting. The live α1 falls as you work harder: keep going until it is below 0.5 or you are near your limit, then tap Start recovery.',
   ramp: 'Start easy. The app beeps and vibrates every 3 minutes: increase the load each time, until you cannot continue. Tap Start recovery the moment you stop.',
@@ -3418,16 +3883,30 @@ function showTrainOpts() {
   $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || '';
   $('#planField').hidden = S.ttSel !== 'intervals';
 }
+/* the position is remembered for each context, so Training's "Walking / moving" can't carry over to a morning
+   reading (14 Nov 2026: a morning baseline left on walking was graded as exercise). Before 1.8.5 one position was
+   kept for all contexts: it is kept for the context it was last used with, and other contexts start unselected */
+function posMap(st) {
+  if (st.posByCtx && typeof st.posByCtx === 'object' && !Array.isArray(st.posByCtx)) return st.posByCtx;
+  return st.lastCtx && POS[st.lastPos] ? { [st.lastCtx]: st.lastPos } : {};
+}
+function posFor(map, ctx) { return Object.prototype.hasOwnProperty.call(map, ctx) && POS[map[ctx]] ? map[ctx] : ''; }
+function buildPosChips() {
+  buildChips($('#posChips'), POS_CHIPS, S.pos, v => { S.pos = v; patchSettings({ posByCtx: { ...posMap(getSettings()), [S.ctx]: v } }); });
+}
 function initHomeSetup() {
   const st = getSettings();
-  S.ctx = st.lastCtx || ''; S.pos = st.lastPos || '';
-  buildChips($('#ctxChips'), CTX_CHIPS, S.ctx, v => { S.ctx = v; patchSettings({ lastCtx: v }); showTrainOpts(); });
+  S.ctx = st.lastCtx || ''; S.pos = posFor(posMap(st), S.ctx);
+  buildChips($('#ctxChips'), CTX_CHIPS, S.ctx, v => {
+    const map = posMap(getSettings()); S.ctx = v; S.pos = posFor(map, v);
+    patchSettings({ lastCtx: v, posByCtx: map }); buildPosChips(); showTrainOpts();
+  });
   S.ttSel = TRAIN_TYPES[st.lastTT] ? st.lastTT : 'session'; S.recSel = st.lastRec === 'passive' ? 'passive' : 'active';
   stickyChips($('#ttChips'), TT_CHIPS, () => S.ttSel, v => { S.ttSel = v; patchSettings({ lastTT: v }); showTrainOpts(); });
   stickyChips($('#recChips'), REC_CHIPS, () => S.recSel, v => { S.recSel = v; patchSettings({ lastRec: v }); });
   getPlanSetup = planUI('', cleanPlan(st.lastPlan), () => patchSettings({ lastPlan: getPlanSetup() }));
   showTrainOpts();
-  buildChips($('#posChips'), POS_CHIPS, S.pos, v => { S.pos = v; patchSettings({ lastPos: v }); });
+  buildPosChips();
   $('#autoOn').checked = !!st.autoOn; S.autoMinSel = AUTO_STEPS.includes(+st.autoMin) ? +st.autoMin : 5; updateAuto();
 }
 /* minutes of recorded time after which the recording stops by itself (0 = only by hand or at the 8-hour limit) */
@@ -3773,7 +4252,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, planT0: S.ivStart ?? null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -3783,12 +4262,12 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
-  Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
+  Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false, shownT: 0 });
   // the orthostatic test is 3 min lying + 3 min standing; training runs until stopped (the 8-hour limit still applies)
   S.autoMin = autoStopFor(S.ctx, $('#autoOn').checked, S.autoMinSel);
   S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
-  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.stopWhy = ''; S.stopArmed = 0; S.lastStep = 1; S.lthrCued = false;
+  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.stopWhy = ''; S.stopArmed = 0; S.lastStep = 1; S.lthrCued = false; S.ivStart = null; S.ivDone = -1;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
   S.live.fill(0); S.livePos = 0; S.liveHP = makeStreamFilter(design('hp', 0.5)); S.liveLP = makeStreamFilter(design('lp', 35));
   S.sessionId = 'rec-' + Date.now(); S.startMs = Date.now(); S.devName = S.device && S.device.name || 'Polar H10';
@@ -3807,7 +4286,8 @@ async function startRecording() {
   $('#recBatt').textContent = S.battery != null ? S.battery + '%' : '--';
   $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && !(CTX[S.ctx] && CTX[S.ctx].noPos) && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
   $('#btnRecov').hidden = S.ctx !== 'training'; $('#btnRecov').disabled = false; $('#btnRecov').textContent = 'Start recovery';
-  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa' || S.ctx === 'ortho'); $('#stepPanel').classList.remove('go');
+  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa' || S.ctx === 'ortho' || (S.trainType === 'intervals' && S.plan)); $('#stepPanel').classList.remove('go');
+  $('#btnIntervals').hidden = !(S.trainType === 'intervals' && S.plan);
   $('#a1Live').hidden = S.trainType !== 'dfa'; S.a1 = null; S.a1At = 0; $('#a1Val').textContent = '—'; $('#a1Msg').textContent = 'α1 appears after 2 minutes';
   if (S.trainType) $('#recCtx').textContent += ' · ' + TRAIN_TYPES[S.trainType] + ' · ' + (S.recovery === 'passive' ? 'passive' : 'active') + ' recovery';
   setPausedUI(false); show('scrRec'); tickRec(); requestAnimationFrame(drawLive);
@@ -3868,7 +4348,8 @@ function cueBus(a) {
    performance.now() is checked on every tick: if it moves by more than 0.1 s on two checks in a row (the audio started
    late or drifted), tones that haven't started yet are re-scheduled; a tone already playing is left alone. Pausing,
    stopping or starting recovery cancels anything still waiting. Results come from the heartbeat data, not the cues. */
-const CUE = { strong: [[2400, 220, 0], [2400, 220, 0.3], [3000, 450, 0.6]], soft: [[2000, 160, 0], [2000, 160, 0.25]] };
+const CUE = { strong: [[2400, 220, 0], [2400, 220, 0.3], [3000, 450, 0.6]], soft: [[2000, 160, 0], [2000, 160, 0.25]],
+  tick: [[2000, 120, 0]], go: [[3000, 450, 0]], rest: [[2000, 300, 0]], end: [[3000, 220, 0], [2400, 220, 0.3], [2000, 600, 0.6]] };
 const CQ = { tones: [], timers: [], off: null, strikes: 0 };
 const audioLat = a => Math.min(0.5, Math.max(0, (a.outputLatency || 0) + (a.baseLatency || 0)));
 const audioOff = a => a.currentTime - performance.now() / 1000;
@@ -3912,9 +4393,9 @@ function cancelCues() {
 function buzz(strong) { const vib = strong ? [400, 120, 400, 120, 400] : [200, 100, 200]; if (NATIVE) LeadOneNative.vibrate(vib); else try { navigator.vibrate && navigator.vibrate(vib); } catch (e) {} }
 function cue(strong) { if (S.paused) return; buzz(strong); playPattern(strong ? CUE.strong : CUE.soft); }   // no sounds while paused
 // a cue due in `due` seconds: sound scheduled now, vibration and screen change when it is heard
-function planCue(key, strong, due, then) {
-  S.planned = key; playPattern(strong ? CUE.strong : CUE.soft, due);
-  CQ.timers.push(setTimeout(() => { if (S.recording && S.planned === key) { buzz(strong); then(); } }, Math.max(0, due * 1000)));
+function planCue(key, strong, due, then, pat) {
+  S.planned = key; playPattern(pat || (strong ? CUE.strong : CUE.soft), due);
+  CQ.timers.push(setTimeout(() => { if (S.recording && S.planned === key) { if (strong != null) buzz(strong); then(); } }, Math.max(0, due * 1000)));
 }
 const AHEAD = 1.2;   // seconds: the tick runs every 0.5 s, so a cue is always planned at least 0.7 s ahead
 /* live DFA-alpha1 from the strap's beat intervals: last 2 minutes, recomputed every 10 s */
@@ -3949,6 +4430,57 @@ function tickOrtho() {   // orthostatic test: lie 3 min, a strong cue to stand, 
   if (S.standMark == null) { $('#spLabel').textContent = 'Lie still'; $('#spStep').textContent = '1'; $('#spCount').textContent = ms2(left); $('#spMsg').textContent = left <= 10.5 ? 'get ready to stand' : 'until you stand up'; }
   else { $('#spLabel').textContent = 'Stand still'; $('#spStep').textContent = '2'; $('#spCount').textContent = go ? 'STAND' : ms2(Math.max(0, 360 - el)); $('#spMsg').textContent = go ? 'stand up now, then keep still' : 'until the test ends'; }
 }
+/* interval timer (Training · Interval training with a plan): after the warm-up, Start intervals counts 3-2-1, then
+   beeps and vibrates at the start of every work round (GO) and every rest, and at the end of the last round marks Start
+   recovery itself, so the rounds and the recovery line up exactly. Times are seconds from the start of round 1; the
+   clock keeps running through Pause (cues are silent while paused) */
+const IV_COUNT = 3;
+function ivEvents(p) {
+  const ev = [];
+  for (let k = IV_COUNT; k >= 1; k--) ev.push({ at: -k, k: 'tick' });
+  for (let i = 0; i < p.n; i++) {
+    const ws = i * (p.w + p.r);
+    ev.push({ at: ws, k: 'work', i: i + 1 });
+    if (i < p.n - 1 && p.r > 0) ev.push({ at: ws + p.w, k: 'rest', i: i + 1 });
+  }
+  ev.push({ at: p.n * p.w + (p.n - 1) * p.r, k: 'end' });
+  return ev;
+}
+function ivPhase(p, t) {
+  const total = p.n * p.w + (p.n - 1) * p.r, per = p.w + p.r;
+  if (t < 0) return { k: 'count', left: -t };
+  if (t >= total) return { k: 'done' };
+  const i = Math.floor(t / per), into = t - i * per;
+  return into < p.w ? { k: 'work', i: i + 1, left: p.w - into } : { k: 'rest', i: i + 1, left: per - into };
+}
+function ivFinish() {   // end of the last round: Start recovery, without cancelling the end beeps still playing
+  if (S.recMark != null) return;
+  CQ.timers.forEach(clearTimeout); CQ.timers = []; S.planned = null;
+  markRecovery();
+}
+function tickIntervals(el, P) {
+  const p = S.plan;
+  if (S.ivStart == null) {
+    P.classList.remove('go'); $('#spLabel').textContent = 'Warm-up'; $('#spStep').textContent = '–'; $('#spCount').textContent = ms2(el);
+    $('#spMsg').textContent = 'tap Start intervals when ready'; return;
+  }
+  const t = el - S.ivStart, ev = ivEvents(p);
+  // plan the next cue a little ahead, so it is heard on time (see planCue)
+  const j = ev.findIndex(e => e.at > t - 0.05);
+  if (j >= 0 && j > S.ivDone && !S.paused) {
+    const e = ev[j], key = 'iv' + j, due = e.at - t;
+    if (due <= AHEAD && S.planned !== key)
+      planCue(key, e.k === 'tick' ? null : e.k !== 'rest', Math.max(0, due), () => { S.ivDone = j; if (e.k === 'end') ivFinish(); else tickIntervals(elNow(), P); },
+        e.k === 'tick' ? CUE.tick : e.k === 'work' ? CUE.go : e.k === 'rest' ? CUE.rest : CUE.end);
+  }
+  const ph = ivPhase(p, t);
+  if (ph.k === 'done') { if (S.recMark == null) { S.ivDone = ev.length - 1; markRecovery(); } return; }   // a missed end cue (paused): mark anyway
+  P.classList.toggle('go', ph.k === 'work');
+  $('#spLabel').textContent = ph.k === 'count' ? 'Get ready' : 'Round';
+  $('#spStep').textContent = ph.k === 'count' ? Math.ceil(ph.left) : ph.i + '/' + p.n;
+  $('#spCount').textContent = ph.k === 'count' ? 'READY' : ms2(ph.left);
+  $('#spMsg').textContent = ph.k === 'count' ? 'round 1 starts on the beep' : ph.k === 'work' ? 'work' : 'rest';
+}
 function nextStep(n, sound) { if (n <= S.lastStep) return; S.lastStep = n; if (sound) cue(true); S.goUntil = Date.now() + 5000; tickTraining(); }
 function lthrNow(sound) { if (S.lthrCued) return; S.lthrCued = true; if (sound) cue(true); tickTraining(); }
 function tickTraining() {
@@ -3956,6 +4488,7 @@ function tickTraining() {
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = elNow(), P = $('#stepPanel');
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
+  if (S.trainType === 'intervals') { tickIntervals(el, P); return; }
   if (S.trainType === 'dfa') liveAlpha1(el);
   if (S.trainType === 'ramp' || S.trainType === 'dfa') {
     const left = 180 - (el % 180), step = Math.max(Math.floor(el / 180) + 1, S.lastStep), nk = 'step' + (step + 1);
@@ -3988,14 +4521,26 @@ function recoveryCutNote(recMark, end) {
   if (recMark == null || end - recMark >= 60) return '';
   return ` Recovery was cut short: the recording stopped ${Math.round(end - recMark)} s after Start recovery, so it can't be measured. Next time, keep recording for 2 minutes after Start recovery.`;
 }
+function markRecovery() {
+  S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
+  $('#btnIntervals').hidden = true; putSession(sessionMeta('recording')); tickTraining();
+}
 $('#btnRecov').onclick = () => {
   if (!S.recording || S.recMark != null) return;
-  cancelCues(); S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
-  cue(false); putSession(sessionMeta('recording'));
+  cancelCues(); markRecovery(); cue(false);
 };
+$('#btnIntervals').onclick = () => {
+  if (!S.recording || S.recMark != null || S.ivStart != null || !S.plan) return;
+  S.ivStart = elNow() + IV_COUNT; S.ivDone = -1; $('#btnIntervals').hidden = true;
+  putSession(sessionMeta('recording')); tickTraining();
+};
+/* the recording timer: elNow() runs smoothly between ECG packets, but paused and lost samples are counted per packet
+   (about half a second each), so their difference wobbles across a second boundary while paused (07:54, 07:55, 07:54…).
+   Held while paused, and never shown going backwards */
+function shownActive(prev, active, paused) { return paused ? prev : Math.max(prev, active); }
 function tickRec() {
   if (!S.recording) return;
-  const active = Math.max(0, elNow() - (S.pausedSamples + S.gapSamples) / FS);
+  const active = S.shownT = shownActive(S.shownT || 0, Math.max(0, elNow() - (S.pausedSamples + S.gapSamples) / FS), S.paused);
   $('#recTimer').textContent = hms(active); $('#dimT').textContent = hms(active);
   $('#recRemain').textContent = S.autoMin ? `Stops automatically in ${ms2(S.autoMin * 60 - active)}` : `${hms(MAX_SAMPLES / FS - S.total / FS)} remaining before the 8-hour limit`;
   $('#recHR').innerHTML = S.hr ? S.hr + '<small>bpm</small>' : '--';
@@ -4156,7 +4701,7 @@ function saveRecordingFile() {
   downloadFile(fileStamp(d, m.ctx) + '.json',
     JSON.stringify({ format: 'lead-one-ecg', version: 3, fs: FS, id: m.id, start: m.start, ctx: m.ctx, pos: m.pos, notes: m.notes || '', device: m.device, fw: m.fw, battery: m.battery,
       gap: m.gap, paused: m.paused, pauses: m.pauses, rr: m.rr, gapMarker: GAP, samples: btoa(bin),
-      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, stopWhy: m.stopWhy || '', plan: m.plan || null, standMark: m.standMark,
+      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, stopWhy: m.stopWhy || '', plan: m.plan || null, planT0: m.planT0, standMark: m.standMark,
       accFs: m._acc ? m._acc.fs : 0, accT0: m._acc ? m._acc.t0 : 0, acc: m._acc ? b64(new Uint8Array(m._acc.data.buffer, m._acc.data.byteOffset, m._acc.data.byteLength)) : '' }));
 }
 async function openFile(file) {
@@ -4259,6 +4804,18 @@ $('#btnInstall').onclick = async () => {
     : 'In Chrome or Edge, use the install icon at the right of the address bar, or the ⋮ menu → “Install Lead One ECG”. If it is already installed, open it from there.', 10000);
 };
 $('#btnHelpBack').onclick = $('#btnHelpBack2').onclick = () => show(helpFrom);
+// Licences (Settings > About): back to Settings; the list at the top jumps to a licence's text, and each text back
+$('#btnLicences').onclick = () => show('scrLicences');
+$('#btnLicencesBack').onclick = $('#btnLicencesBack2').onclick = () => openSettings(false);
+$('#scrLicences').addEventListener('click', e => {
+  const a = e.target.closest('a[data-lic]');
+  if (!a) return;
+  e.preventDefault();
+  const t = document.getElementById(a.dataset.lic);
+  if (!t) return;
+  t.scrollIntoView({ block: 'start' });   // straight there: the texts are long, so a smooth scroll takes seconds
+  t.focus({ preventScroll: true });       // keyboard and screen-reader users go on from the text (tabindex="-1")
+});
 $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) openFile(f); };
 for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runSample(b.dataset.demo);
 function runSample(kind) {
@@ -4292,6 +4849,28 @@ else if (location.hash === '#ramp') runSample('ramp');
 else if (location.hash === '#tempo') runSample('tempo');
 else if (location.hash === '#dfa') runSample('dfa');
 else if (location.hash === '#meditation') runSample('meditation');
+
+/* Copyright (C) 2026 Anonaconda Code Lab · SPDX-License-Identifier: GPL-3.0-or-later
+   ---------- Lead One ECG: LINE's built-in browser ----------
+   A link opened in a LINE chat opens in LINE's own browser, which has no Web Bluetooth (so it can't connect to the
+   strap) and can't save files. There, and only there (never in the Android app), a banner offers to open the same
+   address in the phone's own browser, using LINE's documented parameter openExternalBrowser=1 (developers.line.biz,
+   "Using LINE features with the LINE URL scheme"). The studio's shared snippet, as in Remark. */
+const LeadOneLine = (() => {
+  'use strict';
+  const inLine = ua => /\bLine\//.test(String(ua || ''));
+  const externalUrl = href => { const u = new URL(href); u.searchParams.set('openExternalBrowser', '1'); return u.href; };
+  function init() {
+    const native = !!(globalThis.Capacitor && typeof globalThis.Capacitor.isNativePlatform === 'function' && globalThis.Capacitor.isNativePlatform());
+    const bar = document.getElementById('lineBar');
+    if (!bar || native || !inLine(navigator.userAgent)) return;
+    document.getElementById('lineOpen').href = externalUrl(location.href);
+    bar.hidden = false;
+  }
+  if (typeof document !== 'undefined') init();
+  return { inLine, externalUrl };
+})();
+globalThis.LeadOneLine = LeadOneLine;
 
 </script>
 </body></html>

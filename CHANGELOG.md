@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.8.5
+
+- **Interval timer:** with an interval plan (Tabata, 30/30, 10 × 1 min, 4 × 4 min or your own), warm up, then tap
+  **Start intervals**: after a 3-2-1 count the app beeps and vibrates at every work round and every rest, shows the
+  round and the seconds left, and marks Start recovery itself at the end of the last round. The report places the
+  rounds exactly where they were timed.
+- The recording timer no longer flickers between two seconds (07:54, 07:55, 07:54…) while a recording is paused; it
+  holds still until you tap Resume, and never steps back.
+- The position (lying, sitting, standing, walking / moving) is now remembered for each context, so a Training
+  session's "Walking / moving" no longer carries over to the next morning reading, which would then be graded as
+  exercise. A reading saved with the wrong position can be corrected in Details.
+- Report, heart rate variability page: during exercise (no population reference) the values panel now uses the full
+  width instead of leaving an empty column beside it.
+- **Licences** screen under Settings > About: every bundled typeface, and in the Android app Capacitor, the Bluetooth
+  plugin, Apache Cordova (with its notice), AndroidX and Kotlin, each with its full licence text; also shipped as
+  `licences.txt` and `licences-android.txt` beside the page and in the APK.
+- In LINE's built-in browser (which can't connect to the strap or save files), a banner offers to open the page in the
+  phone's own browser.
+- Release workflow: the old `android-test` pre-release and its tag are removed with checks (Remark's
+  `clear_prerelease`), so a leftover tag can't put a new test build on an old commit.
+- README: the code is written with Claude; since October 2026 every commit names Claude as its author.
+
 ## 1.8.4
 - **Lost strap contact is recognised:** when the strap loses contact mid-session, beats go missing and the timing turns
   erratic. That stretch is now left out of extra beats, pauses and averages, and the report says when it happened. A

@@ -109,7 +109,8 @@ Polar and H10 are trademarks of Polar Electro Oy. This project is independent an
 Polar Electro. See [NOTICE.md](NOTICE.md) for third-party licences.
 
 ## Licence
-Copyright © 2026 Anonaconda Code Lab.
+Copyright © 2026 Anonaconda Code Lab. The code is written with Claude; since October 2026 every commit names Claude as
+its author. The owner designs and tests the app.
 
 Lead One ECG is free software: you can redistribute it and/or modify it under the terms of the
 [GNU General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the License, or
@@ -120,4 +121,6 @@ with its full source code.
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
 warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-The embedded fonts keep their own licence (SIL Open Font License 1.1); see [NOTICE.md](NOTICE.md).
+The embedded fonts keep their own licence (SIL Open Font License 1.1), and the Android app's components (Capacitor, the
+Bluetooth plugin, Apache Cordova, AndroidX, Kotlin) theirs; see [NOTICE.md](NOTICE.md). All their licence texts ship with
+the app, on the **Licences** screen (Settings > About) and in `licences.txt` and `licences-android.txt`.

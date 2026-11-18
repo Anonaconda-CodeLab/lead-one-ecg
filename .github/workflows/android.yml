@@ -170,7 +170,17 @@ jobs:
       - name: Publish as the android-test pre-release
         if: ${{ !inputs.release }}
         run: |
-          gh release delete android-test --yes --cleanup-tag || true
+          # the old pre-release and its tag go first, each on its own: a tag left behind by an interrupted run would
+          # otherwise keep the new release on the old commit. Only "not there" is accepted; any other error stops.
+          # (Remark's clear_prerelease, from its CodeRabbit review, 14 Nov 2026)
+          clear_prerelease() {
+            if out=$(gh release view "$1" --json tagName 2>&1); then gh release delete "$1" --yes
+            elif ! grep -qi 'release not found\|HTTP 404' <<<"$out"; then echo "::error::Could not check the old $1 release: $out"; exit 1; fi
+            if out=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$1" 2>&1); then
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$1" --silent
+            elif ! grep -q 'HTTP 404' <<<"$out"; then echo "::error::Could not check the old $1 tag: $out"; exit 1; fi
+          }
+          clear_prerelease android-test
           gh release create android-test "LeadOne-ECG-$VER.apk" --prerelease --target "$GITHUB_SHA" \
             --title "Android test build $VER (build ${{ github.run_number }})" \
             --notes "Test build of the Android app, made automatically from commit ${GITHUB_SHA::7}. Install over the previous test build; your recordings are kept."
