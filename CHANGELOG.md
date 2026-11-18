@@ -4,8 +4,9 @@
 
 - **Interval timer:** with an interval plan (Tabata, 30/30, 10 × 1 min, 4 × 4 min or your own), warm up, then tap
   **Start intervals**: after a 3-2-1 count the app beeps and vibrates at every work round and every rest, shows the
-  round and the seconds left, and marks Start recovery itself at the end of the last round. The report places the
-  rounds exactly where they were timed.
+  round and the seconds left, and marks Start recovery itself at the end of the last round. Pause stops the round timer
+  as well, and Resume carries on where it left off. The report places the rounds exactly where they were timed, pauses
+  included.
 - The recording timer no longer flickers between two seconds (07:54, 07:55, 07:54…) while a recording is paused; it
   holds still until you tap Resume, and never steps back.
 - The position (lying, sitting, standing, walking / moving) is now remembered for each context, so a Training

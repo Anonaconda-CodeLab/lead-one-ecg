@@ -373,7 +373,21 @@ test('interval plan timed by the app: rounds placed at the saved start; an early
   assert.equal(E.rounds.length, 3, 'rounds after Start recovery are not shown');
   const U = L.planWork(A, A.exercise, tab, 400);
   assert.equal(U.anchor, 'marked'); assert.equal(U.rounds[7].t1, 400, 'without a saved start, lined up with Start recovery as before');
+  const N = L.planWork(A, A.exercise, tab, 400, null);   // a recording saved without Start intervals: planT0 is null
+  assert.equal(N.anchor, 'marked'); assert.equal(N.rounds[7].t1, 400, 'a saved null is not a start at 0 s');
   const txt = s => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
   const T = txt(L.renderReport(A, { start: Date.now(), ctx: 'training', pos: 'sitting', trainType: 'intervals', recovery: 'passive', plan: tab, recMark: 260, planT0: 170 }, { sex: 'M', dob: '1968-01-01' }, []));
   assert.match(T, /timed by the app/); assert.match(T, /\(3 of 8 done before Start recovery\)/);
+});
+
+test('interval plan timed by the app with a pause: rounds after it sit later by the paused time', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  const tab = { w: 20, r: 10, n: 8 }, pauses = [{ t0: 205, t1: 220 }];   // 15 s paused, 5 s into round 2 (200-220)
+  const P = L.planWork(A, A.exercise, tab, 415, 170, pauses);
+  assert.equal(JSON.stringify(P.rounds.slice(0, 3).map(x => [x.t0, x.t1])), '[[170,190],[200,235],[245,265]]');
+  assert.equal(P.rounds[7].t1, 415, 'the last round ends 15 s later, at the automatic Start recovery');
+  assert.equal(L.activeToRec(100, [{ t0: 110, t1: null }], 20), Infinity, 'still paused: not reached yet');
+  assert.equal(L.activeBetween(100, 130, [{ t0: 110, t1: 115 }, { t0: 90, t1: 102 }]), 23);
+  assert.equal(L.activeBetween(100, 130, [{ t0: 120, t1: null }]), 20, 'a pause still going counts to now');
 });

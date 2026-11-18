@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { distHtml } from './helpers.mjs';
+import { readFileSync } from 'node:fs';
 
 test('built page is self-contained and locked down', () => {
   const h = distHtml();
@@ -285,30 +286,55 @@ test('interval timer: Tabata schedule, phases, and a simulated session through t
   assert.equal(ivPhase(tab, 230).k, 'done'); assert.equal(ivPhase(tab, -2).k, 'count');
   assert.equal(ivEvents({ w: 60, r: 0, n: 3 }).filter(e => e.k === 'rest').length, 0, 'no rest beeps without rests');
 
-  // the live timer, ticked twice a second from Start intervals (t = 10 s into the recording) to the end
-  const el = { v: 10 }, heard = [], marks = [], timers = [];
-  const dom = {}; const $ = sel => dom[sel] || (dom[sel] = { textContent: '', classList: { toggle() {}, remove() {} } });
-  const S = { plan: tab, ivStart: 13, ivDone: -1, paused: false, recMark: null, planned: null };
-  const CQ = { timers: [] };
-  const run = new Function('S', '$', 'CQ', 'elNow', 'planCue', 'markRecovery', 'ms2', 'CUE', `const IV_COUNT = 3, AHEAD = 1.2;
-    ${grab('ivEvents')}\n${grab('ivPhase')}\n${grab('ivFinish')}\n${grab('tickIntervals')}\nreturn tickIntervals;`);
-  const tick = run(S, $, CQ, () => el.v,
-    (key, strong, due, then, pat) => { S.planned = key; timers.push({ at: el.v + due, key, then, pat }); },
-    () => { S.recMark = el.v; marks.push(el.v); }, s => String(Math.ceil(s)), { tick: 'tick', go: 'go', rest: 'rest', end: 'end' });
-  for (; el.v < 13 + 235; el.v = Math.round((el.v + 0.5) * 10) / 10) {
-    for (const x of timers.splice(0).sort((a, b) => a.at - b.at)) { if (x.at <= el.v + 1e-9) { heard.push([+(x.at - 13).toFixed(1), x.pat]); if (S.planned === x.key) x.then(); } else timers.push(x); }
-    if (S.recMark == null) tick(el.v, $('#stepPanel'));
-  }
-  assert.deepEqual(heard.filter(x => x[1] === 'tick').map(x => x[0]), [-3, -2, -1], '3-2-1');
-  assert.deepEqual(heard.filter(x => x[1] === 'go').map(x => x[0]), [0, 30, 60, 90, 120, 150, 180, 210], 'GO at every work round, on time');
-  assert.deepEqual(heard.filter(x => x[1] === 'rest').map(x => x[0]), [20, 50, 80, 110, 140, 170, 200]);
-  assert.deepEqual(heard.filter(x => x[1] === 'end').map(x => x[0]), [230]);
-  assert.equal(marks.length, 1); assert.ok(Math.abs(marks[0] - (13 + 230)) <= 0.5, 'Start recovery marked at the end of round 8: ' + marks[0]);
+  // the live timer, ticked twice a second; Start intervals tapped at 10 s into the recording (round 1 at 13 s).
+  // `pause` = a Pause/Resume stretch in recording time: the interval clock must stop for it, beeps included
+  const core = readFileSync(new URL('../src/core.js', import.meta.url), 'utf8');
+  const grabC = name => core.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`))[0];
+  const simulate = pause => {
+    const el = { v: 10 }, heard = [], marks = [], timers = [];
+    const dom = {}; const $ = sel => dom[sel] || (dom[sel] = { textContent: '', classList: { toggle() {}, remove() {} } });
+    const S = { plan: tab, ivTap: 10, ivDone: -1, paused: false, recMark: null, planned: null, pauses: [] };
+    const CQ = { timers: [] };
+    const run = new Function('S', '$', 'CQ', 'elNow', 'planCue', 'markRecovery', 'ms2', 'CUE', `const IV_COUNT = 3, AHEAD = 1.2;
+      ${grabC('pauseList')}\n${grabC('activeBetween')}\n${grab('ivTime')}\n${grab('ivEvents')}\n${grab('ivPhase')}\n${grab('ivFinish')}\n${grab('tickIntervals')}\nreturn tickIntervals;`);
+    const tick = run(S, $, CQ, () => el.v,
+      (key, strong, due, then, pat) => { S.planned = key; timers.push({ at: el.v + due, key, then, pat }); },
+      () => { S.recMark = el.v; marks.push(el.v); }, s => String(Math.ceil(s)), { tick: 'tick', go: 'go', rest: 'rest', end: 'end' });
+    let msg = '';
+    for (; el.v < 13 + 260; el.v = Math.round((el.v + 0.5) * 10) / 10) {
+      if (pause && el.v === pause[0]) { S.paused = true; S.pauses.push({ t0: el.v, t1: null }); timers.length = 0; S.planned = null; }   // as the Pause button (cancelCues)
+      if (pause && el.v === pause[1]) { S.paused = false; S.pauses[0].t1 = el.v; }
+      for (const x of timers.splice(0).sort((a, b) => a.at - b.at)) { if (x.at <= el.v + 1e-9) { heard.push([+(x.at - 13).toFixed(1), x.pat]); if (S.planned === x.key) x.then(); } else timers.push(x); }
+      if (S.recMark == null) tick(el.v, $('#stepPanel'));
+      if (pause && el.v === pause[0] + 5) msg = $('#spMsg').textContent + ' · ' + $('#spCount').textContent;
+    }
+    return { heard, marks, msg };
+  };
+  const plain = simulate(null);
+  assert.deepEqual(plain.heard.filter(x => x[1] === 'tick').map(x => x[0]), [-3, -2, -1], '3-2-1');
+  assert.deepEqual(plain.heard.filter(x => x[1] === 'go').map(x => x[0]), [0, 30, 60, 90, 120, 150, 180, 210], 'GO at every work round, on time');
+  assert.deepEqual(plain.heard.filter(x => x[1] === 'rest').map(x => x[0]), [20, 50, 80, 110, 140, 170, 200]);
+  assert.deepEqual(plain.heard.filter(x => x[1] === 'end').map(x => x[0]), [230]);
+  assert.equal(plain.marks.length, 1); assert.ok(Math.abs(plain.marks[0] - (13 + 230)) <= 0.5, 'Start recovery marked at the end of round 8: ' + plain.marks[0]);
+  // paused 15 s in round 2's work (5 s into it, recording 48-63 s): nothing sounds while paused, round 2 goes on with
+  // the 15 s it had left, and every later beep and the end move 15 s later
+  const P = simulate([48, 63]);
+  assert.ok(!P.heard.some(x => x[0] > 35 && x[0] < 50), 'silent while paused');
+  assert.match(P.msg, /^paused · tap Resume to go on · 15$/, 'the round timer holds: ' + P.msg);
+  assert.deepEqual(P.heard.filter(x => x[1] === 'go').map(x => x[0]), [0, 30, 75, 105, 135, 165, 195, 225], 'later rounds 15 s later');
+  assert.deepEqual(P.heard.filter(x => x[1] === 'rest').map(x => x[0]), [20, 65, 95, 125, 155, 185, 215]);
+  assert.deepEqual(P.heard.filter(x => x[1] === 'end').map(x => x[0]), [245]);
+  assert.ok(Math.abs(P.marks[0] - (13 + 245)) <= 0.5, 'Start recovery 15 s later: ' + P.marks[0]);
+  // a pause in the 3-2-1 holds the count too
+  const C = simulate([11, 21]);
+  assert.deepEqual(C.heard.filter(x => x[1] === 'tick').map(x => x[0]), [-3, 8, 9], 'count resumes where it stopped');
+  assert.equal(C.heard.find(x => x[1] === 'go')[0], 10, 'round 1 starts 10 s later');
 
   // wiring
   assert.ok(h.includes('<button id="btnIntervals" class="btn primary" hidden>Start intervals</button>'));
   assert.ok(h.includes("if (S.trainType === 'intervals') { tickIntervals(el, P); return; }"));
-  assert.ok(h.includes('planT0: S.ivStart ?? null') && h.includes('planT0: num(m.planT0)'), 'start of round 1 saved with the recording');
+  assert.ok(h.includes('planT0: S.ivTap != null && Number.isFinite(activeToRec(S.ivTap, S.pauses, IV_COUNT))') && h.includes('planT0: num(m.planT0)'), 'start of round 1 saved with the recording');
+  assert.ok(h.includes("setPausedUI(S.paused); putSession(sessionMeta('recording')); tickTraining();"), 'the panel shows the pause at once');
 });
 
 test('licences: every bundled font and Android component with its full licence, on the Licences screen and in licences.txt', async () => {

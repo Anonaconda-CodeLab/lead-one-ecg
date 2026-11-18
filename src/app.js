@@ -536,7 +536,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, planT0: S.ivStart ?? null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, planT0: S.ivTap != null && Number.isFinite(activeToRec(S.ivTap, S.pauses, IV_COUNT)) ? activeToRec(S.ivTap, S.pauses, IV_COUNT) : null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -551,7 +551,7 @@ async function startRecording() {
   S.autoMin = autoStopFor(S.ctx, $('#autoOn').checked, S.autoMinSel);
   S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
-  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.stopWhy = ''; S.stopArmed = 0; S.lastStep = 1; S.lthrCued = false; S.ivStart = null; S.ivDone = -1;
+  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.stopWhy = ''; S.stopArmed = 0; S.lastStep = 1; S.lthrCued = false; S.ivTap = null; S.ivDone = -1;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
   S.live.fill(0); S.livePos = 0; S.liveHP = makeStreamFilter(design('hp', 0.5)); S.liveLP = makeStreamFilter(design('lp', 35));
   S.sessionId = 'rec-' + Date.now(); S.startMs = Date.now(); S.devName = S.device && S.device.name || 'Polar H10';
@@ -586,7 +586,7 @@ $('#btnPause').onclick = () => {
   cancelCues();
   if (!S.paused) { S.paused = true; S.pauses.push({ t0: t, t1: null }); S.rr.push([t, -1]); }
   else { S.paused = false; const p = S.pauses[S.pauses.length - 1]; if (p) p.t1 = t; S.rr.push([t, -1]); }
-  setPausedUI(S.paused); putSession(sessionMeta('recording'));
+  setPausedUI(S.paused); putSession(sessionMeta('recording')); tickTraining();
 };
 async function stopRecording(why) {
   if (!S.recording || S.stopping) return;
@@ -716,8 +716,8 @@ function tickOrtho() {   // orthostatic test: lie 3 min, a strong cue to stand, 
 }
 /* interval timer (Training · Interval training with a plan): after the warm-up, Start intervals counts 3-2-1, then
    beeps and vibrates at the start of every work round (GO) and every rest, and at the end of the last round marks Start
-   recovery itself, so the rounds and the recovery line up exactly. Times are seconds from the start of round 1; the
-   clock keeps running through Pause (cues are silent while paused) */
+   recovery itself, so the rounds and the recovery line up exactly. Times are seconds from the start of round 1, on a
+   clock that stops while the recording is paused (countdown included) and goes on from there on Resume */
 const IV_COUNT = 3;
 function ivEvents(p) {
   const ev = [];
@@ -737,6 +737,8 @@ function ivPhase(p, t) {
   const i = Math.floor(t / per), into = t - i * per;
   return into < p.w ? { k: 'work', i: i + 1, left: p.w - into } : { k: 'rest', i: i + 1, left: per - into };
 }
+// seconds on the interval clock (0 = round 1 starts): un-paused time since Start intervals, less the 3-2-1
+function ivTime(el) { return activeBetween(S.ivTap, el, S.pauses) - IV_COUNT; }
 function ivFinish() {   // end of the last round: Start recovery, without cancelling the end beeps still playing
   if (S.recMark != null) return;
   CQ.timers.forEach(clearTimeout); CQ.timers = []; S.planned = null;
@@ -744,11 +746,11 @@ function ivFinish() {   // end of the last round: Start recovery, without cancel
 }
 function tickIntervals(el, P) {
   const p = S.plan;
-  if (S.ivStart == null) {
+  if (S.ivTap == null) {
     P.classList.remove('go'); $('#spLabel').textContent = 'Warm-up'; $('#spStep').textContent = '–'; $('#spCount').textContent = ms2(el);
     $('#spMsg').textContent = 'tap Start intervals when ready'; return;
   }
-  const t = el - S.ivStart, ev = ivEvents(p);
+  const t = ivTime(el), ev = ivEvents(p);
   // plan the next cue a little ahead, so it is heard on time (see planCue)
   const j = ev.findIndex(e => e.at > t - 0.05);
   if (j >= 0 && j > S.ivDone && !S.paused) {
@@ -763,7 +765,7 @@ function tickIntervals(el, P) {
   $('#spLabel').textContent = ph.k === 'count' ? 'Get ready' : 'Round';
   $('#spStep').textContent = ph.k === 'count' ? Math.ceil(ph.left) : ph.i + '/' + p.n;
   $('#spCount').textContent = ph.k === 'count' ? 'READY' : ms2(ph.left);
-  $('#spMsg').textContent = ph.k === 'count' ? 'round 1 starts on the beep' : ph.k === 'work' ? 'work' : 'rest';
+  $('#spMsg').textContent = S.paused ? 'paused · tap Resume to go on' : ph.k === 'count' ? 'round 1 starts on the beep' : ph.k === 'work' ? 'work' : 'rest';
 }
 function nextStep(n, sound) { if (n <= S.lastStep) return; S.lastStep = n; if (sound) cue(true); S.goUntil = Date.now() + 5000; tickTraining(); }
 function lthrNow(sound) { if (S.lthrCued) return; S.lthrCued = true; if (sound) cue(true); tickTraining(); }
@@ -814,8 +816,8 @@ $('#btnRecov').onclick = () => {
   cancelCues(); markRecovery(); cue(false);
 };
 $('#btnIntervals').onclick = () => {
-  if (!S.recording || S.recMark != null || S.ivStart != null || !S.plan) return;
-  S.ivStart = elNow() + IV_COUNT; S.ivDone = -1; $('#btnIntervals').hidden = true;
+  if (!S.recording || S.recMark != null || S.ivTap != null || !S.plan || S.paused) return;
+  S.ivTap = elNow(); S.ivDone = -1; $('#btnIntervals').hidden = true;
   putSession(sessionMeta('recording')); tickTraining();
 };
 /* the recording timer: elNow() runs smoothly between ECG packets, but paused and lost samples are counted per packet

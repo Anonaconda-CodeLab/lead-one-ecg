@@ -735,7 +735,7 @@ function latestLthr(hist, cur) {
 function trainingContext(A, meta, hist, age, sex) {
   const ER = A.exercise || null, tt = meta.ctx === 'training' ? (TRAIN_TYPES[meta.trainType] ? meta.trainType : 'session') : null;
   const ramp = tt === 'ramp' ? rampTest(A, ER) : null, lt = tt === 'lthr' ? lthrTest(A, ER) : null;
-  const plan = tt === 'intervals' && meta.plan ? planWork(A, ER, meta.plan, meta.recMark, meta.planT0) : null;
+  const plan = tt === 'intervals' && meta.plan ? planWork(A, ER, meta.plan, meta.recMark, meta.planT0, meta.pauses) : null;
   const iv = tt === 'intervals' && !plan ? intervalWork(A, ER) : null, tempo = tt === 'tempo' ? tempoWork(A, ER) : null;
   const dfa = tt === 'dfa' || tt === 'ramp' ? dfaTest(A, ER) : null;
   const cur = { id: meta.id || ('file-' + meta.start), start: meta.start, ctx: meta.ctx, trainType: tt, peak20: ER ? ER.peak20 : NaN,

@@ -120,7 +120,8 @@ Choose the **Training** context to measure your exercise heart rate, recovery an
   a 3-2-1 count it beeps and vibrates at the start of every work round (one long high beep, **GO**) and every rest (one
   lower beep), shows the round and the seconds left, and at the end of the last round plays a falling three-note beep
   and marks **Start recovery** itself: keep recording for 2 minutes. Tapping **Start recovery** earlier ends the plan
-  there. The clock keeps running if you pause (the beeps are silent while paused). The report shows every round's
+  there. **Pause** stops the round timer too (the 3-2-1 included), and **Resume** carries on with the seconds that were
+left; every later round moves on by the time you were paused. The report shows every round's
   average, peak and end-of-work heart rate, placed exactly where the app timed them. If you don't use Start intervals
   (or pick the plan later under Details), the rounds are lined up so the last one ends when you tapped **Start
   recovery**. Turn the media volume up; Rounds, the studio's timer app, is the choice when you aren't recording.

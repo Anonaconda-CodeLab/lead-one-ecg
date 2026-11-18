@@ -613,17 +613,37 @@ function lthrTest(A, ER) {
 /* interval plan (for example Tabata 20/10 x 8): when the app timed the rounds (Start intervals, planT0 = when round 1
    began), they are placed exactly; otherwise they are lined up so the last work round ends when Start recovery was
    tapped (or at the detected end of exercise). Short rests leave no trace in heart rate, so they cannot be detected. */
-function planWork(A, ER, plan, recMark, planT0) {
+/* paused time: `pauses` are the recording's Pause/Resume stretches ({t0, t1} in recording seconds; t1 null = still
+   paused). activeBetween = un-paused seconds from a to b; activeToRec = the recording time reached after x un-paused
+   seconds from t0 (the interval timer's clock stops while paused, so its rounds sit later by every pause) */
+function pauseList(pauses) { return (Array.isArray(pauses) ? pauses : []).filter(p => p && Number.isFinite(p.t0)).map(p => ({ t0: p.t0, t1: Number.isFinite(p.t1) ? p.t1 : Infinity })).sort((a, b) => a.t0 - b.t0); }
+function activeBetween(a, b, pauses) {
+  let s = Math.max(0, b - a);
+  for (const p of pauseList(pauses)) s -= Math.max(0, Math.min(b, p.t1) - Math.max(a, p.t0));
+  return s;
+}
+function activeToRec(t0, pauses, x) {
+  let t = t0, left = x;
+  for (const p of pauseList(pauses)) {
+    if (p.t1 <= t) continue;
+    if (p.t0 > t) { if (p.t0 - t >= left) break; left -= p.t0 - t; }
+    t = p.t1; if (!isFinite(t)) return Infinity;
+  }
+  return t + left;
+}
+function planWork(A, ER, plan, recMark, planT0, pauses) {
   const w = Math.max(5, plan.w | 0), r = Math.max(0, plan.r | 0), n = Math.max(1, plan.n | 0);
   const B = cleanBeats(A), s5 = rollingHR(A, 5, 1, B);
   const end = recMark != null ? recMark : ER && ER.end != null ? ER.end : A.dur, total = n * w + (n - 1) * r;
-  const timed = isFinite(planT0) && planT0 >= 0 && planT0 < end;
+  const timed = Number.isFinite(planT0) && planT0 >= 0 && planT0 < end;   // Number.isFinite: a saved null means "not timed" (isFinite(null) is true)
   const t0 = timed ? planT0 : Math.max(0, end - total), clipped = !timed && end - total < -2;
   const peakIn = (a, b) => { let m = NaN; for (const q of s5) if (q.t >= a && q.t <= b && !(q.v <= m)) m = q.v; return m; };
   const rounds = [];
   for (let i = 0; i < n; i++) {
-    const ws = t0 + i * (w + r), we = ws + w; if (ws >= A.dur || (timed && ws >= end - 1)) break;   // timed: rounds after an early Start recovery weren't done
-    const re = i < n - 1 && r > 0 ? we + r : null, last5 = Math.min(5, w / 2);
+    // timed by the app: its clock stopped while paused, so each boundary sits later by the pauses before it
+    const at = x => timed ? activeToRec(t0, pauses, x) : t0 + x, ws = at(i * (w + r)), we = at(i * (w + r) + w);
+    if (ws >= A.dur || (timed && ws >= end - 1)) break;   // timed: rounds after an early Start recovery weren't done
+    const re = i < n - 1 && r > 0 ? at(i * (w + r) + w + r) : null, last5 = Math.min(5, w / 2);
     const endHR = meanHRBetween(B, we - last5, we).v, afterRest = re != null ? meanHRBetween(B, re - Math.min(5, r / 2), re).v : NaN;
     rounds.push({ n: i + 1, t0: ws, t1: we, avg: meanHRBetween(B, ws, we).v, peak: peakIn(ws, we + 2), endHR, afterRest, fall: endHR - afterRest });
   }
