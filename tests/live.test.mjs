@@ -51,13 +51,14 @@ function session(plan) {
     fn('ivTime'), fn('ivEvents'), fn('ivPhase'), fn('ivFinish'), fn('tickIntervals'), fn('sessionMeta'),
     // Start recovery: the real function, with the button text left out
     fn('markRecovery').replace(/\$\('#btnRecov'\)\.textContent = [^;]*;/, ''),
-    'function buzz() {}', 'function setPausedUI() {}', 'function ms2(s) { return String(Math.ceil(s)); }',
+    'function buzz(strong) { vib.push([performance.now() / 1000, strong]); }', 'function setPausedUI() {}', 'function ms2(s) { return String(Math.ceil(s)); }',
     "function tickTraining() { if (!S.recording || S.recMark != null) return; tickIntervals(elNow(), $('#stepPanel')); }",
     'function putSession(m) { saved.push(JSON.parse(JSON.stringify(m))); if (m.recMark != null && !marks.length) marks.push(m.recMark); }',
     handler('btnPause'), handler('btnIntervals'),
     'return { tickTraining };'
   ].join('\n');
-  const env = new Function('S', '$', 'performance', 'setTimeout', 'clearTimeout', 'navigator', 'saved', 'marks', src)(S, $, P.performance, P.setTimeout, P.clearTimeout, {}, saved, marks);
+  const vib = [];
+  const env = new Function('S', '$', 'performance', 'setTimeout', 'clearTimeout', 'navigator', 'saved', 'marks', 'vib', src)(S, $, P.performance, P.setTimeout, P.clearTimeout, {}, saved, marks, vib);
   // mark tones cut by cancelCues (dropTone disconnects the gain) with the time they were cut
   const watchCuts = () => { for (const o of P.tones) if (o.out && o.out.cut && o.cutAt == null) o.cutAt = P.clk.t; };
   // the strap sends 130 samples a second (paused ones counted as such); the screen ticks every 0.2 s unless stalled
@@ -71,7 +72,7 @@ function session(plan) {
     }
   };
   const press = id => { dom[id].onclick(); watchCuts(); };
-  return { S, P, dom, saved, marks, advance, press };
+  return { S, P, dom, saved, marks, vib, advance, press };
 }
 const GO = 3000, REST = 2000, TICK = 2000;
 
@@ -143,6 +144,7 @@ test('live: the recording timer display holds while paused and goes on after Res
     S.paused = false; run(3);
     const after = +$('#recTimer').textContent;
     assert.ok(after >= +held + 2 && after <= +held + 4, 'goes on after Resume: ' + held + ' -> ' + after);
+    assert.equal($('#dimT').textContent, $('#recTimer').textContent, 'the dimmed-screen timer goes on too');
   }
 });
 
@@ -191,4 +193,19 @@ test('Details: choosing a different interval plan drops the app timing; the same
   assert.equal(S.meta.planT0, 13, 'same plan: still timed'); assert.equal(stored.planT0, 13);
   S.getPlan2 = () => ({ w: 30, r: 30, n: 10 }); await save();
   assert.equal(S.meta.planT0, null, 'a new plan is not the one the app timed'); assert.equal(stored.planT0, null, 'and the stored recording agrees');
+});
+
+test('live: a late rest cue and the next work cue in the same tick each sound and vibrate once', () => {
+  const X = session({ w: 20, r: 1, n: 2 });             // round 1 work 13-33 s, rest 33-34 s, round 2 at 34 s
+  X.advance(10); X.press('#btnIntervals');
+  X.advance(21.6);                                      // 31.6 s: the rest cue (33 s) is not planned yet (1.2 s ahead)
+  X.advance(1.9, { stall: true });                      // no ticks until 33.5 s, 0.5 s into the 1-s rest
+  assert.ok(!X.P.tones.some(o => Math.abs(o.t - 33) < 0.05), 'the rest cue really was missed');
+  X.advance(2);
+  const at = (a, b) => X.P.heard().filter(x => x.t > a && x.t < b);
+  assert.equal(at(33, 33.9).length, 1, 'late rest cue once: ' + JSON.stringify(at(33, 36)));
+  assert.equal(at(33, 33.9)[0].f, REST);
+  assert.equal(at(33.95, 34.05).length, 1, 'work cue on time'); assert.equal(at(33.95, 34.05)[0].f, GO);
+  const v = X.vib.filter(x => x[0] > 33 && x[0] < 35);
+  assert.equal(JSON.stringify(v.map(x => x[1])), '[false,true]', 'one rest vibration, then one work vibration: ' + JSON.stringify(v));
 });

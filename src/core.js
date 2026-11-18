@@ -651,11 +651,15 @@ function planWork(A, ER, plan, recMark, planT0, pauses) {
     if (ws >= A.dur || (timed && ws >= end - 1)) break;   // timed: rounds after an early Start recovery weren't done
     // timed: a round that Start recovery cut short is measured only up to the mark (no recovery beats), marked as
     // stopped, and left out of the rounds done; its rest, if any, wasn't taken
-    const partial = timed && weFull > end + 0.5, we = partial ? end : weFull;
-    const reFull = i < n - 1 && r > 0 ? at(i * (w + r) + w + r) : null, re = reFull != null && !(timed && reFull > end + 0.5) ? reFull : null;
+    // every window stops at the mark (timed plans), so no recovery beat is counted, even when a round or rest ends a
+    // moment after it; up to half a second late still counts as finished
+    const cap = x => timed ? Math.min(x, end) : x;
+    const partial = timed && weFull > end + 0.5, we = cap(weFull);
+    const reFull = i < n - 1 && r > 0 ? at(i * (w + r) + w + r) : null, re = reFull != null && !(timed && reFull > end + 0.5) ? cap(reFull) : null;
     const last5 = Math.min(5, (we - ws) / 2);
     const endHR = meanHRBetween(B, we - last5, we).v, afterRest = re != null ? meanHRBetween(B, re - Math.min(5, r / 2), re).v : NaN;
-    rounds.push({ n: i + 1, t0: ws, t1: we, partial, avg: meanHRBetween(B, ws, we).v, peak: peakIn(ws, partial ? we : we + 2), endHR, afterRest, fall: endHR - afterRest });
+    rounds.push({ n: i + 1, t0: ws, t1: we, partial, avg: meanHRBetween(B, ws, we).v, peak: peakIn(ws, timed ? Math.min(we + 2, end - 2.5) : we + 2),   // 5-s means are centred: stop 2.5 s before the mark
+       endHR, afterRest, fall: endHR - afterRest });
   }
   const ok = rounds.filter(x => isFinite(x.avg) && !x.partial);
   return { w, r, n, t0, end, total, clipped, anchor: timed ? 'timed' : recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds, done: rounds.filter(x => !x.partial).length,

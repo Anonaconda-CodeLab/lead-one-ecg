@@ -754,11 +754,13 @@ function tickIntervals(el, P) {
   }
   const t = ivTime(el), ev = ivEvents(p);
   // a cue whose moment has passed without being planned (the page stalled for over a second): play it now, once, if
-  // its phase is still on; an ended phase is not replayed
+  // its phase is still on; an ended phase is not replayed. Played and buzzed here directly, so planning the next cue
+  // in the same tick can't cancel its vibration
   let jl = -1; for (let k = 0; k < ev.length; k++) if (ev[k].at <= t - 0.05) jl = k;
   if (jl > S.ivDone && ev[jl].k !== 'end' && S.planned !== 'iv' + jl && !S.paused && (jl + 1 >= ev.length || ev[jl + 1].at > t)) {
-    const e = ev[jl];
-    planCue('iv' + jl, e.k === 'tick' ? null : e.k !== 'rest', 0, () => { S.ivDone = jl; }, e.k === 'tick' ? CUE.tick : e.k === 'work' ? CUE.go : CUE.rest);
+    const e = ev[jl]; S.ivDone = jl;
+    playPattern(e.k === 'tick' ? CUE.tick : e.k === 'work' ? CUE.go : CUE.rest);
+    if (e.k !== 'tick') buzz(e.k !== 'rest');
   }
   // plan the next cue a little ahead, so it is heard on time (see planCue)
   const j = ev.findIndex(e => e.at > t - 0.05);

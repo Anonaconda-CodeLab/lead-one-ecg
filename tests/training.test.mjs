@@ -408,6 +408,13 @@ test('timed plan: Start recovery in the 3-2-1 means no rounds; one cut short is 
   assert.equal(C.last, C.rounds[0].avg, 'the last full round is round 1');
   // a round that ends exactly at the mark is complete
   assert.equal(L.planWork(A, A.exercise, tab, 220, 170).done, 2);
+  // a mark a moment before a round's end: the round counts as done, but nothing after the mark is measured
+  const M = L.planWork(A, A.exercise, tab, 219.7, 170);
+  assert.equal(M.done, 2); assert.equal(M.rounds[1].t1, 219.7);
+  // nothing after the mark reaches any value: change the beats after it and the rounds stay the same
+  const B2 = { ...A, rr: A.rr.map((v, k) => A.t[k] > 210 ? v * 0.6 : v) };
+  const C2 = L.planWork(B2, A.exercise, tab, 210, 170);
+  assert.equal(JSON.stringify(C2.rounds.map(x => [x.avg, x.peak, x.endHR, x.afterRest])), JSON.stringify(C.rounds.map(x => [x.avg, x.peak, x.endHR, x.afterRest])), 'heart rate after the mark is never used');
   const txt = s => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
   const meta = { start: Date.now(), ctx: 'training', pos: 'sitting', trainType: 'intervals', recovery: 'passive', plan: tab };
   const st = { sex: 'M', dob: '1968-01-01' };
