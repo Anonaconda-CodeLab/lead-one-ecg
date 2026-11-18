@@ -112,19 +112,21 @@ Choose the **Training** context to measure your exercise heart rate, recovery an
 
 **Training type**
 - **Session**: any steady or mixed workout (runs, rides, gym).
-- **Intervals**: repeated hard efforts with easier recoveries between them (for example 4 × 4 minutes). The report finds
-  each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one.
-  With short rests (Tabata, 30/30) heart rate has no time to fall, so the efforts run together. Pick an **Interval plan**
-  (Tabata 20/10 × 8, 30/30, 10 × 1 min, 4 × 4 min, or your own work, rest and rounds) before you start, or later under
-  **Details**. With a plan, the app is your interval timer: start recording, warm up, then tap **Start intervals**. After
-  a 3-2-1 count it beeps and vibrates at the start of every work round (one long high beep, **GO**) and every rest (one
-  lower beep), shows the round and the seconds left, and at the end of the last round plays a falling three-note beep
-  and marks **Start recovery** itself: keep recording for 2 minutes. Tapping **Start recovery** earlier ends the plan
-  there. **Pause** stops the round timer too (the 3-2-1 included), and **Resume** carries on with the seconds that were
-left; every later round moves on by the time you were paused. The report shows every round's
-  average, peak and end-of-work heart rate, placed exactly where the app timed them. If you don't use Start intervals
-  (or pick the plan later under Details), the rounds are lined up so the last one ends when you tapped **Start
-  recovery**. Turn the media volume up; Rounds, the studio's timer app, is the choice when you aren't recording.
+- **Intervals**: repeated hard efforts with easier recoveries between them (for example 4 × 4 minutes).
+  - **Without an interval plan**, the report finds each effort automatically and shows its peak and average heart rate
+    and how far your heart rate fell before the next one. With short rests (Tabata, 30/30) heart rate has no time to
+    fall, so the efforts run together: pick a plan for those. Tap **Start recovery** when you finish.
+  - **With an interval plan** (Tabata 20/10 × 8, 30/30, 10 × 1 min, 4 × 4 min, or your own work, rest and rounds), the
+    app is your interval timer. Start recording, warm up, then tap **Start intervals**. After a 3-2-1 count it beeps and
+    vibrates at the start of every work round (one long high beep, **GO**) and every rest (one lower beep), and shows the
+    round and the seconds left. At the end of the last round it plays a falling three-note beep and **starts recovery
+    itself**: you don't tap anything, just keep recording for 2 minutes. Tapping **Start recovery** earlier ends the plan
+    there (a round it cuts short is shown as stopped). **Pause** stops the round timer too (the 3-2-1 included), and
+    **Resume** carries on with the seconds that were left; every later round moves on by the time you were paused. The
+    report shows every round's average, peak and end-of-work heart rate, placed exactly where the app timed them. Turn
+    the media volume up; Rounds, the studio's timer app, is the choice when you aren't recording.
+  - **A plan without Start intervals** (or one picked later under Details): tap **Start recovery** as your last round
+    ends, and the report lines the rounds up so the last one ends there.
 - **Tempo**: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and
   your cardiac drift: how much your heart rate crept up in the second half at the same effort.
 - **DFA-α1 test**: finds your **aerobic threshold** (the top of truly easy training) without a lab, from how orderly your
@@ -151,7 +153,7 @@ left; every later round moves on by the time you were paused. The report shows e
 
 Heart rate falls faster when you stand still, so the app judges active recovery against a more relaxed limit.
 
-**When you finish exercising, tap Start recovery and keep recording for at least 2 minutes.** Recovery is measured from that
+**When you finish exercising, tap Start recovery and keep recording for at least 2 minutes** (after an interval plan timed by the app, recovery starts by itself; just keep recording). Recovery is measured from that
 moment, not from a peak in the middle of the session. If you forget, the app tries to find the end of exercise by itself.
 If you hold **Stop** in the first 2 minutes after Start recovery, the app asks you to hold it once more, so a stray hold
 can't cut the recovery short.

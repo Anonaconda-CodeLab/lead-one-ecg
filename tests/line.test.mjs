@@ -53,5 +53,5 @@ test('the banner: hidden by default, web only, at the top of every screen, a sam
   assert.match(bar, /<a id="lineOpen"[^>]*>Open in your browser<\/a>/);
   assert.ok(!/target=/.test(bar), 'opens in the same tab');
   assert.ok(h.indexOf('id="lineBar"') < h.indexOf('<header class="bar">') && h.indexOf('id="lineBar"') < h.indexOf('class="screen"'), 'above the header, outside the screens');
-  assert.ok(h.includes(code.trim().split('\n').slice(-3).join('\n')), 'line.js is in the page');
+  assert.ok(h.includes(code.trim()), 'the whole of line.js is in the page');
 });

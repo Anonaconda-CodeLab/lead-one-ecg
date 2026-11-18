@@ -391,3 +391,48 @@ test('interval plan timed by the app with a pause: rounds after it sit later by 
   assert.equal(L.activeBetween(100, 130, [{ t0: 110, t1: 115 }, { t0: 90, t1: 102 }]), 23);
   assert.equal(L.activeBetween(100, 130, [{ t0: 120, t1: null }]), 20, 'a pause still going counts to now');
 });
+
+test('timed plan: Start recovery in the 3-2-1 means no rounds; one cut short is measured only up to the mark', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  const tab = { w: 20, r: 10, n: 8 };
+  // tapped Start intervals at 100 s (round 1 due at 103 s), Start recovery at 101 s
+  const N = L.planWork(A, A.exercise, tab, 101, 103);
+  assert.equal(N.notStarted, true); assert.equal(N.rounds.length, 0); assert.equal(N.anchor, 'timed', 'not lined up with earlier heart rate');
+  // round 2 (200-220 s) stopped by Start recovery at 210 s
+  const C = L.planWork(A, A.exercise, tab, 210, 170);
+  assert.equal(C.rounds.length, 2); assert.equal(C.done, 1);
+  const r2 = C.rounds[1];
+  assert.equal(r2.partial, true); assert.equal(r2.t1, 210, 'work measured to the mark, not to 220 s');
+  assert.ok(Number.isNaN(r2.afterRest), 'no after-rest value from recovery beats');
+  assert.equal(C.last, C.rounds[0].avg, 'the last full round is round 1');
+  // a round that ends exactly at the mark is complete
+  assert.equal(L.planWork(A, A.exercise, tab, 220, 170).done, 2);
+  const txt = s => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const meta = { start: Date.now(), ctx: 'training', pos: 'sitting', trainType: 'intervals', recovery: 'passive', plan: tab };
+  const st = { sex: 'M', dob: '1968-01-01' };
+  const T = txt(L.renderReport(A, { ...meta, recMark: 210, planT0: 170 }, st, []));
+  assert.match(T, /2 \(stopped\)/); assert.match(T, /\(1 of 8 done before Start recovery; the last one was stopped part-way/);
+  assert.match(T, /Interval rounds 1 round/);
+  const Z = txt(L.renderReport(A, { ...meta, recMark: 101, planT0: 103 }, st, []));
+  assert.match(Z, /Start recovery came before round 1 began \(during the 3-2-1\), so no rounds were done/);
+  assert.match(Z, /Interval rounds None done/);
+});
+
+test('an explicit Start recovery in the first 15 s counts when heart rate is measured there', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  const E = L.exerciseResponse(A, 14);
+  assert.equal(E.src, 'marked'); assert.equal(E.end, 14);
+  assert.equal(L.exerciseResponse(A, 400).src, 'marked', 'later marks as before');
+});
+
+test('HRV page: the population gauge only beside a graded RMSSD', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3);
+  const R = await analyze(d.raw, { age: 45, rr: d.rr });
+  const st = { sex: 'M', dob: '1968-01-01' };
+  const med = L.renderReport(R, { start: Date.now(), ctx: 'meditation', pos: 'sitting' }, st, []);
+  assert.match(med, /<div class="cols-hrv one">\s*<div class="panel">/, 'meditation: RMSSD not graded, so no gauge');
+  assert.match(med, /not graded for this kind of reading, so no population range is shown/);
+  assert.match(L.renderReport(R, { start: Date.now(), ctx: 'morning', pos: 'lying' }, st, []), /<div class="cols-hrv">\s*<div class="fig">/, 'morning: graded, gauge shown');
+});

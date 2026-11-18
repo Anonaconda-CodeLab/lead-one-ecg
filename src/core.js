@@ -422,8 +422,11 @@ function exerciseResponse(A, recMark) {
   };
   const base = { peak: pk10.v, peakT: pk10.t, peak20: pk20 ? pk20.v : NaN, peak20T: pk20 ? pk20.t : NaN, endHR: s10[n - 1].v, end: null, src: null };
   let end = null, src = null, stop = NaN;
-  if (isFinite(recMark) && recMark > 15 && recMark <= A.dur) {
-    end = recMark; src = 'marked'; stop = at(recMark - 5); if (!isFinite(stop)) stop = at(recMark);
+  // an explicit mark (Start recovery, by hand or by the interval timer) after the first 15 s always counts; an earlier
+  // one (a short interval plan started straight away) counts when the heart rate is measured there
+  const marked = Number.isFinite(recMark) && recMark > 0 && recMark <= A.dur, markHR = marked ? (isFinite(at(recMark - 5)) ? at(recMark - 5) : at(recMark)) : NaN;
+  if (marked && (recMark > 15 || isFinite(markHR))) {
+    end = recMark; src = 'marked'; stop = markHR;
   } else {
     // auto: the latest heart-rate high point that everything afterwards stays below, followed by a clear fall
     // (>= 10 bpm within 2 min) and no renewed effort (nothing within 12 bpm of it from 1 min later onwards)
@@ -635,20 +638,27 @@ function planWork(A, ER, plan, recMark, planT0, pauses) {
   const w = Math.max(5, plan.w | 0), r = Math.max(0, plan.r | 0), n = Math.max(1, plan.n | 0);
   const B = cleanBeats(A), s5 = rollingHR(A, 5, 1, B);
   const end = recMark != null ? recMark : ER && ER.end != null ? ER.end : A.dur, total = n * w + (n - 1) * r;
-  const timed = Number.isFinite(planT0) && planT0 >= 0 && planT0 < end;   // Number.isFinite: a saved null means "not timed" (isFinite(null) is true)
+  // Number.isFinite: a saved null means "not timed" (isFinite(null) is true). A saved start at or after the end means
+  // Start recovery came during the 3-2-1: no round was done, and earlier heart rate is not passed off as rounds
+  const saved = Number.isFinite(planT0) && planT0 >= 0, timed = saved && planT0 < end;
+  if (saved && !timed) return { w, r, n, t0: planT0, end, total, clipped: false, anchor: 'timed', notStarted: true, rounds: [], done: 0, first: NaN, last: NaN, peak: NaN };
   const t0 = timed ? planT0 : Math.max(0, end - total), clipped = !timed && end - total < -2;
   const peakIn = (a, b) => { let m = NaN; for (const q of s5) if (q.t >= a && q.t <= b && !(q.v <= m)) m = q.v; return m; };
   const rounds = [];
   for (let i = 0; i < n; i++) {
     // timed by the app: its clock stopped while paused, so each boundary sits later by the pauses before it
-    const at = x => timed ? activeToRec(t0, pauses, x) : t0 + x, ws = at(i * (w + r)), we = at(i * (w + r) + w);
+    const at = x => timed ? activeToRec(t0, pauses, x) : t0 + x, ws = at(i * (w + r)), weFull = at(i * (w + r) + w);
     if (ws >= A.dur || (timed && ws >= end - 1)) break;   // timed: rounds after an early Start recovery weren't done
-    const re = i < n - 1 && r > 0 ? at(i * (w + r) + w + r) : null, last5 = Math.min(5, w / 2);
+    // timed: a round that Start recovery cut short is measured only up to the mark (no recovery beats), marked as
+    // stopped, and left out of the rounds done; its rest, if any, wasn't taken
+    const partial = timed && weFull > end + 0.5, we = partial ? end : weFull;
+    const reFull = i < n - 1 && r > 0 ? at(i * (w + r) + w + r) : null, re = reFull != null && !(timed && reFull > end + 0.5) ? reFull : null;
+    const last5 = Math.min(5, (we - ws) / 2);
     const endHR = meanHRBetween(B, we - last5, we).v, afterRest = re != null ? meanHRBetween(B, re - Math.min(5, r / 2), re).v : NaN;
-    rounds.push({ n: i + 1, t0: ws, t1: we, avg: meanHRBetween(B, ws, we).v, peak: peakIn(ws, we + 2), endHR, afterRest, fall: endHR - afterRest });
+    rounds.push({ n: i + 1, t0: ws, t1: we, partial, avg: meanHRBetween(B, ws, we).v, peak: peakIn(ws, partial ? we : we + 2), endHR, afterRest, fall: endHR - afterRest });
   }
-  const ok = rounds.filter(x => isFinite(x.avg));
-  return { w, r, n, t0, end, total, clipped, anchor: timed ? 'timed' : recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds,
+  const ok = rounds.filter(x => isFinite(x.avg) && !x.partial);
+  return { w, r, n, t0, end, total, clipped, anchor: timed ? 'timed' : recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds, done: rounds.filter(x => !x.partial).length,
     first: ok.length ? ok[0].avg : NaN, last: ok.length ? ok[ok.length - 1].avg : NaN, peak: Math.max(...ok.map(x => x.peak).filter(isFinite), -Infinity) };
 }
 function intervalWork(A, ER) {

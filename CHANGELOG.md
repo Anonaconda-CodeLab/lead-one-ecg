@@ -6,14 +6,15 @@
   **Start intervals**: after a 3-2-1 count the app beeps and vibrates at every work round and every rest, shows the
   round and the seconds left, and marks Start recovery itself at the end of the last round. Pause stops the round timer
   as well, and Resume carries on where it left off. The report places the rounds exactly where they were timed, pauses
-  included.
+  included; a round cut short by Start recovery is shown as stopped and measured only up to then.
 - The recording timer no longer flickers between two seconds (07:54, 07:55, 07:54…) while a recording is paused; it
   holds still until you tap Resume, and never steps back.
 - The position (lying, sitting, standing, walking / moving) is now remembered for each context, so a Training
   session's "Walking / moving" no longer carries over to the next morning reading, which would then be graded as
   exercise. A reading saved with the wrong position can be corrected in Details.
 - Report, heart rate variability page: during exercise (no population reference) the values panel now uses the full
-  width instead of leaving an empty column beside it.
+  width instead of leaving an empty column beside it, and the population gauge appears only beside a graded value (not
+  for meditation or the standing test).
 - **Licences** screen under Settings > About: every bundled typeface, and in the Android app Capacitor, the Bluetooth
   plugin, Apache Cordova (with its notice), AndroidX and Kotlin, each with its full licence text; also shipped as
   `licences.txt` and `licences-android.txt` beside the page and in the APK.

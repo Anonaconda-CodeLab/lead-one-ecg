@@ -160,10 +160,34 @@ test('release workflow: three jobs; only publish can write, only sign sees the k
   assert.ok(sign.includes('the published fingerprint is'), 'the APK must carry the published signing key');
   assert.ok(!/tags:/.test(w.split('jobs:')[0]), 'no tag trigger');
   assert.match(publish, /android-test/);
-  // Remark's clear_prerelease: the old pre-release and its tag are removed first, and only "not there" is accepted
+  // Remark's clear_prerelease: the old pre-release and its tag are removed first, and only "not there" is accepted.
+  // The real step runs in bash against a stand-in gh that answers as GitHub would in each case
   assert.match(publish, /clear_prerelease android-test\n\s*gh release create android-test/);
-  assert.match(publish, /elif ! grep -qi 'release not found\\\|HTTP 404' <<<"\$out"; then echo "::error::Could not check the old \$1 release[^\n]*exit 1; fi/);
-  assert.match(publish, /gh api -X DELETE "repos\/\$GITHUB_REPOSITORY\/git\/refs\/tags\/\$1"[\s\S]*?elif ! grep -q 'HTTP 404'[^\n]*exit 1; fi/);
+  const step = (() => { const k = w.indexOf('- name: Publish as the android-test pre-release'), r = w.indexOf('run: |', k);
+    return w.slice(r + 7).split('\n').filter(l => l.startsWith('          ')).map(l => l.slice(10)).join('\n').replace(/\$\{\{[^}]*\}\}/g, '1'); })();   // ${{ }} is filled in by GitHub before bash runs
+  const { execFileSync } = await import('node:child_process'), { mkdtempSync, writeFileSync, chmodSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os'), { join } = await import('node:path');
+  const runStep = answers => {
+    const dir = mkdtempSync(join(tmpdir(), 'gh-')), log = join(dir, 'log');
+    // answers: 'releases/tags', 'git/ref/tags', 'DELETE' -> 'ok' | '404' | '403' | '503'
+    writeFileSync(join(dir, 'gh'), `#!/bin/bash
+echo "$*" >> "${log}"
+key=""; case "$*" in *"-X DELETE"*) key=DELETE;; *releases/tags/*) key=rel;; *git/ref/tags/*) key=tag;; esac
+case "$key" in rel) a="${answers.rel}";; tag) a="${answers.tag}";; DELETE) a="${answers.del}";; *) exit 0;; esac
+case "$a" in ok) exit 0;; 404) echo "gh: Not Found (HTTP 404)"; exit 1;; *) echo "gh: error (HTTP $a)"; exit 1;; esac
+`); chmodSync(join(dir, 'gh'), 0o755);
+    let code = 0;
+    try { execFileSync('bash', ['-e', '-o', 'pipefail', '-c', step], { env: { ...process.env, PATH: dir + ':' + process.env.PATH, GITHUB_REPOSITORY: 'o/r', GITHUB_SHA: 'abc', VER: '1.0.0' }, stdio: 'pipe' }); }
+    catch (e) { code = e.status; }
+    let calls = ''; try { calls = readFileSync(log, 'utf8'); } catch (e) {}
+    return { code, created: /release create android-test/.test(calls), deletedRelease: /release delete android-test/.test(calls) };
+  };
+  let r = runStep({ rel: 'ok', tag: 'ok', del: 'ok' }); assert.ok(r.code === 0 && r.deletedRelease && r.created, 'both there: both removed, then created');
+  r = runStep({ rel: '404', tag: '404', del: 'ok' }); assert.ok(r.code === 0 && !r.deletedRelease && r.created, 'nothing there: created');
+  r = runStep({ rel: 'ok', tag: 'ok', del: '403' }); assert.ok(r.code !== 0 && !r.created, 'a failed tag DELETE stops before create');
+  r = runStep({ rel: 'ok', tag: 'ok', del: '404' }); assert.ok(r.code === 0 && r.created, 'a tag removed meanwhile is fine');
+  r = runStep({ rel: '503', tag: 'ok', del: 'ok' }); assert.ok(r.code !== 0 && !r.created, 'an unclear release lookup stops');
+  r = runStep({ rel: '404', tag: '503', del: 'ok' }); assert.ok(r.code !== 0 && !r.created, 'an unclear tag lookup stops');
   assert.ok(!/--cleanup-tag \|\| true/.test(publish), 'no silent failure any more');
   assert.match(w, /LeadOne-ECG-\$VER\.apk/);
   // hardening carried over from Still Point 1.0.2
@@ -351,6 +375,11 @@ test('licences: every bundled font and Android component with its full licence, 
     'bluetooth-le', 'Apache Cordova Android framework 14.0.1', 'AndroidX libraries', 'Kotlin standard library', 'Copyright 2015-2020 The Apache Software Foundation'])
     assert.ok(and.includes(s), s);
   assert.equal((and.match(/TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION/g) || []).length, 1, 'the Apache text once, its components listed together');
+  for (const f of ['src/vendor/LICENSE-capacitor.txt', 'src/vendor/LICENSE-bluetooth-le.txt', 'src/vendor/LICENSE-apache-2.0.txt', 'src/vendor/NOTICE-cordova.txt'])
+    assert.ok(and.includes(norm(file(f))), 'full text in licences-android.txt: ' + f);
+  // NOTICE.md carries every full text too (house rule), each matching its source file
+  for (const f of ['src/fonts/OFL-InstrumentSans.txt', 'src/fonts/OFL-IBMPlexMono.txt', 'src/vendor/LICENSE-capacitor.txt', 'src/vendor/LICENSE-bluetooth-le.txt', 'src/vendor/LICENSE-apache-2.0.txt', 'src/vendor/NOTICE-cordova.txt'])
+    assert.ok(file('NOTICE.md').includes('```text\n' + norm(file(f)) + '\n```'), 'full text in NOTICE.md: ' + f);
   for (const s of ['Drifty', 'Capacitor', 'AndroidX', 'Kotlin', 'Cordova']) assert.ok(!web.includes(s), `${s} is not in the web licences`);
   // every licence file in the source is used, and every font and vendored file has one (a new one fails here until listed)
   const used = [...file('build.mjs').matchAll(/'((?:fonts|vendor)\/[^']+)'/g)].map(m => m[1]);
@@ -382,6 +411,7 @@ test('licences: every bundled font and Android component with its full licence, 
   const lic = ['dist/licences.txt', 'dist/licences-android.txt', ...readdirSync(new URL('../src/vendor', import.meta.url)).map(f => 'src/vendor/' + f),
     ...readdirSync(new URL('../src/fonts', import.meta.url)).filter(f => f.endsWith('.txt')).map(f => 'src/fonts/' + f)];
   let ignored = '';
-  try { ignored = execFileSync('git', ['check-ignore', ...lic], { cwd: new URL('..', import.meta.url), encoding: 'utf8' }); } catch (e) { if (e.status !== 1) throw e; ignored = e.stdout || ''; }
+  // --no-index: ignore rules are applied to tracked files too (by default git skips them)
+  try { ignored = execFileSync('git', ['check-ignore', '--no-index', ...lic], { cwd: new URL('..', import.meta.url), encoding: 'utf8' }); } catch (e) { if (e.status !== 1) throw e; ignored = e.stdout || ''; }
   assert.equal(ignored.trim(), '', 'licence files are not ignored by git');
 });

@@ -87,7 +87,8 @@ function cleanMeta(m) {
     id: str(m.id, 80) || 'file-' + start, start, ctx: own(CTX, m.ctx), pos: own(POS, m.pos),
     device: str(m.device, 40) || 'Polar H10', fw: str(m.fw, 20), battery: num(m.battery) != null ? Math.round(Math.max(0, Math.min(100, m.battery))) : null,
     gap: Math.max(0, num(m.gap) || 0), paused: Math.max(0, num(m.paused) || 0),
-    pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && num(p.t1) != null && p.t1 >= p.t0).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
+    // a pause still open when the recording was cut off (t1 null) is kept: the interval timer stopped from then on
+    pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && (p.t1 == null || (num(p.t1) != null && p.t1 >= p.t0))).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 == null ? null : p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
     trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : '', plan: cleanPlan(m.plan), planT0: num(m.planT0), standMark: num(m.standMark)
@@ -746,11 +747,19 @@ function ivFinish() {   // end of the last round: Start recovery, without cancel
 }
 function tickIntervals(el, P) {
   const p = S.plan;
+  if (S.stopping) return;   // Stop held: nothing more is planned or marked while the strap is being stopped
   if (S.ivTap == null) {
     P.classList.remove('go'); $('#spLabel').textContent = 'Warm-up'; $('#spStep').textContent = '–'; $('#spCount').textContent = ms2(el);
     $('#spMsg').textContent = 'tap Start intervals when ready'; return;
   }
   const t = ivTime(el), ev = ivEvents(p);
+  // a cue whose moment has passed without being planned (the page stalled for over a second): play it now, once, if
+  // its phase is still on; an ended phase is not replayed
+  let jl = -1; for (let k = 0; k < ev.length; k++) if (ev[k].at <= t - 0.05) jl = k;
+  if (jl > S.ivDone && ev[jl].k !== 'end' && S.planned !== 'iv' + jl && !S.paused && (jl + 1 >= ev.length || ev[jl + 1].at > t)) {
+    const e = ev[jl];
+    planCue('iv' + jl, e.k === 'tick' ? null : e.k !== 'rest', 0, () => { S.ivDone = jl; }, e.k === 'tick' ? CUE.tick : e.k === 'work' ? CUE.go : CUE.rest);
+  }
   // plan the next cue a little ahead, so it is heard on time (see planCue)
   const j = ev.findIndex(e => e.at > t - 0.05);
   if (j >= 0 && j > S.ivDone && !S.paused) {
@@ -942,14 +951,16 @@ $('#btnDetails').onclick = () => {
 };
 $('#btnDetailsCancel').onclick = () => { $('#detailsPanel').hidden = true; };
 $('#btnDetailsSave').onclick = async () => {
-  const wasTraining = S.meta.ctx === 'training';
+  const wasTraining = S.meta.ctx === 'training', oldPlan = JSON.stringify(S.meta.plan || null);
   S.meta.ctx = chipVal($('#ctxChips2')); S.meta.pos = chipVal($('#posChips2')); S.meta.notes = str($('#notesIn2').value.trim(), 200);
   if (S.meta.ctx === 'training') { S.meta.trainType = S.dTT; S.meta.recovery = S.dRec; S.meta.plan = S.dTT === 'intervals' ? S.getPlan2() : null; } else { S.meta.trainType = ''; S.meta.recovery = ''; S.meta.plan = null; }
+  // the app's timing belongs to the plan it timed: a different plan chosen here is lined up with Start recovery instead
+  if (JSON.stringify(S.meta.plan || null) !== oldPlan) S.meta.planT0 = null;
   // breathing is worked out differently in Training (no ECG estimate): moving a recording into or out of Training
   // re-runs the analysis, so the report and the history entry match the new context
   if (S.raw && wasTraining !== (S.meta.ctx === 'training')) S.analysis = await analyze(S.raw, analyzeOpts(S.meta));
   if (!S.meta.sample) {
-    if (S.meta.id) { const s = await getSession(S.meta.id); if (s) { s.ctx = S.meta.ctx; s.pos = S.meta.pos; s.notes = S.meta.notes; s.trainType = S.meta.trainType; s.recovery = S.meta.recovery; s.plan = S.meta.plan; await putSession(s); } }
+    if (S.meta.id) { const s = await getSession(S.meta.id); if (s) { s.ctx = S.meta.ctx; s.pos = S.meta.pos; s.notes = S.meta.notes; s.trainType = S.meta.trainType; s.recovery = S.meta.recovery; s.plan = S.meta.plan; s.planT0 = S.meta.planT0 ?? null; await putSession(s); } }
     if (S.analysis.dur - S.analysis.gapSec >= 55) await putHistory(historyEntry(S.analysis, S.meta));
   }
   $('#detailsPanel').hidden = true; await renderInto(); toast('Report updated.');
