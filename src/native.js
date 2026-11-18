@@ -144,7 +144,7 @@ if (NATIVE) (() => {
     const scr = document.body.dataset.screen || 'scrHome';
     if (scr === 'scrHome' || scr === 'scrRec' || scr === 'scrAck') return false;
     if (scr === 'scrSettings' && !document.getElementById('setupIntro').hidden) return false;   // first-run setup
-    const back = scr === 'scrHelp' ? document.getElementById('btnHelpBack') : scr === 'scrReport' ? document.getElementById('btnBack') : null;
+    const back = scr === 'scrHelp' ? document.getElementById('btnHelpBack') : scr === 'scrReport' ? document.getElementById('btnBack') : scr === 'scrLicences' ? document.getElementById('btnLicencesBack') : null;
     if (back) back.click(); else if (typeof show === 'function') show('scrHome');
     return true;
   };

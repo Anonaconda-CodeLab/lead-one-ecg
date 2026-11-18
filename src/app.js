@@ -90,7 +90,7 @@ function cleanMeta(m) {
     pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && num(p.t1) != null && p.t1 >= p.t0).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
-    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : '', plan: cleanPlan(m.plan), standMark: num(m.standMark)
+    trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : '', plan: cleanPlan(m.plan), planT0: num(m.planT0), standMark: num(m.standMark)
   };
 }
 const HNUM = ['oLie', 'oRise', 'oRmssd', 'oPeak', 'start', 'dur', 'hr', 'rmssd', 'ln', 'sdnn', 'pnn50', 'lfhf', 'hfPct', 'br', 'brShare', 'qtc', 'peak', 'hrr60', 'ect', 'beats', 'peak20', 'rampMax', 'lthr', 'hrvt1', 'hrvt2'];
@@ -131,7 +131,7 @@ const POS_CHIPS = Object.entries(POS).map(([k, v]) => [k, v.short]);
 const TT_CHIPS = [['session', 'Session', 'steady or mixed'], ['intervals', 'Intervals', 'repeated hard efforts'], ['tempo', 'Tempo', 'sustained, comfortably hard'], ['dfa', 'DFA-α1 test', 'aerobic threshold, 3-min steps'], ['ramp', 'Max HR ramp test', '3-min steps to failure'], ['lthr', 'LTHR test', '30-min time trial']];
 const REC_CHIPS = [['active', 'Active', 'keep moving'], ['passive', 'Passive', 'stand or sit still']];
 const TT_HINTS = { session: 'When you finish, tap Start recovery and keep recording for at least 2 minutes.',
-  intervals: 'Each hard effort is detected automatically, with your recovery between efforts. After the last one, tap Start recovery and keep recording for 2 minutes.',
+  intervals: 'Each hard effort is detected automatically, with your recovery between efforts. With an interval plan the app times the rounds: warm up, then tap Start intervals. Without one, tap Start recovery after the last effort. Keep recording for 2 minutes after recovery starts.',
   tempo: 'Warm up, then hold a steady, comfortably hard effort for at least 10 minutes. The report shows how steady you held it and how much your heart rate drifted. Tap Start recovery when you finish.',
   dfa: 'Finds your aerobic threshold from beat-to-beat variation. Best on a bike or treadmill. Start very easy for the first 6 minutes, then raise the effort a little at each beep (every 3 minutes). Keep pedalling or running smoothly; avoid talking, stopping or coasting. The live α1 falls as you work harder: keep going until it is below 0.5 or you are near your limit, then tap Start recovery.',
   ramp: 'Start easy. The app beeps and vibrates every 3 minutes: increase the load each time, until you cannot continue. Tap Start recovery the moment you stop.',
@@ -167,16 +167,30 @@ function showTrainOpts() {
   $('#trainOpts').hidden = S.ctx !== 'training'; $('#ttHint').textContent = TT_HINTS[S.ttSel] || '';
   $('#planField').hidden = S.ttSel !== 'intervals';
 }
+/* the position is remembered for each context, so Training's "Walking / moving" can't carry over to a morning
+   reading (14 Nov 2026: a morning baseline left on walking was graded as exercise). Before 1.8.5 one position was
+   kept for all contexts: it is kept for the context it was last used with, and other contexts start unselected */
+function posMap(st) {
+  if (st.posByCtx && typeof st.posByCtx === 'object' && !Array.isArray(st.posByCtx)) return st.posByCtx;
+  return st.lastCtx && POS[st.lastPos] ? { [st.lastCtx]: st.lastPos } : {};
+}
+function posFor(map, ctx) { return Object.prototype.hasOwnProperty.call(map, ctx) && POS[map[ctx]] ? map[ctx] : ''; }
+function buildPosChips() {
+  buildChips($('#posChips'), POS_CHIPS, S.pos, v => { S.pos = v; patchSettings({ posByCtx: { ...posMap(getSettings()), [S.ctx]: v } }); });
+}
 function initHomeSetup() {
   const st = getSettings();
-  S.ctx = st.lastCtx || ''; S.pos = st.lastPos || '';
-  buildChips($('#ctxChips'), CTX_CHIPS, S.ctx, v => { S.ctx = v; patchSettings({ lastCtx: v }); showTrainOpts(); });
+  S.ctx = st.lastCtx || ''; S.pos = posFor(posMap(st), S.ctx);
+  buildChips($('#ctxChips'), CTX_CHIPS, S.ctx, v => {
+    const map = posMap(getSettings()); S.ctx = v; S.pos = posFor(map, v);
+    patchSettings({ lastCtx: v, posByCtx: map }); buildPosChips(); showTrainOpts();
+  });
   S.ttSel = TRAIN_TYPES[st.lastTT] ? st.lastTT : 'session'; S.recSel = st.lastRec === 'passive' ? 'passive' : 'active';
   stickyChips($('#ttChips'), TT_CHIPS, () => S.ttSel, v => { S.ttSel = v; patchSettings({ lastTT: v }); showTrainOpts(); });
   stickyChips($('#recChips'), REC_CHIPS, () => S.recSel, v => { S.recSel = v; patchSettings({ lastRec: v }); });
   getPlanSetup = planUI('', cleanPlan(st.lastPlan), () => patchSettings({ lastPlan: getPlanSetup() }));
   showTrainOpts();
-  buildChips($('#posChips'), POS_CHIPS, S.pos, v => { S.pos = v; patchSettings({ lastPos: v }); });
+  buildPosChips();
   $('#autoOn').checked = !!st.autoOn; S.autoMinSel = AUTO_STEPS.includes(+st.autoMin) ? +st.autoMin : 5; updateAuto();
 }
 /* minutes of recorded time after which the recording stops by itself (0 = only by hand or at the 8-hour limit) */
@@ -522,7 +536,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, planT0: S.ivStart ?? null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -532,12 +546,12 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 async function startRecording() {
   if (!S.connected) { toast('Connect the H10 first.'); return; }
-  Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false });
+  Object.assign(S, { chunks: [], cur: null, curLen: 0, total: 0, gapSamples: 0, pausedSamples: 0, pauses: [], rr: [], prevTs: null, lastWall: 0, needGapFill: false, hr: null, stopping: false, paused: false, shownT: 0 });
   // the orthostatic test is 3 min lying + 3 min standing; training runs until stopped (the 8-hour limit still applies)
   S.autoMin = autoStopFor(S.ctx, $('#autoOn').checked, S.autoMinSel);
   S.standMark = null; S.orthoWarned = false; S.ck = null; cancelCues();
   S.notes = str($('#notesIn').value.trim(), 200);
-  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.stopWhy = ''; S.stopArmed = 0; S.lastStep = 1; S.lthrCued = false;
+  S.trainType = S.ctx === 'training' ? S.ttSel : ''; S.recovery = S.ctx === 'training' ? S.recSel : ''; S.plan = S.trainType === 'intervals' ? getPlanSetup() : null; S.recMark = null; S.stopWhy = ''; S.stopArmed = 0; S.lastStep = 1; S.lthrCued = false; S.ivStart = null; S.ivDone = -1;
   try { S.audio = S.audio || new (window.AudioContext || window.webkitAudioContext)(); S.audio.resume && S.audio.resume(); } catch (e) { S.audio = null; }
   S.live.fill(0); S.livePos = 0; S.liveHP = makeStreamFilter(design('hp', 0.5)); S.liveLP = makeStreamFilter(design('lp', 35));
   S.sessionId = 'rec-' + Date.now(); S.startMs = Date.now(); S.devName = S.device && S.device.name || 'Polar H10';
@@ -556,7 +570,8 @@ async function startRecording() {
   $('#recBatt').textContent = S.battery != null ? S.battery + '%' : '--';
   $('#recCtx').textContent = [S.ctx && CTX[S.ctx].label, S.pos && !(CTX[S.ctx] && CTX[S.ctx].noPos) && POS[S.pos].label].filter(Boolean).join(' · ') || 'No context selected';
   $('#btnRecov').hidden = S.ctx !== 'training'; $('#btnRecov').disabled = false; $('#btnRecov').textContent = 'Start recovery';
-  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa' || S.ctx === 'ortho'); $('#stepPanel').classList.remove('go');
+  $('#stepPanel').hidden = !(S.trainType === 'ramp' || S.trainType === 'lthr' || S.trainType === 'dfa' || S.ctx === 'ortho' || (S.trainType === 'intervals' && S.plan)); $('#stepPanel').classList.remove('go');
+  $('#btnIntervals').hidden = !(S.trainType === 'intervals' && S.plan);
   $('#a1Live').hidden = S.trainType !== 'dfa'; S.a1 = null; S.a1At = 0; $('#a1Val').textContent = '—'; $('#a1Msg').textContent = 'α1 appears after 2 minutes';
   if (S.trainType) $('#recCtx').textContent += ' · ' + TRAIN_TYPES[S.trainType] + ' · ' + (S.recovery === 'passive' ? 'passive' : 'active') + ' recovery';
   setPausedUI(false); show('scrRec'); tickRec(); requestAnimationFrame(drawLive);
@@ -617,7 +632,8 @@ function cueBus(a) {
    performance.now() is checked on every tick: if it moves by more than 0.1 s on two checks in a row (the audio started
    late or drifted), tones that haven't started yet are re-scheduled; a tone already playing is left alone. Pausing,
    stopping or starting recovery cancels anything still waiting. Results come from the heartbeat data, not the cues. */
-const CUE = { strong: [[2400, 220, 0], [2400, 220, 0.3], [3000, 450, 0.6]], soft: [[2000, 160, 0], [2000, 160, 0.25]] };
+const CUE = { strong: [[2400, 220, 0], [2400, 220, 0.3], [3000, 450, 0.6]], soft: [[2000, 160, 0], [2000, 160, 0.25]],
+  tick: [[2000, 120, 0]], go: [[3000, 450, 0]], rest: [[2000, 300, 0]], end: [[3000, 220, 0], [2400, 220, 0.3], [2000, 600, 0.6]] };
 const CQ = { tones: [], timers: [], off: null, strikes: 0 };
 const audioLat = a => Math.min(0.5, Math.max(0, (a.outputLatency || 0) + (a.baseLatency || 0)));
 const audioOff = a => a.currentTime - performance.now() / 1000;
@@ -661,9 +677,9 @@ function cancelCues() {
 function buzz(strong) { const vib = strong ? [400, 120, 400, 120, 400] : [200, 100, 200]; if (NATIVE) LeadOneNative.vibrate(vib); else try { navigator.vibrate && navigator.vibrate(vib); } catch (e) {} }
 function cue(strong) { if (S.paused) return; buzz(strong); playPattern(strong ? CUE.strong : CUE.soft); }   // no sounds while paused
 // a cue due in `due` seconds: sound scheduled now, vibration and screen change when it is heard
-function planCue(key, strong, due, then) {
-  S.planned = key; playPattern(strong ? CUE.strong : CUE.soft, due);
-  CQ.timers.push(setTimeout(() => { if (S.recording && S.planned === key) { buzz(strong); then(); } }, Math.max(0, due * 1000)));
+function planCue(key, strong, due, then, pat) {
+  S.planned = key; playPattern(pat || (strong ? CUE.strong : CUE.soft), due);
+  CQ.timers.push(setTimeout(() => { if (S.recording && S.planned === key) { if (strong != null) buzz(strong); then(); } }, Math.max(0, due * 1000)));
 }
 const AHEAD = 1.2;   // seconds: the tick runs every 0.5 s, so a cue is always planned at least 0.7 s ahead
 /* live DFA-alpha1 from the strap's beat intervals: last 2 minutes, recomputed every 10 s */
@@ -698,6 +714,57 @@ function tickOrtho() {   // orthostatic test: lie 3 min, a strong cue to stand, 
   if (S.standMark == null) { $('#spLabel').textContent = 'Lie still'; $('#spStep').textContent = '1'; $('#spCount').textContent = ms2(left); $('#spMsg').textContent = left <= 10.5 ? 'get ready to stand' : 'until you stand up'; }
   else { $('#spLabel').textContent = 'Stand still'; $('#spStep').textContent = '2'; $('#spCount').textContent = go ? 'STAND' : ms2(Math.max(0, 360 - el)); $('#spMsg').textContent = go ? 'stand up now, then keep still' : 'until the test ends'; }
 }
+/* interval timer (Training · Interval training with a plan): after the warm-up, Start intervals counts 3-2-1, then
+   beeps and vibrates at the start of every work round (GO) and every rest, and at the end of the last round marks Start
+   recovery itself, so the rounds and the recovery line up exactly. Times are seconds from the start of round 1; the
+   clock keeps running through Pause (cues are silent while paused) */
+const IV_COUNT = 3;
+function ivEvents(p) {
+  const ev = [];
+  for (let k = IV_COUNT; k >= 1; k--) ev.push({ at: -k, k: 'tick' });
+  for (let i = 0; i < p.n; i++) {
+    const ws = i * (p.w + p.r);
+    ev.push({ at: ws, k: 'work', i: i + 1 });
+    if (i < p.n - 1 && p.r > 0) ev.push({ at: ws + p.w, k: 'rest', i: i + 1 });
+  }
+  ev.push({ at: p.n * p.w + (p.n - 1) * p.r, k: 'end' });
+  return ev;
+}
+function ivPhase(p, t) {
+  const total = p.n * p.w + (p.n - 1) * p.r, per = p.w + p.r;
+  if (t < 0) return { k: 'count', left: -t };
+  if (t >= total) return { k: 'done' };
+  const i = Math.floor(t / per), into = t - i * per;
+  return into < p.w ? { k: 'work', i: i + 1, left: p.w - into } : { k: 'rest', i: i + 1, left: per - into };
+}
+function ivFinish() {   // end of the last round: Start recovery, without cancelling the end beeps still playing
+  if (S.recMark != null) return;
+  CQ.timers.forEach(clearTimeout); CQ.timers = []; S.planned = null;
+  markRecovery();
+}
+function tickIntervals(el, P) {
+  const p = S.plan;
+  if (S.ivStart == null) {
+    P.classList.remove('go'); $('#spLabel').textContent = 'Warm-up'; $('#spStep').textContent = '–'; $('#spCount').textContent = ms2(el);
+    $('#spMsg').textContent = 'tap Start intervals when ready'; return;
+  }
+  const t = el - S.ivStart, ev = ivEvents(p);
+  // plan the next cue a little ahead, so it is heard on time (see planCue)
+  const j = ev.findIndex(e => e.at > t - 0.05);
+  if (j >= 0 && j > S.ivDone && !S.paused) {
+    const e = ev[j], key = 'iv' + j, due = e.at - t;
+    if (due <= AHEAD && S.planned !== key)
+      planCue(key, e.k === 'tick' ? null : e.k !== 'rest', Math.max(0, due), () => { S.ivDone = j; if (e.k === 'end') ivFinish(); else tickIntervals(elNow(), P); },
+        e.k === 'tick' ? CUE.tick : e.k === 'work' ? CUE.go : e.k === 'rest' ? CUE.rest : CUE.end);
+  }
+  const ph = ivPhase(p, t);
+  if (ph.k === 'done') { if (S.recMark == null) { S.ivDone = ev.length - 1; markRecovery(); } return; }   // a missed end cue (paused): mark anyway
+  P.classList.toggle('go', ph.k === 'work');
+  $('#spLabel').textContent = ph.k === 'count' ? 'Get ready' : 'Round';
+  $('#spStep').textContent = ph.k === 'count' ? Math.ceil(ph.left) : ph.i + '/' + p.n;
+  $('#spCount').textContent = ph.k === 'count' ? 'READY' : ms2(ph.left);
+  $('#spMsg').textContent = ph.k === 'count' ? 'round 1 starts on the beep' : ph.k === 'work' ? 'work' : 'rest';
+}
 function nextStep(n, sound) { if (n <= S.lastStep) return; S.lastStep = n; if (sound) cue(true); S.goUntil = Date.now() + 5000; tickTraining(); }
 function lthrNow(sound) { if (S.lthrCued) return; S.lthrCued = true; if (sound) cue(true); tickTraining(); }
 function tickTraining() {
@@ -705,6 +772,7 @@ function tickTraining() {
   if (!S.trainType || $('#stepPanel').hidden) return;
   const el = elNow(), P = $('#stepPanel');
   if (S.recMark != null) { $('#spLabel').textContent = 'Recovery'; $('#spStep').textContent = ms2(el - S.recMark); $('#spCount').textContent = ms2(Math.max(0, 120 - (el - S.recMark))); $('#spMsg').textContent = (el - S.recMark) < 120 ? 'keep recording' : 'you can stop now'; P.classList.remove('go'); return; }
+  if (S.trainType === 'intervals') { tickIntervals(el, P); return; }
   if (S.trainType === 'dfa') liveAlpha1(el);
   if (S.trainType === 'ramp' || S.trainType === 'dfa') {
     const left = 180 - (el % 180), step = Math.max(Math.floor(el / 180) + 1, S.lastStep), nk = 'step' + (step + 1);
@@ -737,14 +805,26 @@ function recoveryCutNote(recMark, end) {
   if (recMark == null || end - recMark >= 60) return '';
   return ` Recovery was cut short: the recording stopped ${Math.round(end - recMark)} s after Start recovery, so it can't be measured. Next time, keep recording for 2 minutes after Start recovery.`;
 }
+function markRecovery() {
+  S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
+  $('#btnIntervals').hidden = true; putSession(sessionMeta('recording')); tickTraining();
+}
 $('#btnRecov').onclick = () => {
   if (!S.recording || S.recMark != null) return;
-  cancelCues(); S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
-  cue(false); putSession(sessionMeta('recording'));
+  cancelCues(); markRecovery(); cue(false);
 };
+$('#btnIntervals').onclick = () => {
+  if (!S.recording || S.recMark != null || S.ivStart != null || !S.plan) return;
+  S.ivStart = elNow() + IV_COUNT; S.ivDone = -1; $('#btnIntervals').hidden = true;
+  putSession(sessionMeta('recording')); tickTraining();
+};
+/* the recording timer: elNow() runs smoothly between ECG packets, but paused and lost samples are counted per packet
+   (about half a second each), so their difference wobbles across a second boundary while paused (07:54, 07:55, 07:54…).
+   Held while paused, and never shown going backwards */
+function shownActive(prev, active, paused) { return paused ? prev : Math.max(prev, active); }
 function tickRec() {
   if (!S.recording) return;
-  const active = Math.max(0, elNow() - (S.pausedSamples + S.gapSamples) / FS);
+  const active = S.shownT = shownActive(S.shownT || 0, Math.max(0, elNow() - (S.pausedSamples + S.gapSamples) / FS), S.paused);
   $('#recTimer').textContent = hms(active); $('#dimT').textContent = hms(active);
   $('#recRemain').textContent = S.autoMin ? `Stops automatically in ${ms2(S.autoMin * 60 - active)}` : `${hms(MAX_SAMPLES / FS - S.total / FS)} remaining before the 8-hour limit`;
   $('#recHR').innerHTML = S.hr ? S.hr + '<small>bpm</small>' : '--';
@@ -905,7 +985,7 @@ function saveRecordingFile() {
   downloadFile(fileStamp(d, m.ctx) + '.json',
     JSON.stringify({ format: 'lead-one-ecg', version: 3, fs: FS, id: m.id, start: m.start, ctx: m.ctx, pos: m.pos, notes: m.notes || '', device: m.device, fw: m.fw, battery: m.battery,
       gap: m.gap, paused: m.paused, pauses: m.pauses, rr: m.rr, gapMarker: GAP, samples: btoa(bin),
-      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, stopWhy: m.stopWhy || '', plan: m.plan || null, standMark: m.standMark,
+      trainType: m.trainType || '', recovery: m.recovery || '', recMark: m.recMark, stopWhy: m.stopWhy || '', plan: m.plan || null, planT0: m.planT0, standMark: m.standMark,
       accFs: m._acc ? m._acc.fs : 0, accT0: m._acc ? m._acc.t0 : 0, acc: m._acc ? b64(new Uint8Array(m._acc.data.buffer, m._acc.data.byteOffset, m._acc.data.byteLength)) : '' }));
 }
 async function openFile(file) {
@@ -1008,6 +1088,18 @@ $('#btnInstall').onclick = async () => {
     : 'In Chrome or Edge, use the install icon at the right of the address bar, or the ⋮ menu → “Install Lead One ECG”. If it is already installed, open it from there.', 10000);
 };
 $('#btnHelpBack').onclick = $('#btnHelpBack2').onclick = () => show(helpFrom);
+// Licences (Settings > About): back to Settings; the list at the top jumps to a licence's text, and each text back
+$('#btnLicences').onclick = () => show('scrLicences');
+$('#btnLicencesBack').onclick = $('#btnLicencesBack2').onclick = () => openSettings(false);
+$('#scrLicences').addEventListener('click', e => {
+  const a = e.target.closest('a[data-lic]');
+  if (!a) return;
+  e.preventDefault();
+  const t = document.getElementById(a.dataset.lic);
+  if (!t) return;
+  t.scrollIntoView({ block: 'start' });   // straight there: the texts are long, so a smooth scroll takes seconds
+  t.focus({ preventScroll: true });       // keyboard and screen-reader users go on from the text (tabindex="-1")
+});
 $('#fileIn').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) openFile(f); };
 for (const b of document.querySelectorAll('[data-demo]')) b.onclick = () => runSample(b.dataset.demo);
 function runSample(kind) {

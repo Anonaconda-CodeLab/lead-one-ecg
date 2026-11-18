@@ -116,8 +116,14 @@ Choose the **Training** context to measure your exercise heart rate, recovery an
   each effort automatically and shows its peak and average heart rate and how far your heart rate fell before the next one.
   With short rests (Tabata, 30/30) heart rate has no time to fall, so the efforts run together. Pick an **Interval plan**
   (Tabata 20/10 × 8, 30/30, 10 × 1 min, 4 × 4 min, or your own work, rest and rounds) before you start, or later under
-  **Details**. The report then lines the rounds up so the last one ends when you tapped **Start recovery**, and shows
-  every round's average, peak and end-of-work heart rate. Tap **Start recovery** right as your last round ends.
+  **Details**. With a plan, the app is your interval timer: start recording, warm up, then tap **Start intervals**. After
+  a 3-2-1 count it beeps and vibrates at the start of every work round (one long high beep, **GO**) and every rest (one
+  lower beep), shows the round and the seconds left, and at the end of the last round plays a falling three-note beep
+  and marks **Start recovery** itself: keep recording for 2 minutes. Tapping **Start recovery** earlier ends the plan
+  there. The clock keeps running if you pause (the beeps are silent while paused). The report shows every round's
+  average, peak and end-of-work heart rate, placed exactly where the app timed them. If you don't use Start intervals
+  (or pick the plan later under Details), the rounds are lined up so the last one ends when you tapped **Start
+  recovery**. Turn the media volume up; Rounds, the studio's timer app, is the choice when you aren't recording.
 - **Tempo**: a sustained, comfortably hard effort of at least 10 minutes. The report shows how steadily you held it and
   your cardiac drift: how much your heart rate crept up in the second half at the same effort.
 - **DFA-α1 test**: finds your **aerobic threshold** (the top of truly easy training) without a lab, from how orderly your
@@ -245,6 +251,11 @@ On a phone, open the app in **Google Chrome or Chromium on Android**, from its h
 On iPhone and iPad, use the **Bluefy** browser. Safari and Firefox are not supported. On Linux,
 enable `chrome://flags/#enable-experimental-web-platform-features`; in Brave, enable `brave://flags/#brave-web-bluetooth-api`.
 
+### The app opened inside LINE (or another chat app)
+A link tapped in a LINE chat opens in LINE's built-in browser, which can't connect to the strap or save files. Lead One
+shows a banner there: tap **Open in your browser** to open the same page in your phone's own browser. In other chat
+apps, use their menu (often **⋯**) and choose **Open in browser**.
+
 ### The strap connects, but the timer stays at 00:00:00 or "No ECG from the strap" appears
 Another app is holding the strap's ECG stream. Force-close other heart-rate apps, unclip the sensor from the strap for
 30 seconds, clip it back on, switch the phone's Bluetooth off and on, then reload the app and connect again.
@@ -280,6 +291,9 @@ screenshot. Please don't send recordings, reports or history exports unless you 
 health data. Technical users can also open an issue at **https://github.com/Anonaconda-CodeLab/lead-one-ecg**.
 
 Lead One ECG is free and open-source software from Anonaconda Code Lab, released under the GNU General Public License v3.
+The code is written with Claude (an AI from Anthropic); since October 2026 every change names Claude as its author, and
+the owner designs and tests the app. The typefaces and, in the Android app, the components it is built with keep their
+own licences: see **Licences** under Settings > About.
 If it is useful to you, you can support its development at **https://ko-fi.com/anonacondacodelab**.
 
 Polar and H10 are trademarks of Polar Electro Oy. Lead One ECG is independent and not affiliated with or endorsed by

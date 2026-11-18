@@ -202,7 +202,7 @@ table.mt td.rbar{width:44mm;line-height:0}
 .legend{display:flex;gap:4mm;flex-wrap:wrap;font-size:7pt;color:var(--p-muted)}
 .legend i{display:inline-block;width:3mm;height:2mm;border-radius:.5mm;margin-right:1mm;vertical-align:middle}
 .cols2{display:grid;grid-template-columns:1fr 1fr;gap:5mm;align-items:start}
-.cols-hrv{display:grid;grid-template-columns:62mm 1fr;gap:5mm;align-items:center}
+.cols-hrv{display:grid;grid-template-columns:62mm 1fr;gap:5mm;align-items:center}.cols-hrv.one{grid-template-columns:1fr;gap:2mm}
 .strip{display:flex;flex-direction:column;gap:.8mm;break-inside:avoid}
 .strip .sh{display:flex;justify-content:space-between;align-items:baseline;gap:3mm}
 .strip .sh b{font-size:9pt;font-weight:600}
@@ -388,3 +388,23 @@ body[data-screen="scrRec"] #scrRec{flex:1 1 auto}
 .sum-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:4px 10px;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
 .sum-row span{color:var(--muted)}.sum-row small{grid-column:1/-1;color:var(--muted);font-size:13px;margin-top:-2px}
 .sum-row .chip{font-size:12px;padding:2px 9px;border-radius:999px}
+
+/* Licences screen (Settings > About), as in Flatbed */
+.licences{white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--f-mono);font-size:12px;line-height:1.5;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin:0}
+.licences-head{font-size:16px;margin:22px 0 10px}
+.lic-toc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:18px}
+.lic-toc p{margin:6px 0 8px;color:var(--muted);font-size:14px}
+.lic-list{list-style:none;margin:0;padding:0}
+.lic-list li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px;padding:9px 0;border-top:1px solid var(--line)}
+.lic-list li:first-child{border-top:0}
+.lic-list a{color:var(--fg);text-decoration:none;font-weight:500}
+.lic-list a:hover,.lic-list a:focus-visible{text-decoration:underline}
+.lic-list span{color:var(--muted);font-size:14px}
+.lic{margin-bottom:18px}
+.lic h3{font-size:14px;margin:0 0 8px}
+.lic-top{display:inline-block;margin-top:8px;font-size:14px;color:var(--muted)}
+.lic:focus,.lic-toc:focus{outline:none}
+
+/* LINE's built-in browser (no Bluetooth, no saving): a banner offering the phone's own browser, as in Remark */
+.line-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:8px 0 0;padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--accent);color:var(--fg);font-size:14px}
+.line-bar .btn{flex:none;text-decoration:none}

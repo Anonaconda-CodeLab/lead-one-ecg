@@ -159,6 +159,11 @@ test('release workflow: three jobs; only publish can write, only sign sees the k
   assert.ok(sign.includes('the published fingerprint is'), 'the APK must carry the published signing key');
   assert.ok(!/tags:/.test(w.split('jobs:')[0]), 'no tag trigger');
   assert.match(publish, /android-test/);
+  // Remark's clear_prerelease: the old pre-release and its tag are removed first, and only "not there" is accepted
+  assert.match(publish, /clear_prerelease android-test\n\s*gh release create android-test/);
+  assert.match(publish, /elif ! grep -qi 'release not found\\\|HTTP 404' <<<"\$out"; then echo "::error::Could not check the old \$1 release[^\n]*exit 1; fi/);
+  assert.match(publish, /gh api -X DELETE "repos\/\$GITHUB_REPOSITORY\/git\/refs\/tags\/\$1"[\s\S]*?elif ! grep -q 'HTTP 404'[^\n]*exit 1; fi/);
+  assert.ok(!/--cleanup-tag \|\| true/.test(publish), 'no silent failure any more');
   assert.match(w, /LeadOne-ECG-\$VER\.apk/);
   // hardening carried over from Still Point 1.0.2
   const validate = build.search(/- uses: gradle\/actions\/wrapper-validation@[0-9a-f]{40}/), gradle = build.indexOf('./gradlew --no-daemon assembleRelease');
@@ -236,4 +241,121 @@ test('breathing in Training: live tile says "moving" instead of waiting for ever
   assert.equal((h.match(/await analyze\(/g) || []).length, (h.match(/await analyze\((raw|S\.raw), analyzeOpts\((meta|S\.meta)\)/g) || []).length, 'every analysis gets the same options');
   assert.ok(h.includes("if (S.raw && wasTraining !== (S.meta.ctx === 'training')) S.analysis = await analyze(S.raw, analyzeOpts(S.meta));"), 'moving a report into or out of Training re-runs the analysis');
   assert.ok(h.includes("S.ctx === 'training' ? 'The motion sensor could not be started, so breathing will not be measured in this session.'"), 'no ECG breathing promised in Training');
+});
+
+test('recording timer: held while paused, never goes backwards', () => {
+  const h = distHtml();
+  const f = new Function('return ' + h.match(/function shownActive\([^)]*\) \{[^\n]*\}/)[0])();
+  // paused at 474.6 s: elNow keeps running between packets while paused samples arrive in half-second steps
+  let shown = f(0, 474.6, false);
+  for (const a of [474.9, 475.2, 474.7, 475.1, 474.6]) { shown = f(shown, a, true); assert.equal(Math.floor(shown), 474, 'stays at 07:54'); }
+  shown = f(shown, 474.4, false); assert.equal(shown, 474.6, 'no step back on Resume');
+  shown = f(shown, 475.3, false); assert.equal(shown, 475.3, 'counts on after Resume');
+  assert.ok(h.includes('const active = S.shownT = shownActive(S.shownT || 0,'), 'the timer uses it');
+  assert.ok(h.includes('paused: false, shownT: 0 });'), 'reset for each new recording');
+});
+
+test('position remembered per context: Training\'s "walking" does not carry over to a morning reading', () => {
+  const h = distHtml();
+  const POS = { lying: {}, sitting: {}, standing: {}, walking: {} };
+  const grab = name => h.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`))[0];
+  const { posMap, posFor } = new Function('POS', `${grab('posMap')}\n${grab('posFor')}\nreturn { posMap, posFor };`)(POS);
+  // settings saved by 1.8.4: one position for every context
+  const old = posMap({ lastCtx: 'training', lastPos: 'walking' });
+  assert.equal(posFor(old, 'training'), 'walking', 'kept for the context it was used with');
+  assert.equal(posFor(old, 'morning'), '', 'a morning reading starts unselected, not on walking');
+  const m = posMap({ lastCtx: 'training', lastPos: 'walking', posByCtx: { morning: 'lying', training: 'walking' } });
+  assert.equal(posFor(m, 'morning'), 'lying'); assert.equal(posFor(m, 'training'), 'walking');
+  assert.equal(posFor({ morning: 'flying' }, 'morning'), '', 'unknown positions ignored');
+  assert.equal(posFor(posMap({ posByCtx: [] }), 'morning'), '', 'malformed settings ignored');
+  assert.ok(!/patchSettings\(\{ lastPos/.test(h), 'no single shared position any more');
+});
+
+test('interval timer: Tabata schedule, phases, and a simulated session through the live timer', () => {
+  const h = distHtml();
+  const grab = name => h.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`))[0];
+  const tab = { w: 20, r: 10, n: 8 };
+  const { ivEvents, ivPhase } = new Function(`const IV_COUNT = 3; ${grab('ivEvents')}\n${grab('ivPhase')}\nreturn { ivEvents, ivPhase };`)();
+  const ev = ivEvents(tab);
+  assert.deepEqual(ev.slice(0, 3).map(e => [e.at, e.k]), [[-3, 'tick'], [-2, 'tick'], [-1, 'tick']]);
+  assert.equal(ev.filter(e => e.k === 'work').length, 8); assert.equal(ev.filter(e => e.k === 'rest').length, 7, 'no rest after the last round');
+  assert.deepEqual(ev[ev.length - 1], { at: 230, k: 'end' }, '8 × 20 s + 7 × 10 s');
+  assert.deepEqual(ivPhase(tab, 25), { k: 'rest', i: 1, left: 5 });
+  assert.deepEqual(ivPhase(tab, 30), { k: 'work', i: 2, left: 20 });
+  assert.equal(ivPhase(tab, 230).k, 'done'); assert.equal(ivPhase(tab, -2).k, 'count');
+  assert.equal(ivEvents({ w: 60, r: 0, n: 3 }).filter(e => e.k === 'rest').length, 0, 'no rest beeps without rests');
+
+  // the live timer, ticked twice a second from Start intervals (t = 10 s into the recording) to the end
+  const el = { v: 10 }, heard = [], marks = [], timers = [];
+  const dom = {}; const $ = sel => dom[sel] || (dom[sel] = { textContent: '', classList: { toggle() {}, remove() {} } });
+  const S = { plan: tab, ivStart: 13, ivDone: -1, paused: false, recMark: null, planned: null };
+  const CQ = { timers: [] };
+  const run = new Function('S', '$', 'CQ', 'elNow', 'planCue', 'markRecovery', 'ms2', 'CUE', `const IV_COUNT = 3, AHEAD = 1.2;
+    ${grab('ivEvents')}\n${grab('ivPhase')}\n${grab('ivFinish')}\n${grab('tickIntervals')}\nreturn tickIntervals;`);
+  const tick = run(S, $, CQ, () => el.v,
+    (key, strong, due, then, pat) => { S.planned = key; timers.push({ at: el.v + due, key, then, pat }); },
+    () => { S.recMark = el.v; marks.push(el.v); }, s => String(Math.ceil(s)), { tick: 'tick', go: 'go', rest: 'rest', end: 'end' });
+  for (; el.v < 13 + 235; el.v = Math.round((el.v + 0.5) * 10) / 10) {
+    for (const x of timers.splice(0).sort((a, b) => a.at - b.at)) { if (x.at <= el.v + 1e-9) { heard.push([+(x.at - 13).toFixed(1), x.pat]); if (S.planned === x.key) x.then(); } else timers.push(x); }
+    if (S.recMark == null) tick(el.v, $('#stepPanel'));
+  }
+  assert.deepEqual(heard.filter(x => x[1] === 'tick').map(x => x[0]), [-3, -2, -1], '3-2-1');
+  assert.deepEqual(heard.filter(x => x[1] === 'go').map(x => x[0]), [0, 30, 60, 90, 120, 150, 180, 210], 'GO at every work round, on time');
+  assert.deepEqual(heard.filter(x => x[1] === 'rest').map(x => x[0]), [20, 50, 80, 110, 140, 170, 200]);
+  assert.deepEqual(heard.filter(x => x[1] === 'end').map(x => x[0]), [230]);
+  assert.equal(marks.length, 1); assert.ok(Math.abs(marks[0] - (13 + 230)) <= 0.5, 'Start recovery marked at the end of round 8: ' + marks[0]);
+
+  // wiring
+  assert.ok(h.includes('<button id="btnIntervals" class="btn primary" hidden>Start intervals</button>'));
+  assert.ok(h.includes("if (S.trainType === 'intervals') { tickIntervals(el, P); return; }"));
+  assert.ok(h.includes('planT0: S.ivStart ?? null') && h.includes('planT0: num(m.planT0)'), 'start of round 1 saved with the recording');
+});
+
+test('licences: every bundled font and Android component with its full licence, on the Licences screen and in licences.txt', async () => {
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const file = f => readFileSync(new URL('../' + f, import.meta.url), 'utf8');
+  const norm = t => t.replace(/\r\n/g, '\n').trim();
+  const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const h = distHtml(), web = file('dist/licences.txt'), and = file('dist/licences-android.txt');
+  // web: the two typefaces, with their full OFL texts
+  for (const f of ['src/fonts/OFL-InstrumentSans.txt', 'src/fonts/OFL-IBMPlexMono.txt']) assert.ok(web.includes(norm(file(f))), f);
+  for (const s of ['Instrument Sans typeface', 'IBM Plex Mono typeface', 'SIL OPEN FONT LICENSE']) assert.ok(web.includes(s), s);
+  // Android only: Capacitor, the Bluetooth plugin, Cordova (with its NOTICE), AndroidX, Kotlin; the Apache text once
+  for (const s of ['Copyright (c) 2017-present Drifty Co.', 'Copyright (c) 2021 Capacitor plugin for Bluetooth Low Energy', 'Capacitor 8.5.3',
+    'bluetooth-le', 'Apache Cordova Android framework 14.0.1', 'AndroidX libraries', 'Kotlin standard library', 'Copyright 2015-2020 The Apache Software Foundation'])
+    assert.ok(and.includes(s), s);
+  assert.equal((and.match(/TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION/g) || []).length, 1, 'the Apache text once, its components listed together');
+  for (const s of ['Drifty', 'Capacitor', 'AndroidX', 'Kotlin', 'Cordova']) assert.ok(!web.includes(s), `${s} is not in the web licences`);
+  // every licence file in the source is used, and every font and vendored file has one (a new one fails here until listed)
+  const used = [...file('build.mjs').matchAll(/'((?:fonts|vendor)\/[^']+)'/g)].map(m => m[1]);
+  for (const f of readdirSync(new URL('../src/vendor', import.meta.url))) assert.ok(used.includes('vendor/' + f), 'listed: vendor/' + f);
+  for (const f of readdirSync(new URL('../src/fonts', import.meta.url))) {
+    if (f.endsWith('.txt')) { assert.ok(used.includes('fonts/' + f), 'listed: fonts/' + f); continue; }
+    const fam = f.startsWith('InstrumentSans') ? 'InstrumentSans' : f.startsWith('IBMPlexMono') ? 'IBMPlexMono' : null;
+    assert.ok(fam && used.includes(`fonts/OFL-${fam}.txt`), 'font with a licence: ' + f);
+  }
+  // the versions named match what the APK is built with
+  const pkg = JSON.parse(file('mobile/package.json'));
+  assert.equal(pkg.dependencies['@capacitor/android'], '8.5.3'); assert.equal(pkg.dependencies['@capacitor-community/bluetooth-le'], '8.3.0');
+  assert.match(file('mobile/android/variables.gradle'), /cordovaAndroidVersion = '14\.0\.1'/);
+  // the screen: reached from Settings > About, a list first, every text in full, the Android part in the app only
+  assert.match(h, /<button id="btnLicences" class="btn">Licences<\/button>/);
+  const scr = h.slice(h.indexOf('<section id="scrLicences"'), h.indexOf('<section id="scrHelp"'));
+  assert.ok(scr.indexOf('id="licTop"') < scr.indexOf('<section class="lic" id="lic-1"'), 'the list comes before the texts');
+  for (const f of ['fonts/OFL-InstrumentSans.txt', 'fonts/OFL-IBMPlexMono.txt', 'vendor/LICENSE-capacitor.txt', 'vendor/LICENSE-bluetooth-le.txt', 'vendor/LICENSE-apache-2.0.txt', 'vendor/NOTICE-cordova.txt'])
+    assert.ok(scr.includes(`<pre class="licences" translate="no">${esc(norm(file('src/' + f)))}</pre>`), 'on the screen: ' + f);
+  assert.match(scr, /<div class="native-only"><h2 class="licences-head">In the Android app<\/h2><section class="lic" id="lic-a1"/);
+  for (const id of new Set([...scr.matchAll(/data-lic="(lic-a?\d+)"/g)].map(m => m[1]))) assert.match(scr, new RegExp(`<section class="lic" id="${id}" tabindex="-1">`), id);
+  assert.equal((scr.match(/<section class="lic" id=/g) || []).length, (scr.match(/↑ Back to the list/g) || []).length);
+  assert.match(h, /html:not\(\.native\) \.native-only\{display:none\}/);
+  assert.ok(h.includes("scr === 'scrLicences' ? document.getElementById('btnLicencesBack')"), 'Android Back leaves the Licences screen');
+  assert.match(file('NOTICE.md'), /Licences\*\* screen/);
+  // *.txt is ignored (recordings are never committed), so the licence files need their own exceptions, or they would
+  // silently stay out of the repository, the Cloudflare site and the APK
+  const { execFileSync } = await import('node:child_process');
+  const lic = ['dist/licences.txt', 'dist/licences-android.txt', ...readdirSync(new URL('../src/vendor', import.meta.url)).map(f => 'src/vendor/' + f),
+    ...readdirSync(new URL('../src/fonts', import.meta.url)).filter(f => f.endsWith('.txt')).map(f => 'src/fonts/' + f)];
+  let ignored = '';
+  try { ignored = execFileSync('git', ['check-ignore', ...lic], { cwd: new URL('..', import.meta.url), encoding: 'utf8' }); } catch (e) { if (e.status !== 1) throw e; ignored = e.stdout || ''; }
+  assert.equal(ignored.trim(), '', 'licence files are not ignored by git');
 });
