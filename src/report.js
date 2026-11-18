@@ -370,7 +370,7 @@ function commentary(A, meta, R, B, X = null) {
     if (X.tt === 'dfa' && X.dfa) out.push(X.dfa.valid ? `DFA α1 fell from ${X.dfa.startA1.toFixed(2)} at easy effort to ${X.dfa.minA1.toFixed(2)}; it crossed 0.75 (aerobic threshold) at about ${f0(X.dfa.vt1)} bpm${isFinite(X.dfa.vt2) ? ` and 0.5 (anaerobic threshold) at about ${f0(X.dfa.vt2)} bpm` : ''}.${X.dfa.steep ? ' DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.' : ''}` : 'The DFA α1 thresholds could not be determined from this recording (see the training pages).');
     if (X.tt === 'session' || X.tt === 'intervals' || X.tt === 'tempo') out.push('Training sessions, including intervals such as 4 × 4, rarely reach true maximum heart rate: peaks seen in them are a floor, not a ceiling. A ramp test gives a measured value.');
     if (X.tt === 'intervals' && X.plan && X.plan.done) { const P = X.plan;
-      out.push(`${P.done} ${P.done === 1 ? 'round' : 'rounds'} of ${mmss(P.w)} work${P.r ? ` / ${mmss(P.r)} rest` : ''} (your interval plan, ${P.anchor === 'timed' ? 'timed by the app' : 'lined up with ' + (P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise')}): average heart rate rose from ${f0(P.first)} bpm in round 1 to ${f0(P.last)} bpm in the last round, peaking at ${f0(P.peak)} bpm.${P.r && P.r <= 15 ? ' Rests this short barely let heart rate fall, so it climbs from round to round; that is expected.' : ''}`); }
+      out.push(`${P.done} ${P.done === 1 ? 'round' : 'rounds'} of ${mmss(P.w)} work${P.r ? ` / ${mmss(P.r)} rest` : ''} (your interval plan, ${P.anchor === 'timed' ? 'timed by the app' : 'lined up with ' + (P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise')}): ${planHR(P, f0)}${isFinite(P.peak) ? `, peaking at ${f0(P.peak)} bpm` : ''}.${P.r && P.r <= 15 ? ' Rests this short barely let heart rate fall, so it climbs from round to round; that is expected.' : ''}`); }
     if (X.tt === 'intervals' && X.iv && X.iv.bouts.length) { const b = X.iv.bouts, rec = b.filter(x => !x.last && isFinite(x.recDrop));
       out.push(`${b.length} hard ${b.length === 1 ? 'effort was' : 'efforts were'} detected, peaking at ${f0(Math.min(...b.map(x => x.peak)))}–${f0(Math.max(...b.map(x => x.peak)))} bpm${rec.length ? `, with heart rate falling ${f0(Math.min(...rec.map(x => x.recDrop)))}–${f0(Math.max(...rec.map(x => x.recDrop)))} bpm in the recoveries between them` : ''}.${isFinite(X.iv.fade) && X.iv.fade >= 5 ? ` Peak heart rate rose ${f0(X.iv.fade)} bpm from the first to the last effort, a common sign of accumulating fatigue (or of pushing harder on later repeats).` : ''}`); }
     if (X.tt === 'tempo' && X.tempo && X.tempo.valid) { const T = X.tempo;
@@ -585,7 +585,7 @@ function gradeAll(A, meta, R, X = null) {
           text: r.valid ? `Your aerobic threshold is about ${f(r.vt1)} bpm${isFinite(r.vt2) ? `, and your anaerobic threshold about ${f(r.vt2)} bpm (α1 = 0.5)` : ''}.${r.steep ? ' DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.' : ''} Easy, base-building training stays below the aerobic threshold.` : DFA_WHY[r.reason] || DFA_WHY.flat }); }
       if (X.tt === 'intervals' && X.plan) { const P = X.plan;
         add('intervals', { title: 'Interval rounds', short: 'interval rounds', value: P.notStarted ? 'None done' : P.done + (P.done === 1 ? ' round' : ' rounds'), g: 'na', what: 'Your heart rate in each round of your interval plan.',
-          text: P.notStarted ? 'Start recovery came before round 1 began, so no rounds were done.' : P.done ? `Average heart rate went from ${f(P.first)} bpm in round 1 to ${f(P.last)} bpm in round ${P.done} (peak ${f(P.peak)} bpm). See the training pages for every round.` : 'Round 1 was stopped part-way by Start recovery. See the training pages.' }); }
+          text: P.notStarted ? planNotStarted(P) : P.done ? `${planHR(P, f).replace(/^a/, 'A')}${isFinite(P.peak) ? ` (peak ${f(P.peak)} bpm)` : ''}. See the training pages for every round.` : 'Round 1 was stopped part-way by Start recovery. See the training pages.' }); }
       if (X.tt === 'intervals' && X.iv) { const b = X.iv.bouts;
         add('intervals', { title: 'Interval efforts', short: 'interval efforts', value: b.length ? b.length + (b.length === 1 ? ' effort' : ' efforts') : 'None found', g: 'na', what: 'The hard efforts in this session, found automatically from your heart rate, and how far it fell between them.',
           text: b.length ? `Peaks ranged from ${f(Math.min(...b.map(x => x.peak)))} to ${f(Math.max(...b.map(x => x.peak)))} bpm. ${isFinite(X.iv.fade) && X.iv.fade >= 5 ? `Your peak rose ${f(X.iv.fade)} bpm over the session, a sign of building fatigue.` : 'Your peaks stayed consistent across the session.'} See the training pages for each effort.` : 'No distinct efforts stood out from the rest of the session. Efforts are detected when heart rate rises well above the session’s easy level for at least 20 seconds.' }); }
@@ -811,6 +811,21 @@ function ctxView(A, ctx) {
 function recMissing(E, sec) { return E.after < sec ? 'recording too short' : 'strap signal missing at that point'; }
 /* why a ramp test is not valid (rampTest: three completed steps with a measured heart rate and no signal loss, and a
    20-s peak). `plain` = the plain-language card, otherwise the short line on the test panel */
+/* interval plans: the heart rate of the rounds actually measured (not always round 1 and the last), in neutral words;
+   why no round was done; and the table rows, thinned for long plans but always keeping a round stopped part-way */
+function planHR(P, f) {
+  if (P.measured >= 2) return `average heart rate went from ${f(P.first)} bpm in round ${P.firstN} to ${f(P.last)} bpm in round ${P.lastN}`;
+  if (P.measured === 1) return `average heart rate was ${f(P.first)} bpm in round ${P.firstN}`;
+  return 'heart rate could not be measured in the rounds';
+}
+function planNotStarted(P) {
+  return P.byMark ? 'Start recovery came before round 1 began (during the 3-2-1), so no rounds were done and none are shown.'
+    : 'The recording ended before round 1 began (during the 3-2-1), so no rounds were done and none are shown.';
+}
+function planRows(rounds) {
+  const t = thin(rounds, 16), stopped = rounds.filter(x => x.partial && !t.includes(x));
+  return stopped.length ? [...t.slice(0, 16 - stopped.length), ...stopped] : t;
+}
 function rampInvalid(r, plain) {
   // causes counted over completed steps only: an unfinished last step with lost contact doesn't make the test invalid
   const done = (r.steps || []).filter(x => x.done), lost = done.filter(x => x.flag).length, gone = done.filter(x => !x.flag && !isFinite(x.hr)).length;
@@ -1018,11 +1033,11 @@ ${isFinite(r.slope5) ? kvT('Final 5 minutes', (r.slope5 >= 0 ? '+' : '−') + fm
         <p class="note-p" style="margin:0">${r.valid ? (X.tt === 'ramp' ? 'Estimated from the ramp test. A dedicated DFA-α1 test, stopped once α1 is below 0.5, gives the same result without going to exhaustion.' : 'Thresholds from α1 agree with laboratory gas-exchange thresholds within a few beats per minute in most studies, best in cycling with smooth effort. Repeat the test every 6–8 weeks.') + (r.steep ? ' <b>DFA α1 fell steeply, so both thresholds sit close together; the aerobic threshold is the more reliable of the two.</b> Smaller steps around this heart rate next time will separate them more clearly.' : '') : DFA_WHY[r.reason] || DFA_WHY.flat}</p></div></div>`;
       if (X.tt === 'dfa') tests = dfaSec; else dfaAfter = dfaSec; }
     if (X.tt === 'intervals' && X.plan && X.plan.notStarted) tests = `<div class="sec-h"><h2>Interval rounds</h2><span>${X.plan.n} × ${mmss(X.plan.w)}${X.plan.r ? ' / ' + mmss(X.plan.r) : ''} · timed by the app</span></div>
-        <p class="note-p">Start recovery came before round 1 began (during the 3-2-1), so no rounds were done and none are shown.</p>`;
+        <p class="note-p">${planNotStarted(X.plan)}</p>`;
     else if (X.tt === 'intervals' && X.plan) { const P = X.plan;
       tests = `<div class="sec-h"><h2>Interval rounds</h2><span>${P.n} × ${mmss(P.w)}${P.r ? ' / ' + mmss(P.r) : ''} · ${P.anchor === 'timed' ? 'timed by the app' : 'lined up with ' + (P.anchor === 'marked' ? 'Start recovery' : 'the end of exercise')}</span></div>
         <div class="fig">${planChart(A, P, startMs)}<div class="cap">Heart rate (5-s means); shaded bands = work rounds of your plan.</div></div>
-        <table class="ev"><thead><tr><th>Round</th><th>Start</th><th>Average</th><th>Peak</th><th>End of work</th>${P.r ? '<th>After rest</th>' : ''}</tr></thead><tbody>${thin(P.rounds, 16).map(x => `<tr><td class="m">${x.n}${x.partial ? ' (stopped)' : ''}</td><td class="m">${clock(x.t0)}</td><td class="m">${fmt(x.avg)} bpm</td><td class="m">${fmt(x.peak)} bpm</td><td class="m">${fmt(x.endHR)} bpm</td>${P.r ? `<td class="m">${isFinite(x.afterRest) ? fmt(x.afterRest) + ' bpm' : '—'}</td>` : ''}</tr>`).join('')}</tbody></table>
+        <table class="ev"><thead><tr><th>Round</th><th>Start</th><th>Average</th><th>Peak</th><th>End of work</th>${P.r ? '<th>After rest</th>' : ''}</tr></thead><tbody>${planRows(P.rounds).map(x => `<tr><td class="m">${x.n}${x.partial ? ' (stopped)' : ''}</td><td class="m">${clock(x.t0)}</td><td class="m">${fmt(x.avg)} bpm</td><td class="m">${fmt(x.peak)} bpm</td><td class="m">${fmt(x.endHR)} bpm</td>${P.r ? `<td class="m">${isFinite(x.afterRest) ? fmt(x.afterRest) + ' bpm' : '—'}</td>` : ''}</tr>`).join('')}</tbody></table>
         <p class="note-p">${P.clipped ? 'The recording started after the plan would have begun, so the first rounds are missing. ' : ''}${P.anchor === 'timed' ? `The app timed the rounds with its beeps, so they are placed exactly${P.done < P.n ? ` (${P.done} of ${P.n} done before Start recovery${P.done < P.rounds.length ? '; the last one was stopped part-way, so it is measured only up to then' : ''})` : ''}.` : `Rounds are placed so the last work round ends ${P.anchor === 'marked' ? 'when you tapped Start recovery' : 'at the detected end of exercise'}.`} ${P.r && P.r <= 15 ? 'With rests this short, heart rate cannot fall between rounds, so it climbs through the session; the round-by-round rise shows how hard the set was.' : 'The fall during each rest shows how quickly you recover between efforts.'}</p>`; }
     if (X.tt === 'intervals' && X.iv) { const v = X.iv;
       tests = `<div class="sec-h"><h2>Interval efforts</h2><span>detected from 10-s heart rate</span></div>

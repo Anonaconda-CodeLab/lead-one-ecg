@@ -169,25 +169,27 @@ test('release workflow: three jobs; only publish can write, only sign sees the k
   const { tmpdir } = await import('node:os'), { join } = await import('node:path');
   const runStep = answers => {
     const dir = mkdtempSync(join(tmpdir(), 'gh-')), log = join(dir, 'log');
-    // answers: 'releases/tags', 'git/ref/tags', 'DELETE' -> 'ok' | '404' | '403' | '503'
+    // each answer: 'ok' or an HTTP status, printed as gh api --include does (status line first); `rd` = gh release delete
     writeFileSync(join(dir, 'gh'), `#!/bin/bash
 echo "$*" >> "${log}"
-key=""; case "$*" in *"-X DELETE"*) key=DELETE;; *releases/tags/*) key=rel;; *git/ref/tags/*) key=tag;; esac
-case "$key" in rel) a="${answers.rel}";; tag) a="${answers.tag}";; DELETE) a="${answers.del}";; *) exit 0;; esac
-case "$a" in ok) exit 0;; 404) echo "gh: Not Found (HTTP 404)"; exit 1;; *) echo "gh: error (HTTP $a)"; exit 1;; esac
+key=""; case "$*" in *"release delete"*) key=rd;; *"-X DELETE"*) key=DELETE;; *releases/tags/*) key=rel;; *git/ref/tags/*) key=tag;; esac
+case "$key" in rel) a="${answers.rel}";; tag) a="${answers.tag}";; DELETE) a="${answers.del}";; rd) a="${answers.rd || 'ok'}";; *) exit 0;; esac
+[ "$a" = ok ] && { [ "$key" = DELETE ] && echo "HTTP/2.0 204 No Content" || echo "HTTP/2.0 200 OK"; exit 0; }
+echo "HTTP/2.0 $a Status"; echo; echo '{"message":"error (HTTP 404 in the text, to check the status line decides)"}'; exit 1
 `); chmodSync(join(dir, 'gh'), 0o755);
     let code = 0;
     try { execFileSync('bash', ['-e', '-o', 'pipefail', '-c', step], { env: { ...process.env, PATH: dir + ':' + process.env.PATH, GITHUB_REPOSITORY: 'o/r', GITHUB_SHA: 'abc', VER: '1.0.0' }, stdio: 'pipe' }); }
     catch (e) { code = e.status; }
     let calls = ''; try { calls = readFileSync(log, 'utf8'); } catch (e) {}
-    return { code, created: /release create android-test/.test(calls), deletedRelease: /release delete android-test/.test(calls) };
+    return { code, created: /release create android-test/.test(calls), deletedRelease: /release delete android-test/.test(calls), deletedTag: /-X DELETE/.test(calls) };
   };
-  let r = runStep({ rel: 'ok', tag: 'ok', del: 'ok' }); assert.ok(r.code === 0 && r.deletedRelease && r.created, 'both there: both removed, then created');
+  let r = runStep({ rel: 'ok', tag: 'ok', del: 'ok' }); assert.ok(r.code === 0 && r.deletedRelease && r.deletedTag && r.created, 'both there: both removed, then created');
   r = runStep({ rel: '404', tag: '404', del: 'ok' }); assert.ok(r.code === 0 && !r.deletedRelease && r.created, 'nothing there: created');
   r = runStep({ rel: 'ok', tag: 'ok', del: '403' }); assert.ok(r.code !== 0 && !r.created, 'a failed tag DELETE stops before create');
   r = runStep({ rel: 'ok', tag: 'ok', del: '404' }); assert.ok(r.code === 0 && r.created, 'a tag removed meanwhile is fine');
-  r = runStep({ rel: '503', tag: 'ok', del: 'ok' }); assert.ok(r.code !== 0 && !r.created, 'an unclear release lookup stops');
+  r = runStep({ rel: '503', tag: 'ok', del: 'ok' }); assert.ok(r.code !== 0 && !r.created && !r.deletedTag, 'an unclear release lookup stops (its message mentions 404)');
   r = runStep({ rel: '404', tag: '503', del: 'ok' }); assert.ok(r.code !== 0 && !r.created, 'an unclear tag lookup stops');
+  r = runStep({ rel: 'ok', tag: 'ok', del: 'ok', rd: '403' }); assert.ok(r.code !== 0 && !r.created && !r.deletedTag, 'a failed release delete stops before the tag and create');
   assert.ok(!/--cleanup-tag \|\| true/.test(publish), 'no silent failure any more');
   assert.match(w, /LeadOne-ECG-\$VER\.apk/);
   // hardening carried over from Still Point 1.0.2
@@ -319,11 +321,11 @@ test('interval timer: Tabata schedule, phases, and a simulated session through t
     const dom = {}; const $ = sel => dom[sel] || (dom[sel] = { textContent: '', classList: { toggle() {}, remove() {} } });
     const S = { plan: tab, ivTap: 10, ivDone: -1, paused: false, recMark: null, planned: null, pauses: [] };
     const CQ = { timers: [] };
-    const run = new Function('S', '$', 'CQ', 'elNow', 'planCue', 'markRecovery', 'ms2', 'CUE', `const IV_COUNT = 3, AHEAD = 1.2;
-      ${grabC('pauseList')}\n${grabC('activeBetween')}\n${grab('ivTime')}\n${grab('ivEvents')}\n${grab('ivPhase')}\n${grab('ivFinish')}\n${grab('tickIntervals')}\nreturn tickIntervals;`);
+    const run = new Function('S', '$', 'CQ', 'elNow', 'planCue', 'markRecovery', 'ms2', 'CUE', 'playPattern', 'buzz', `const IV_COUNT = 3, AHEAD = 1.2, FS = 130;
+      ${grabC('pauseList')}\n${grabC('activeBetween')}\n${grabC('activeToRec')}\n${grab('ivTime')}\n${grab('ivEvents')}\n${grab('ivPhase')}\n${grab('ivEndRec')}\n${grab('ivFinish')}\n${grab('tickIntervals')}\nreturn tickIntervals;`);
     const tick = run(S, $, CQ, () => el.v,
       (key, strong, due, then, pat) => { S.planned = key; timers.push({ at: el.v + due, key, then, pat }); },
-      () => { S.recMark = el.v; marks.push(el.v); }, s => String(Math.ceil(s)), { tick: 'tick', go: 'go', rest: 'rest', end: 'end' });
+      t => { S.recMark = t; marks.push(t); }, s => String(Math.ceil(s)), { tick: 'tick', go: 'go', rest: 'rest', end: 'end' }, pat => heard.push([+(el.v - 13).toFixed(1), pat]), () => {});
     let msg = '';
     for (; el.v < 13 + 260; el.v = Math.round((el.v + 0.5) * 10) / 10) {
       if (pause && el.v === pause[0]) { S.paused = true; S.pauses.push({ t0: el.v, t1: null }); timers.length = 0; S.planned = null; }   // as the Pause button (cancelCues)
@@ -357,7 +359,7 @@ test('interval timer: Tabata schedule, phases, and a simulated session through t
   // wiring
   assert.ok(h.includes('<button id="btnIntervals" class="btn primary" hidden>Start intervals</button>'));
   assert.ok(h.includes("if (S.trainType === 'intervals') { tickIntervals(el, P); return; }"));
-  assert.ok(h.includes('planT0: S.ivTap != null && Number.isFinite(activeToRec(S.ivTap, S.pauses, IV_COUNT))') && h.includes('planT0: num(m.planT0)'), 'start of round 1 saved with the recording');
+  assert.ok(h.includes('planT0: planT0Now(),') && h.includes('planT0: num(m.planT0)'), 'start of round 1 saved with the recording');
   assert.ok(h.includes("setPausedUI(S.paused); putSession(sessionMeta('recording')); tickTraining();"), 'the panel shows the pause at once');
 });
 

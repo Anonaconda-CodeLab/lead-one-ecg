@@ -423,10 +423,11 @@ function exerciseResponse(A, recMark) {
   const base = { peak: pk10.v, peakT: pk10.t, peak20: pk20 ? pk20.v : NaN, peak20T: pk20 ? pk20.t : NaN, endHR: s10[n - 1].v, end: null, src: null };
   let end = null, src = null, stop = NaN;
   // an explicit mark (Start recovery, by hand or by the interval timer) after the first 15 s always counts; an earlier
-  // one (a short interval plan started straight away) counts when the heart rate is measured there
-  const marked = Number.isFinite(recMark) && recMark > 0 && recMark <= A.dur, markHR = marked ? (isFinite(at(recMark - 5)) ? at(recMark - 5) : at(recMark)) : NaN;
-  if (marked && (recMark > 15 || isFinite(markHR))) {
-    end = recMark; src = 'marked'; stop = markHR;
+  // one (a short interval plan started straight away) only when the heart rate before it is measured (at -5 s), so the
+  // stop heart rate never comes from recovery beats alone
+  const marked = Number.isFinite(recMark) && recMark > 0 && recMark <= A.dur, pre = marked ? at(recMark - 5) : NaN;
+  if (marked && (recMark > 15 || isFinite(pre))) {
+    end = recMark; src = 'marked'; stop = isFinite(pre) ? pre : at(recMark);
   } else {
     // auto: the latest heart-rate high point that everything afterwards stays below, followed by a clear fall
     // (>= 10 bpm within 2 min) and no renewed effort (nothing within 12 bpm of it from 1 min later onwards)
@@ -641,14 +642,14 @@ function planWork(A, ER, plan, recMark, planT0, pauses) {
   // Number.isFinite: a saved null means "not timed" (isFinite(null) is true). A saved start at or after the end means
   // Start recovery came during the 3-2-1: no round was done, and earlier heart rate is not passed off as rounds
   const saved = Number.isFinite(planT0) && planT0 >= 0, timed = saved && planT0 < end;
-  if (saved && !timed) return { w, r, n, t0: planT0, end, total, clipped: false, anchor: 'timed', notStarted: true, rounds: [], done: 0, first: NaN, last: NaN, peak: NaN };
+  if (saved && !timed) return { w, r, n, t0: planT0, end, total, clipped: false, anchor: 'timed', notStarted: true, byMark: recMark != null, rounds: [], done: 0, first: NaN, last: NaN, peak: NaN, measured: 0 };
   const t0 = timed ? planT0 : Math.max(0, end - total), clipped = !timed && end - total < -2;
   const peakIn = (a, b) => { let m = NaN; for (const q of s5) if (q.t >= a && q.t <= b && !(q.v <= m)) m = q.v; return m; };
   const rounds = [];
   for (let i = 0; i < n; i++) {
     // timed by the app: its clock stopped while paused, so each boundary sits later by the pauses before it
     const at = x => timed ? activeToRec(t0, pauses, x) : t0 + x, ws = at(i * (w + r)), weFull = at(i * (w + r) + w);
-    if (ws >= A.dur || (timed && ws >= end - 1)) break;   // timed: rounds after an early Start recovery weren't done
+    if (ws >= A.dur || (timed && ws >= end)) break;   // timed: rounds that hadn't started by Start recovery weren't done
     // timed: a round that Start recovery cut short is measured only up to the mark (no recovery beats), marked as
     // stopped, and left out of the rounds done; its rest, if any, wasn't taken
     // every window stops at the mark (timed plans), so no recovery beat is counted, even when a round or rest ends a
@@ -663,7 +664,7 @@ function planWork(A, ER, plan, recMark, planT0, pauses) {
   }
   const ok = rounds.filter(x => isFinite(x.avg) && !x.partial);
   return { w, r, n, t0, end, total, clipped, anchor: timed ? 'timed' : recMark != null ? 'marked' : ER && ER.end != null ? ER.src : 'end', rounds, done: rounds.filter(x => !x.partial).length,
-    first: ok.length ? ok[0].avg : NaN, last: ok.length ? ok[ok.length - 1].avg : NaN, peak: Math.max(...ok.map(x => x.peak).filter(isFinite), -Infinity) };
+    first: ok.length ? ok[0].avg : NaN, last: ok.length ? ok[ok.length - 1].avg : NaN, firstN: ok.length ? ok[0].n : NaN, lastN: ok.length ? ok[ok.length - 1].n : NaN, measured: ok.length, peak: Math.max(...ok.map(x => x.peak).filter(isFinite), -Infinity) };
 }
 function intervalWork(A, ER) {
   const B = cleanBeats(A), s10 = rollingHR(A, 10, 2, B); if (s10.length < 30) return null;

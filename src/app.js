@@ -88,7 +88,7 @@ function cleanMeta(m) {
     device: str(m.device, 40) || 'Polar H10', fw: str(m.fw, 20), battery: num(m.battery) != null ? Math.round(Math.max(0, Math.min(100, m.battery))) : null,
     gap: Math.max(0, num(m.gap) || 0), paused: Math.max(0, num(m.paused) || 0),
     // a pause still open when the recording was cut off (t1 null) is kept: the interval timer stopped from then on
-    pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && (p.t1 == null || (num(p.t1) != null && p.t1 >= p.t0))).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 == null ? null : p.t1 })) : [],
+    pauses: Array.isArray(m.pauses) ? m.pauses.filter(p => p && num(p.t0) != null && (p.t1 === null || (num(p.t1) != null && p.t1 >= p.t0))).slice(0, 2000).map(p => ({ t0: p.t0, t1: p.t1 })) : [],
     rr: Array.isArray(m.rr) ? m.rr.filter(p => Array.isArray(p) && num(p[0]) != null && num(p[1]) != null).slice(0, 200000).map(p => [p[0], p[1]]) : null,
     source: str(m.source, 120), notes: str(m.notes, 200),
     trainType: own(TRAIN_TYPES, m.trainType), recovery: m.recovery === 'passive' ? 'passive' : m.recovery === 'active' ? 'active' : '', recMark: num(m.recMark), stopWhy: ['user', 'auto', 'limit'].includes(m.stopWhy) ? m.stopWhy : '', plan: cleanPlan(m.plan), planT0: num(m.planT0), standMark: num(m.standMark)
@@ -537,7 +537,7 @@ function onData(ev) {
 }
 function sessionMeta(status) {
   return { id: S.sessionId, start: S.startMs, status, samples: S.total, gap: S.gapSamples, paused: S.pausedSamples, pauses: S.pauses, rr: S.rr,
-    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, planT0: S.ivTap != null && Number.isFinite(activeToRec(S.ivTap, S.pauses, IV_COUNT)) ? activeToRec(S.ivTap, S.pauses, IV_COUNT) : null, recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
+    ctx: S.ctx, pos: CTX[S.ctx] && CTX[S.ctx].noPos ? '' : S.pos, standMark: S.standMark, notes: S.notes || '', trainType: S.trainType || '', recovery: S.recovery || '', plan: S.plan || null, planT0: planT0Now(), recMark: S.recMark, stopWhy: S.stopWhy || '', device: S.devName, fw: S.fw, battery: S.battery, accFs: S.acc.fs || 0, accT0: S.acc.t0 || 0 };
 }
 
 /* ---------- start / pause / stop ---------- */
@@ -740,10 +740,20 @@ function ivPhase(p, t) {
 }
 // seconds on the interval clock (0 = round 1 starts): un-paused time since Start intervals, less the 3-2-1
 function ivTime(el) { return activeBetween(S.ivTap, el, S.pauses) - IV_COUNT; }
+/* the start of round 1 in recording time, saved with the recording (null = Start intervals never tapped). Still paused
+   in the 3-2-1: when round 1 would begin if resumed now, so a recording that ends there shows no rounds */
+function planT0Now() {
+  if (S.ivTap == null) return null;
+  const t = activeToRec(S.ivTap, S.pauses, IV_COUNT);
+  if (Number.isFinite(t)) return t;
+  const now = S.total / FS; return now + Math.max(0, IV_COUNT - activeBetween(S.ivTap, now, S.pauses));
+}
+// the end of the last round in recording time: where the automatic Start recovery is placed
+function ivEndRec() { const p = S.plan; return activeToRec(S.ivTap, S.pauses, IV_COUNT + p.n * p.w + (p.n - 1) * p.r); }
 function ivFinish() {   // end of the last round: Start recovery, without cancelling the end beeps still playing
   if (S.recMark != null) return;
   CQ.timers.forEach(clearTimeout); CQ.timers = []; S.planned = null;
-  markRecovery();
+  markRecovery(ivEndRec());
 }
 function tickIntervals(el, P) {
   const p = S.plan;
@@ -771,7 +781,10 @@ function tickIntervals(el, P) {
         e.k === 'tick' ? CUE.tick : e.k === 'work' ? CUE.go : e.k === 'rest' ? CUE.rest : CUE.end);
   }
   const ph = ivPhase(p, t);
-  if (ph.k === 'done') { if (S.recMark == null) { S.ivDone = ev.length - 1; markRecovery(); } return; }   // a missed end cue (paused): mark anyway
+  if (ph.k === 'done') {   // the end cue was missed (paused, or the page stalled): play it once unless it was scheduled, and mark anyway
+    if (S.recMark == null) { if (S.planned !== 'iv' + (ev.length - 1) && !S.paused) { playPattern(CUE.end); buzz(true); } S.ivDone = ev.length - 1; markRecovery(ivEndRec()); }
+    return;
+  }
   P.classList.toggle('go', ph.k === 'work');
   $('#spLabel').textContent = ph.k === 'count' ? 'Get ready' : 'Round';
   $('#spStep').textContent = ph.k === 'count' ? Math.ceil(ph.left) : ph.i + '/' + p.n;
@@ -818,8 +831,10 @@ function recoveryCutNote(recMark, end) {
   if (recMark == null || end - recMark >= 60) return '';
   return ` Recovery was cut short: the recording stopped ${Math.round(end - recMark)} s after Start recovery, so it can't be measured. Next time, keep recording for 2 minutes after Start recovery.`;
 }
-function markRecovery() {
-  S.recMark = S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
+// t: the moment recovery starts (a tap: now; the interval timer: the scheduled end of the last round, even if the
+// newest ECG packet is a fraction of a second behind or the timer ran late)
+function markRecovery(t = S.total / FS) {
+  S.recMark = Number.isFinite(t) ? t : S.total / FS; $('#btnRecov').disabled = true; $('#btnRecov').textContent = 'Recovery started · ' + hms((S.total - S.pausedSamples - S.gapSamples) / FS).slice(3);
   $('#btnIntervals').hidden = true; putSession(sessionMeta('recording')); tickTraining();
 }
 $('#btnRecov').onclick = () => {
@@ -827,7 +842,7 @@ $('#btnRecov').onclick = () => {
   cancelCues(); markRecovery(); cue(false);
 };
 $('#btnIntervals').onclick = () => {
-  if (!S.recording || S.recMark != null || S.ivTap != null || !S.plan || S.paused) return;
+  if (!S.recording || S.stopping || S.recMark != null || S.ivTap != null || !S.plan || S.paused) return;
   S.ivTap = elNow(); S.ivDone = -1; $('#btnIntervals').hidden = true;
   putSession(sessionMeta('recording')); tickTraining();
 };

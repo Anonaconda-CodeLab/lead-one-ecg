@@ -48,13 +48,13 @@ function session(plan) {
     'let cueOut = null; const CTX = { training: {} }; const NATIVE = false;',
     fn('cueBus'), fn('tone'), fn('dropTone'), fn('playPattern'), fn('cancelCues'), fn('planCue'), fn('elNow'),
     fn('pauseList'), fn('activeBetween'), fn('activeToRec'),
-    fn('ivTime'), fn('ivEvents'), fn('ivPhase'), fn('ivFinish'), fn('tickIntervals'), fn('sessionMeta'),
+    fn('ivTime'), fn('ivEvents'), fn('ivPhase'), fn('planT0Now'), fn('ivEndRec'), fn('ivFinish'), fn('tickIntervals'), fn('sessionMeta'),
     // Start recovery: the real function, with the button text left out
     fn('markRecovery').replace(/\$\('#btnRecov'\)\.textContent = [^;]*;/, ''),
     'function buzz(strong) { vib.push([performance.now() / 1000, strong]); }', 'function setPausedUI() {}', 'function ms2(s) { return String(Math.ceil(s)); }',
     "function tickTraining() { if (!S.recording || S.recMark != null) return; tickIntervals(elNow(), $('#stepPanel')); }",
     'function putSession(m) { saved.push(JSON.parse(JSON.stringify(m))); if (m.recMark != null && !marks.length) marks.push(m.recMark); }',
-    handler('btnPause'), handler('btnIntervals'),
+    'function cue() {}', handler('btnPause'), handler('btnIntervals'), handler('btnRecov'),
     'return { tickTraining };'
   ].join('\n');
   const vib = [];
@@ -98,7 +98,7 @@ test('live: what is saved with the recording is the pause-adjusted start of roun
   assert.equal(JSON.stringify(m.pauses), '[{"t0":11,"t1":21}]');
   // the plan runs on and Start recovery comes by itself at the end of round 2: 23 + 20 + 10 + 20 = 73 s
   X.advance(60);
-  assert.equal(X.marks.length, 1); assert.ok(Math.abs(X.marks[0] - 73) <= 0.25, 'Start recovery at 73 s: ' + X.marks[0]);
+  assert.equal(X.marks.length, 1); assert.ok(Math.abs(X.marks[0] - 73) < 1e-9, 'Start recovery saved at the scheduled end, 73 s: ' + X.marks[0]);
 });
 
 test('live: a cue missed while the page stalled plays once when the next tick sees its phase', () => {
@@ -175,7 +175,7 @@ test('import: a pause still open when the recording was cut off is kept; broken 
     fn('cleanPlan'), "const TRAIN_TYPES = { intervals: 'Intervals' };", fn('cleanMeta'), 'return cleanMeta;'].join('\n');
   const cleanMeta = new Function(src)();
   const m = cleanMeta({ start: Date.now() - 1000, ctx: 'training', trainType: 'intervals', plan: { w: 20, r: 10, n: 8 }, planT0: 13,
-    pauses: [{ t0: 48, t1: 63 }, { t0: 200, t1: null }, { t0: 'x', t1: 5 }, { t0: 90, t1: 80 }, { t0: 95, t1: 'y' }] });
+    pauses: [{ t0: 48, t1: 63 }, { t0: 200, t1: null }, { t0: 'x', t1: 5 }, { t0: 90, t1: 80 }, { t0: 95, t1: 'y' }, { t0: 25 }] });
   assert.equal(JSON.stringify(m.pauses), '[{"t0":48,"t1":63},{"t0":200,"t1":null}]');
   assert.equal(m.planT0, 13);
 });
@@ -183,12 +183,12 @@ test('import: a pause still open when the recording was cut off is kept; broken 
 test('Details: choosing a different interval plan drops the app timing; the same plan keeps it', async () => {
   const S = { raw: null, meta: { id: 'r1', ctx: 'training', pos: 'sitting', trainType: 'intervals', recovery: 'passive', plan: { w: 20, r: 10, n: 8 }, planT0: 13, sample: false },
     analysis: { dur: 600, gapSec: 0 }, dTT: 'intervals', dRec: 'passive', getPlan2: null };
-  const stored = { id: 'r1', plan: { w: 20, r: 10, n: 8 }, planT0: 13 }, dom = {};
+  let stored = { id: 'r1', plan: { w: 20, r: 10, n: 8 }, planT0: 13 }; const dom = {};
   const $ = sel => dom[sel] || (dom[sel] = { value: '', hidden: false, onclick: null, val: { '#ctxChips2': 'training', '#posChips2': 'sitting' }[sel] });
   const src = decl("$('#btnDetailsSave').onclick = async () => {", '\n};').replace("$('#btnDetailsSave').onclick = async () => {", 'return async () => {');
   const save = new Function('S', '$', 'chipVal', 'str', 'analyze', 'analyzeOpts', 'getSession', 'putSession', 'putHistory', 'historyEntry', 'renderInto', 'toast',
     src)(S, $, el => el.val, s => s, null, null,
-    async () => stored, async s => Object.assign(stored, s), async () => {}, () => ({}), async () => {}, () => {});
+    async () => JSON.parse(JSON.stringify(stored)), async s => { stored = JSON.parse(JSON.stringify(s)); }, /* a copy, as from IndexedDB */ async () => {}, () => ({}), async () => {}, () => {});
   S.getPlan2 = () => ({ w: 20, r: 10, n: 8 }); await save();
   assert.equal(S.meta.planT0, 13, 'same plan: still timed'); assert.equal(stored.planT0, 13);
   S.getPlan2 = () => ({ w: 30, r: 30, n: 10 }); await save();
@@ -208,4 +208,30 @@ test('live: a late rest cue and the next work cue in the same tick each sound an
   assert.equal(at(33.95, 34.05).length, 1, 'work cue on time'); assert.equal(at(33.95, 34.05)[0].f, GO);
   const v = X.vib.filter(x => x[0] > 33 && x[0] < 35);
   assert.equal(JSON.stringify(v.map(x => x[1])), '[false,true]', 'one rest vibration, then one work vibration: ' + JSON.stringify(v));
+});
+
+test('live: Start recovery while paused in the 3-2-1 is saved so the report shows no rounds', () => {
+  const X = session({ w: 20, r: 10, n: 8 });
+  X.advance(100); X.press('#btnIntervals');            // round 1 due at 103 s
+  X.advance(1); X.press('#btnPause');                   // paused at 101 s, 2 s of the count left
+  X.advance(4); X.press('#btnRecov');                   // Start recovery at 105 s, still paused
+  const m = X.saved[X.saved.length - 1];
+  assert.equal(m.recMark, 105); assert.ok(m.planT0 >= m.recMark, 'round 1 saved as not reached: ' + m.planT0);
+  assert.ok(Math.abs(m.planT0 - 107) < 1e-9, 'when it would have begun: ' + m.planT0);
+});
+
+test('live: the end cue missed while the page stalled still plays once, and recovery starts', () => {
+  const X = session({ w: 20, r: 10, n: 1 });            // round 1 13-33 s, the end at 33 s
+  X.advance(10); X.press('#btnIntervals');
+  X.advance(21.6); X.advance(1.9, { stall: true }); X.advance(1);   // no ticks 31.6-33.5 s
+  const end = X.P.heard().filter(x => x.t > 33 && x.t < 34.5);
+  assert.equal(end.length, 3, 'the falling three-note end cue, once: ' + JSON.stringify(end));
+  assert.equal(X.vib.filter(x => x[0] > 33 && x[0] < 34.5).length, 1, 'one vibration');
+  assert.equal(X.marks.length, 1); assert.equal(X.marks[0], 33, 'Start recovery at the scheduled end');
+});
+
+test('live: Start intervals does nothing once Stop is held', () => {
+  const X = session({ w: 20, r: 10, n: 2 });
+  X.advance(10); X.S.stopping = true; X.press('#btnIntervals');
+  assert.equal(X.S.ivTap, null); assert.equal(X.saved.length, 0, 'nothing saved');
 });

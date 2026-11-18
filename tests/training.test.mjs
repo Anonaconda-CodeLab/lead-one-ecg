@@ -443,3 +443,39 @@ test('HRV page: the population gauge only beside a graded RMSSD', async () => {
   assert.match(med, /not graded for this kind of reading, so no population range is shown/);
   assert.match(L.renderReport(R, { start: Date.now(), ctx: 'morning', pos: 'lying' }, st, []), /<div class="cols-hrv">\s*<div class="fig">/, 'morning: graded, gauge shown');
 });
+
+test('interval plan: second-round edge cases (measured rounds named, Stop in the count, early marks, stopped rows)', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  const tab = { w: 20, r: 10, n: 8 }, st = { sex: 'M', dob: '1968-01-01' };
+  const txt = s => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+  const meta = { start: Date.now(), ctx: 'training', pos: 'sitting', trainType: 'intervals', recovery: 'passive', plan: tab };
+  // a round that started 0.8 s before Start recovery is kept, as stopped
+  const K = L.planWork(A, A.exercise, tab, 200.8, 170);
+  assert.equal(K.rounds.length, 2); assert.equal(K.rounds[1].partial, true); assert.equal(K.done, 1);
+  // the rounds named are the ones measured: round 1 without beats, rounds 2-3 measured
+  const B = { ...A, rrOk: A.rrOk.map((v, k) => A.t[k] >= 168 && A.t[k] <= 192 ? 0 : v) };
+  const M = L.planWork(B, A.exercise, tab, 260, 170);
+  assert.equal(M.firstN, 2); assert.equal(M.lastN, 3);
+  const T = txt(L.renderReport(B, { ...meta, recMark: 260, planT0: 170 }, st, []));
+  assert.match(T, /average heart rate went from \d+ bpm in round 2 to \d+ bpm in round 3/);
+  assert.ok(!/rose from/.test(T), 'neutral wording');
+  // the recording ended in the 3-2-1 without Start recovery (Stop held)
+  const Z = txt(L.renderReport(A, { ...meta, recMark: null, planT0: A.dur + 1 }, st, []));
+  assert.match(Z, /The recording ended before round 1 began \(during the 3-2-1\)/);
+  assert.ok(!/Start recovery came before round 1/.test(Z));
+  // a 20-round plan stopped in round 20: its row is shown
+  const long = { w: 10, r: 5, n: 20 }, P20 = L.planWork(A, A.exercise, long, 100 + 19 * 15 + 5, 100);
+  assert.equal(P20.rounds[19].partial, true);
+  const T20 = txt(L.renderReport(A, { ...meta, plan: long, recMark: 100 + 19 * 15 + 5, planT0: 100 }, st, []));
+  assert.match(T20, /20 \(stopped\)/);
+});
+
+test('an early Start recovery needs heart rate before it, not only after', async () => {
+  const { analyze, makeDemo } = load(); const d = makeDemo(36, 3, 'intervals');
+  const A = await analyze(d.raw, { age: 45, rr: d.rr, ctx: 'training' });
+  // no clean beats before 13 s: a mark at 12 s has no heart rate before it
+  const B = { ...A, rrOk: A.rrOk.map((v, k) => A.t[k] < 13 ? 0 : v) };
+  assert.notEqual(L.exerciseResponse(B, 12).src, 'marked', 'not accepted on recovery beats alone');
+  assert.equal(L.exerciseResponse(A, 14).src, 'marked', 'accepted with heart rate before it');
+});

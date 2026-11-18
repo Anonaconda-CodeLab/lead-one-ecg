@@ -173,16 +173,25 @@ jobs:
           # the old pre-release and its tag go first, each on its own: a tag left behind by an interrupted run would
           # otherwise keep the new release on the old commit. Only "not there" is accepted; any other error stops.
           # (Remark's clear_prerelease, from its CodeRabbit review, 14 Nov 2026)
+          # the HTTP status line decides (gh api --include), not words in an error message
+          status() { printf '%s\n' "$1" | grep -m1 -oE '^HTTP/[0-9.]+ [0-9]{3}' | grep -oE '[0-9]{3}$'; }
           clear_prerelease() {
-            # the release, looked up through the REST API: only a 404 means "not there"
-            if out=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$1" 2>&1); then gh release delete "$1" --yes
-            elif ! grep -q 'HTTP 404' <<<"$out"; then echo "::error::Could not check the old $1 release: $out"; exit 1; fi
-            # its tag: a 404 on the DELETE too means someone removed it meanwhile, which is fine; anything else stops
-            if out=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$1" 2>&1); then
-              if ! del=$(gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$1" --silent 2>&1) && ! grep -q 'HTTP 404' <<<"$del"; then
-                echo "::error::Could not delete the old $1 tag: $del"; exit 1
-              fi
-            elif ! grep -q 'HTTP 404' <<<"$out"; then echo "::error::Could not check the old $1 tag: $out"; exit 1; fi
+            # the release: 200 = delete it (a failed delete stops), 404 = not there, anything else stops
+            out=$(gh api --include "repos/$GITHUB_REPOSITORY/releases/tags/$1" 2>&1) || true
+            case "$(status "$out")" in
+              200) gh release delete "$1" --yes ;;
+              404) ;;
+              *) echo "::error::Could not check the old $1 release: $out"; exit 1 ;;
+            esac
+            # its tag: the same; a 404 on the DELETE too means someone removed it meanwhile, which is fine
+            out=$(gh api --include "repos/$GITHUB_REPOSITORY/git/ref/tags/$1" 2>&1) || true
+            case "$(status "$out")" in
+              200)
+                del=$(gh api --include -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$1" 2>&1) || true
+                case "$(status "$del")" in 204|404) ;; *) echo "::error::Could not delete the old $1 tag: $del"; exit 1 ;; esac ;;
+              404) ;;
+              *) echo "::error::Could not check the old $1 tag: $out"; exit 1 ;;
+            esac
           }
           clear_prerelease android-test
           gh release create android-test "LeadOne-ECG-$VER.apk" --prerelease --target "$GITHUB_SHA" \
